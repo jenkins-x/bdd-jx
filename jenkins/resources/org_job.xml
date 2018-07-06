@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<jenkins.branch.OrganizationFolder plugin="branch-api@2.0.11">
+  <actions>
+    <io.jenkins.blueocean.service.embedded.BlueOceanUrlAction plugin="blueocean-rest-impl@1.1.6">
+      <blueOceanUrlObject class="io.jenkins.blueocean.service.embedded.BlueOceanUrlObjectImpl">
+        <mappedUrl>blue/organizations/jenkins/pipelines/</mappedUrl>
+      </blueOceanUrlObject>
+    </io.jenkins.blueocean.service.embedded.BlueOceanUrlAction>
+  </actions>
+  <description></description>
+  <properties>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.config.FolderConfig plugin="pipeline-model-definition@1.1.9">
+      <dockerLabel></dockerLabel>
+      <registry plugin="docker-commons@1.8"/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.config.FolderConfig>
+    <jenkins.branch.NoTriggerOrganizationFolderProperty>
+      <branches>.*</branches>
+    </jenkins.branch.NoTriggerOrganizationFolderProperty>
+  </properties>
+  <folderViews class="jenkins.branch.OrganizationFolderViewHolder">
+    <owner reference="../.."/>
+  </folderViews>
+  <healthMetrics>
+    <com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric plugin="cloudbees-folder@6.1.2">
+      <nonRecursive>false</nonRecursive>
+    </com.cloudbees.hudson.plugins.folder.health.WorstChildHealthMetric>
+  </healthMetrics>
+  <icon class="jenkins.branch.MetadataActionFolderIcon">
+    <owner class="jenkins.branch.OrganizationFolder" reference="../.."/>
+  </icon>
+  <orphanedItemStrategy class="com.cloudbees.hudson.plugins.folder.computed.DefaultOrphanedItemStrategy"
+                        plugin="cloudbees-folder@6.1.2">
+    <pruneDeadBranches>true</pruneDeadBranches>
+    <daysToKeep>-1</daysToKeep>
+    <numToKeep>-1</numToKeep>
+  </orphanedItemStrategy>
+  <triggers/>
+  <disabled>false</disabled>
+  <navigators>
+    <org.jenkinsci.plugins.github__branch__source.GitHubSCMNavigator plugin="github-branch-source@2.2.3">
+      <repoOwner>fabric8-quickstarts-tests</repoOwner>
+      <credentialsId>cd-github</credentialsId>
+      <traits>
+        <jenkins.scm.impl.trait.WildcardSCMSourceFilterTrait plugin="scm-api@2.2.0">
+          <includes>*</includes>
+          <excludes></excludes>
+        </jenkins.scm.impl.trait.WildcardSCMSourceFilterTrait>
+        <org.jenkinsci.plugins.github__branch__source.BranchDiscoveryTrait>
+          <strategyId>1</strategyId>
+        </org.jenkinsci.plugins.github__branch__source.BranchDiscoveryTrait>
+        <org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait>
+          <strategyId>1</strategyId>
+        </org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait>
+        <org.jenkinsci.plugins.github__branch__source.ForkPullRequestDiscoveryTrait>
+          <strategyId>1</strategyId>
+          <trust class="org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait$TrustContributors"/>
+        </org.jenkinsci.plugins.github__branch__source.ForkPullRequestDiscoveryTrait>
+        <jenkins.scm.impl.trait.RegexSCMHeadFilterTrait plugin="scm-api@2.2.0">
+          <regex>master|PR.*</regex>
+        </jenkins.scm.impl.trait.RegexSCMHeadFilterTrait>
+      </traits>
+    </org.jenkinsci.plugins.github__branch__source.GitHubSCMNavigator>
+  </navigators>
+  <projectFactories>
+    <org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectFactory plugin="workflow-multibranch@2.16">
+      <scriptPath>Jenkinsfile</scriptPath>
+    </org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectFactory>
+  </projectFactories>
+</jenkins.branch.OrganizationFolder>

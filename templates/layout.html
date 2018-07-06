@@ -1,0 +1,4 @@
+<ul>{{range .}}{{if .Fail}}
+  <li class="fail">{{.Name}}: FAIL</li>{{else}}
+  <li class="pass">{{.Name}}: PASS</li>{{end}}{{end}}
+</ul>

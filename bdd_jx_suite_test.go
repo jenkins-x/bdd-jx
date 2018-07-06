@@ -28,6 +28,6 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	//os.RemoveAll(WorkDir)
-	//Expect(WorkDir).ToNot(BeADirectory())
+	os.RemoveAll(WorkDir)
+	Expect(WorkDir).ToNot(BeADirectory())
 })

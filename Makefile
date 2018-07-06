@@ -73,6 +73,9 @@ test-parallel: info
 test-import: info
 	ginkgo --slowSpecThreshold=50000 --focus=import
 
+test-create-spring: info
+	ginkgo --slowSpecThreshold=50000 --focus="create spring"
+
 test-quickstart-android-quickstart: info
 	ginkgo --slowSpecThreshold=50000 --focus=android-quickstart
 

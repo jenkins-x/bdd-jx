@@ -15,8 +15,8 @@ import (
 
 // ReporterHTML struct for containing all spec results during suite run
 type ReporterHTML struct {
-	SpecFailures map[string][]bool
-	SpecNames    []string
+	SpecFailures map[string][]bool `json:"spec_failures"`
+	SpecNames    []string          `json:"spec_names"`
 }
 
 // SpecResult struct for writing results to template
@@ -25,7 +25,7 @@ type SpecResult struct {
 	Fail bool
 }
 
-// SpecSuiteWillBegin Implements ginkgo.Reporter interface
+// SpecSuiteWillBegin Implements ginkgo.Reporter interface. Does not run in parallel mode.
 func (r *ReporterHTML) SpecSuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
 }
 
@@ -39,15 +39,18 @@ func (r *ReporterHTML) SpecWillRun(specSummary *types.SpecSummary) {}
 func (r *ReporterHTML) SpecDidComplete(specSummary *types.SpecSummary) {
 	readLine := strings.TrimSuffix(specSummary.ComponentTexts[1], "\n")
 	if !specSummary.Skipped() {
-		r.SpecFailures[readLine] = append(r.SpecFailures[specSummary.ComponentTexts[1]], specSummary.Failed())
+		r.SpecFailures[readLine] = append(r.SpecFailures[readLine], specSummary.Failed())
 	}
 }
 
-// AfterSuiteDidRun Implements ginkgo.Reporter interface
+// AfterSuiteDidRun Implements ginkgo.Reporter interface.
 func (r *ReporterHTML) AfterSuiteDidRun(setupSummary *types.SetupSummary) {}
 
-// SpecSuiteDidEnd Implements ginkgo.Reporter interface
-func (r *ReporterHTML) SpecSuiteDidEnd(summary *types.SuiteSummary) {
+// SpecSuiteDidEnd Implements ginkgo.Reporter interface. Does not run in parallel mode.
+func (r *ReporterHTML) SpecSuiteDidEnd(summary *types.SuiteSummary) {}
+
+// CreateHTMLReport Creates a HTML report from a final report assembled in the SynchronizedAfterSuite hook.
+func (r *ReporterHTML) CreateHTMLReport() {
 	r.SpecNames = []string{}
 	for k := range r.SpecFailures {
 		r.SpecNames = append(r.SpecNames, k)
@@ -66,7 +69,7 @@ func (r *ReporterHTML) SpecSuiteDidEnd(summary *types.SuiteSummary) {
 	tmpl := template.Must(template.ParseFiles("./templates/layout.html"))
 	ti := time.Now()
 	time := ti.Format("2006_01_02_15_04_05")
-	fileName := RemoveSpaces(ToSnakeCase(summary.SuiteDescription + "_" + time))
+	fileName := RemoveSpaces(ToSnakeCase("report_" + time))
 
 	f, err := os.Create("./reports/" + fileName + ".html")
 	if err != nil {

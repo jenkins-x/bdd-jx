@@ -2,3 +2,4 @@ build/
 vendor/
 .idea/
 reports/*.html
+reports/*.json

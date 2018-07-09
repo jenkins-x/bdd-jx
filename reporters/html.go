@@ -19,6 +19,12 @@ type ReporterHTML struct {
 	SpecNames    []string          `json:"spec_names"`
 }
 
+// SpecResults struct for writing results to template
+type SpecResults struct {
+	Results       []SpecResult
+	TimeCompleted string
+}
+
 // SpecResult struct for writing results to template
 type SpecResult struct {
 	Name string
@@ -56,7 +62,7 @@ func (r *ReporterHTML) CreateHTMLReport() {
 		r.SpecNames = append(r.SpecNames, k)
 	}
 	sort.Strings(r.SpecNames)
-	data := []SpecResult{}
+	data := SpecResults{}
 	for _, i := range r.SpecNames {
 		result := SpecResult{Name: i}
 		if Contains(r.SpecFailures[i], true) {
@@ -64,14 +70,14 @@ func (r *ReporterHTML) CreateHTMLReport() {
 		} else {
 			result.Fail = false
 		}
-		data = append(data, result)
+		data.Results = append(data.Results, result)
 	}
+	ti := time.Now().UTC()
+	time := ti.Format("2 Jan 2006 15:04 UTC")
+	data.TimeCompleted = time
 	tmpl := template.Must(template.ParseFiles("./templates/layout.html"))
-	ti := time.Now()
-	time := ti.Format("2006_01_02_15_04_05")
-	fileName := RemoveSpaces(ToSnakeCase("report_" + time))
 
-	f, err := os.Create("./reports/" + fileName + ".html")
+	f, err := os.Create("./reports/build-status.html")
 	if err != nil {
 		log.Fatal("Execute: ", err)
 		return

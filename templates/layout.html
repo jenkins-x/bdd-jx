@@ -1,4 +1,23 @@
-<ul>{{range .}}{{if .Fail}}
-  <li class="fail">{{.Name}}: FAIL</li>{{else}}
-  <li class="pass">{{.Name}}: PASS</li>{{end}}{{end}}
+---
+title: Build Status
+linktitle: Build Status
+description: The build status of Jenkins-X
+date: {{.TimeCompleted}}
+publishdate: {{.TimeCompleted}}
+lastmod: {{.TimeCompleted}}
+menu:
+  docs:
+    parent: "developing"
+    weight: 45
+weight: 45
+sections_weight: 45
+draft: false
+toc: true
+---
+
+Last updated at: {{.TimeCompleted}}
+
+<ul class="build_status">{{range .Results}}{{if .Fail}}
+  <li class="fail">{{.Name}} <span class="fail"></span></li>{{else}}
+  <li class="pass">{{.Name}} <span class="pass"></span></li>{{end}}{{end}}
 </ul>

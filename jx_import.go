@@ -25,6 +25,7 @@ var _ = Describe("import\n", func() {
 			WorkDir: WorkDir,
 			Factory: cmd.NewFactory(),
 		}
+		T.GitProviderURL()
 	})
 
 	Describe("Given valid parameters", func() {

@@ -110,7 +110,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 				WorkDir: WorkDir,
 				Factory: cmd.NewFactory(),
 			}
-
+			T.GitProviderURL()
 		})
 
 		Describe("Given valid parameters", func() {

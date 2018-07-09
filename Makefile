@@ -49,6 +49,9 @@ ifndef GIT_ORGANISATION
 else
 	@echo "GIT_ORGANISATION set to $(GIT_ORGANISATION)"
 endif
+ifdef GIT_PROVIDER_URL
+	@echo "GIT_PROVIDER_URL set to ${GIT_PROVIDER_URL}"
+endif
 ifdef JX_DISABLE_DELETE_APP
 	@echo "JX_DISABLE_DELETE_APP is set. Apps created in the test run will NOT be deleted"
 else
@@ -59,6 +62,14 @@ ifdef JX_DISABLE_DELETE_REPO
 else
 	@echo "JX_DISABLE_DELETE_REPO is not set. If you would like to disable the automatic deletion of repos created by the tests set this variable to TRUE."
 endif
+
+configure-ghe:
+	echo "Setting up GitHub Enterprise support for user $(GHE_USER) email: $(GITEA_EMAIL)"
+	jx create git server github $(GIT_PROVIDER_URL) -n GHE
+	jx --version
+	jx get git server
+	#jx delete git server github.com 
+	jx create git token -n GHE $(GHE_USER) -t $(GHE_TOKEN)
 
 all: test
 

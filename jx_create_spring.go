@@ -20,7 +20,7 @@ var _ = Describe("create spring\n", func() {
 			WorkDir: WorkDir,
 			Factory: cmd.NewFactory(),
 		}
-
+		T.GitProviderURL()
 	})
 
 	Describe("Given valid parameters", func() {

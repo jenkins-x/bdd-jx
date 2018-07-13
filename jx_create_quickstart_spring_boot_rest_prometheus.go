@@ -1,3 +1,11 @@
 package bdd_jx
 
-var _ = CreateQuickstartTests("spring-boot-rest-prometheus")
+import (
+	. "github.com/onsi/ginkgo"
+)
+
+//var _ = CreateQuickstartTests("spring-boot-rest-prometheus")
+
+var _ = PDescribe("quickstart spring-boot-rest-prometheus", func() {
+	PIt("Creates an app", func() {})
+})

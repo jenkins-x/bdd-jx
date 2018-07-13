@@ -1,3 +1,11 @@
 package bdd_jx
 
-var _ = CreateQuickstartTests("vertx-rest-prometheus")
+import (
+	. "github.com/onsi/ginkgo"
+)
+
+//var _ = CreateQuickstartTests("vertx-rest-prometheus")
+
+var _ = PDescribe("quickstart vertx-rest-prometheus", func() {
+	PIt("Creates an app", func() {})
+})

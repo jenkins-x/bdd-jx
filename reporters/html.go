@@ -43,9 +43,11 @@ func (r *ReporterHTML) SpecWillRun(specSummary *types.SpecSummary) {}
 
 // SpecDidComplete Implements ginkgo.Reporter interface
 func (r *ReporterHTML) SpecDidComplete(specSummary *types.SpecSummary) {
-	readLine := strings.TrimSuffix(specSummary.ComponentTexts[1], "\n")
 	if !specSummary.Skipped() {
-		r.SpecFailures[readLine] = append(r.SpecFailures[readLine], specSummary.Failed())
+		if !specSummary.Passed() {
+			readLine := strings.TrimSuffix(specSummary.ComponentTexts[1], "\n")
+			r.SpecFailures[readLine] = append(r.SpecFailures[readLine], true)
+		}
 	}
 }
 

@@ -79,7 +79,7 @@ test: info
 	ginkgo --slowSpecThreshold=50000
 
 test-parallel: info
-	ginkgo --slowSpecThreshold=50000 -p
+	ginkgo --slowSpecThreshold=50000 -p --nodes 8
 
 test-import: info
 	ginkgo --slowSpecThreshold=50000 --focus=import

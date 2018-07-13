@@ -27,7 +27,7 @@ var _ = Describe("create spring\n", func() {
 		Context("when running jx create spring", func() {
 			It("creates a spring application and promotes it to staging\n", func() {
 				c := "jx"
-				args := []string{"create", "spring", "-b", "--org", T.GetGitOrganisation(), "--artifact", T.AppName, "--name", T.AppName}
+				args := []string{"create", "spring", "-b", "--org", T.GetGitOrganisation(), "--artifact", T.AppName, "--name", T.AppName, "-d", "web", "-d", "actuator"}
 				command := exec.Command(c, args...)
 				command.Dir = T.WorkDir
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)

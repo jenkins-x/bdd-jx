@@ -196,8 +196,8 @@
     "kb",
     "runner"
   ]
-  revision = "34591780d9d429c470ccf81a2760c40245fc823a"
-  version = "v0.1.2"
+  revision = "0406fa8a8ae689ea13f9161dc9c53efbb562361c"
+  version = "v0.1.1"
 
 [[projects]]
   name = "github.com/cpuguy83/go-md2man"
@@ -206,10 +206,22 @@
   version = "v1.0.8"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/danwakefield/fnmatch"
+  packages = ["."]
+  revision = "cbb64ac3d964b81592e64f957ad53df015803288"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/denormal/go-gitignore"
+  packages = ["."]
+  revision = "75ce8f3e513c43114d0f650d5d2e91505fd944ef"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
@@ -302,8 +314,8 @@
     "proto",
     "sortkeys"
   ]
-  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
-  version = "v1.0.0"
+  revision = "7d68e886eac4f7e34d0d82241a6273d6c304c5cf"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -333,7 +345,7 @@
   branch = "master"
   name = "github.com/google/go-github"
   packages = ["github"]
-  revision = "fe267204ab6dc819efe645730b03eb44cbca91f1"
+  revision = "b14883f2b71b5f7dd303ed96d00bfaefeaeecea2"
 
 [[projects]]
   branch = "master"
@@ -369,7 +381,7 @@
     "openstack/utils",
     "pagination"
   ]
-  revision = "090ebf59c5222a7718b58633ea4a22a7740c9be4"
+  revision = "edd944db6f0236dd272a0a320d2cd02cfeea6425"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -540,7 +552,7 @@
     "pkg/util",
     "pkg/version"
   ]
-  revision = "cfc8f8c0e5a14f5e6988c2f1455d1dd1b48a0c95"
+  revision = "0ddcbb1b622b358904ba2e0667ba454e8a77f439"
 
 [[projects]]
   name = "github.com/jmespath/go-jmespath"

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	cmd "github.com/jenkins-x/jx/pkg/jx/cmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -85,7 +86,22 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() error {
 		t.JenkinsClient = client
 	}
 	fmt.Fprintf(GinkgoWriter, "Checking that there is a job built successfully for %s\n", jobName)
-	return jenkins.ThereShouldBeAJobThatCompletesSuccessfully(jobName, t.JenkinsClient)
+
+	f := func() error {
+		err := jenkins.ThereShouldBeAJobThatCompletesSuccessfully(jobName, t.JenkinsClient)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	exponentialBackOff := backoff.NewExponentialBackOff()
+	exponentialBackOff.MaxElapsedTime = 30 * time.Minute
+	exponentialBackOff.Reset()
+	err := backoff.Retry(f, exponentialBackOff)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // DeleteApps should we delete apps after the quickstart has run

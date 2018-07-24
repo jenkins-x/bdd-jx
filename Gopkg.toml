@@ -7,12 +7,16 @@
   name = "github.com/jenkins-x/golang-jenkins"
 
 [[constraint]]
+  name = "github.com/cenkalti/backoff"
+  version = "2.0.0"
+
+[[constraint]]
   name = "github.com/onsi/ginkgo"
-  version = "1.5.0"
+  version = "=1.5.0"
 
 [[constraint]]
   name = "github.com/onsi/gomega"
-  version = "1.4.0"
+  version = "=1.4.0"
 
 [prune]
   go-tests = true

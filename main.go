@@ -22,10 +22,13 @@ import (
 func main() { /* usual main func */ }
 
 var (
+	// TempDirPrefix The prefix to append to apps created in testing
 	TempDirPrefix = "bdd-test-"
-	WorkDir       string
+	// WorkDir The current working directory
+	WorkDir string
 )
 
+// Test is the standard testing object
 type Test struct {
 	Factory       cmd.Factory
 	JenkinsClient *gojenkins.Jenkins
@@ -35,6 +38,7 @@ type Test struct {
 	Organisation  string
 }
 
+// GetGitOrganisation Gets the current git organisation/user
 func (t *Test) GetGitOrganisation() string {
 	org := os.Getenv("GIT_ORGANISATION")
 	if org == "" {
@@ -43,6 +47,7 @@ func (t *Test) GetGitOrganisation() string {
 	return org
 }
 
+// GitProviderURL Gets the current git provider URL
 func (t *Test) GitProviderURL() (string, error) {
 	gitProviderURL := os.Getenv("GIT_PROVIDER_URL")
 	if gitProviderURL != "" {
@@ -95,7 +100,7 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() error {
 		return nil
 	}
 	exponentialBackOff := backoff.NewExponentialBackOff()
-	exponentialBackOff.MaxElapsedTime = 30 * time.Minute
+	exponentialBackOff.MaxElapsedTime = 10 * time.Minute
 	exponentialBackOff.Reset()
 	err := backoff.Retry(f, exponentialBackOff)
 	if err != nil {
@@ -110,12 +115,13 @@ func (t *Test) DeleteApps() bool {
 	return strings.ToLower(text) != "true"
 }
 
-// DeleteApps should we delete the git repos after the quickstart has run
+// DeleteRepos should we delete the git repos after the quickstart has run
 func (t *Test) DeleteRepos() bool {
 	text := os.Getenv("JX_DISABLE_DELETE_REPO")
 	return strings.ToLower(text) != "true"
 }
 
+// CreateQuickstartTests Creates quickstart tests
 func CreateQuickstartTests(quickstartName string) bool {
 	return Describe("quickstart "+quickstartName+"\n", func() {
 		var T Test

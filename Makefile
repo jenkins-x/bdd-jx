@@ -16,7 +16,7 @@
 
 SHELL := /bin/bash
 NAME := bdd-jx
-GO := GO15VENDOREXPERIMENT=1 go
+GO := go
 ROOT_PACKAGE := $(shell $(GO) list .)
 GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
 PACKAGE_DIRS := $(shell $(GO) list ./... | grep -v /vendor/)
@@ -139,15 +139,8 @@ fmt:
 install:
 	$(GO) get -u github.com/onsi/ginkgo/ginkgo
 	$(GO) get -u github.com/onsi/gomega/...
-	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
-deps:
-	dep ensure --vendor-only -v
-
-deps-update:
-	dep ensure --update -v
-
-bootstrap: install deps
+bootstrap: install
 
 clean:
 	rm -rf build

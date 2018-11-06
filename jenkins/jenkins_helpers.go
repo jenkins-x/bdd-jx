@@ -27,7 +27,7 @@ func Is404(err error) bool {
 
 // TriggerAndWaitForBuildToStart triggers the build and waits for a new Build for the given amount of time
 // or returns an error
-func TriggerAndWaitForBuildToStart(jenkins *gojenkins.Jenkins, job gojenkins.Job, buildStartWaitTime time.Duration) (result *gojenkins.Build, err error) {
+func TriggerAndWaitForBuildToStart(jenkins gojenkins.JenkinsClient, job gojenkins.Job, buildStartWaitTime time.Duration) (result *gojenkins.Build, err error) {
 	previousBuildNumber := 0
 	previousBuild, err := jenkins.GetLastBuild(job)
 	jobUrl := job.Url
@@ -73,7 +73,7 @@ func TriggerAndWaitForBuildToStart(jenkins *gojenkins.Jenkins, job gojenkins.Job
 
 // TriggerAndWaitForBuildToStart triggers the build and waits for a new Build then waits for the Build to finish
 // or returns an error
-func TriggerAndWaitForBuildToFinish(jenkins *gojenkins.Jenkins, job gojenkins.Job, buildStartWaitTime time.Duration, buildFinishWaitTime time.Duration) (*gojenkins.Build, error) {
+func TriggerAndWaitForBuildToFinish(jenkins gojenkins.JenkinsClient, job gojenkins.Job, buildStartWaitTime time.Duration, buildFinishWaitTime time.Duration) (*gojenkins.Build, error) {
 	build, err := TriggerAndWaitForBuildToStart(jenkins, job, buildStartWaitTime)
 	if err != nil {
 		return build, err
@@ -86,7 +86,7 @@ func TriggerAndWaitForBuildToFinish(jenkins *gojenkins.Jenkins, job gojenkins.Jo
 
 // TriggerAndWaitForBuildToStart triggers the build and waits for a new Build then waits for the Build to finish
 // or returns an error
-func WaitForBuildToFinish(jenkins *gojenkins.Jenkins, job gojenkins.Job, buildNumber int, buildFinishWaitTime time.Duration) (*gojenkins.Build, error) {
+func WaitForBuildToFinish(jenkins gojenkins.JenkinsClient, job gojenkins.Job, buildNumber int, buildFinishWaitTime time.Duration) (*gojenkins.Build, error) {
 	jobUrl := job.Url
 	utils.LogInfof("waiting for job %s build #%d to finish\n", jobUrl, buildNumber)
 	time.Sleep(1 * time.Second)
@@ -123,7 +123,7 @@ func WaitForBuildToFinish(jenkins *gojenkins.Jenkins, job gojenkins.Job, buildNu
 }
 
 // WaitForBuildLog
-func WaitForBuildLog(jenkins *gojenkins.Jenkins, buildURL string, buildFinishWaitTime time.Duration) error {
+func WaitForBuildLog(jenkins gojenkins.JenkinsClient, buildURL string, buildFinishWaitTime time.Duration) error {
 	utils.LogInfof("waiting for job %s to finish\n", buildURL)
 	time.Sleep(1 * time.Second)
 
@@ -148,7 +148,7 @@ func AssertBuildSucceeded(build *gojenkins.Build, jobName string) error {
 
 }
 
-func GetJobByExpression(jobExpression string, jenkins *gojenkins.Jenkins) (job gojenkins.Job, err error) {
+func GetJobByExpression(jobExpression string, jenkins gojenkins.JenkinsClient) (job gojenkins.Job, err error) {
 	jobPath := utils.ReplaceEnvVars(jobExpression)
 
 	paths := strings.Split(jobPath, "/")
@@ -161,7 +161,7 @@ func GetJobByExpression(jobExpression string, jenkins *gojenkins.Jenkins) (job g
 	return
 }
 
-func ThereShouldBeAJobThatCompletesSuccessfully(jobExpression string, jenkins *gojenkins.Jenkins) error {
+func ThereShouldBeAJobThatCompletesSuccessfully(jobExpression string, jenkins gojenkins.JenkinsClient) error {
 	job, err := WaitForJobByExpression(jobExpression, maxWaitForBuildToBeCreated, jenkins)
 	if err != nil {
 		return err
@@ -184,7 +184,7 @@ func ThereShouldBeAJobThatCompletesSuccessfully(jobExpression string, jenkins *g
 	return AssertBuildSucceeded(build, job.Url)
 }
 
-func WaitForJobByExpression(jobExpression string, timeout time.Duration, jenkins *gojenkins.Jenkins) (job gojenkins.Job, err error) {
+func WaitForJobByExpression(jobExpression string, timeout time.Duration, jenkins gojenkins.JenkinsClient) (job gojenkins.Job, err error) {
 	jobPath := utils.ReplaceEnvVars(jobExpression)
 
 	paths := strings.Split(jobPath, "/")

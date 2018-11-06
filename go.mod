@@ -1,4 +1,4 @@
-module github.com/i0n/bdd-jx
+module github.com/jenkins-x/bdd-jx
 
 require (
 	cloud.google.com/go v0.26.0
@@ -7,7 +7,7 @@ require (
 	github.com/Azure/draft v0.15.0
 	github.com/Azure/go-autorest v10.15.2+incompatible
 	github.com/BurntSushi/toml v0.3.0
-	github.com/Jeffail/gabs v0.0.0-20180420203615-7a0fed31069a
+	github.com/Jeffail/gabs v1.1.0
 	github.com/MakeNowJust/heredoc v0.0.0-20171113091838-e9091a26100e
 	github.com/Masterminds/semver v1.4.2
 	github.com/Pallinder/go-randomdata v0.0.0-20180616180521-15df0648130a
@@ -15,7 +15,7 @@ require (
 	github.com/alexflint/go-filemutex v0.0.0-20171028004239-d358565f3c3f
 	github.com/andygrunwald/go-gerrit v0.0.0-20171029143327-95b11af228a1
 	github.com/andygrunwald/go-jira v1.5.0
-	github.com/aws/aws-sdk-go v1.15.16
+	github.com/aws/aws-sdk-go v1.15.50
 	github.com/beevik/etree v1.0.1
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
 	github.com/blang/semver v3.5.1+incompatible
@@ -27,7 +27,7 @@ require (
 	github.com/codeship/codeship-go v0.0.0-20180717142545-7793ca823354
 	github.com/cpuguy83/go-md2man v1.0.8
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
-	github.com/davecgh/go-spew v0.0.0-20180221232628-8991bc29aa16
+	github.com/davecgh/go-spew v1.1.1
 	github.com/denormal/go-gitignore v0.0.0-20180713143441-75ce8f3e513c
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/imaging v1.5.0
@@ -44,7 +44,7 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.2.0
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c
-	github.com/google/go-github v0.0.0-20180819205025-d7732128a00e
+	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 	github.com/googleapis/gax-go v2.0.0+incompatible
@@ -59,16 +59,15 @@ require (
 	github.com/hashicorp/go-version v0.0.0-20180716215031-270f2f71b1ee
 	github.com/hashicorp/golang-lru v0.0.0-20180201235237-0fb14efe8c47
 	github.com/hashicorp/hcl v0.0.0-20180404174102-ef8a98b0bbce
-	github.com/heptio/sonobuoy v0.11.6
+	github.com/heptio/sonobuoy v0.12.0
 	github.com/imdario/mergo v0.3.6
 	github.com/inconshreveable/mousetrap v1.0.0
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 	github.com/jbrukh/bayesian v0.0.0-20161210175230-bf3f261f9a9c
-	github.com/jenkins-x/bdd-jx v0.0.0-20180724153150-ff7e7eda9602
 	github.com/jenkins-x/chyle v0.0.0-20180226080600-68f7a93a63ec
 	github.com/jenkins-x/draft-repo v0.0.0-20180417100212-2f66cc518135
-	github.com/jenkins-x/golang-jenkins v0.0.0-20180712110428-b5ec7e72291c
-	github.com/jenkins-x/jx v1.3.175
+	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
+	github.com/jenkins-x/jx v1.3.518
 	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8
 	github.com/json-iterator/go v1.1.5
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -76,8 +75,9 @@ require (
 	github.com/knative/build v0.1.1 // indirect
 	github.com/knq/snaker v0.0.0-20180306023312-d9ad1e7f342a
 	github.com/knq/sysutil v0.0.0-20180306023629-0218e141a794
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/magiconair/properties v1.8.0
-	github.com/mailru/easyjson v0.0.0-20180730094502-03f2033d19d5
+	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329
 	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-isatty v0.0.3
 	github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -87,8 +87,8 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
 	github.com/nlopes/slack v0.0.0-20180818101218-7cfa5619e6be
-	github.com/onsi/ginkgo v1.5.0
-	github.com/onsi/gomega v1.4.0
+	github.com/onsi/ginkgo v1.6.0
+	github.com/onsi/gomega v1.4.2
 	github.com/pborman/uuid v0.0.0-20170612153648-e790cca94e6c
 	github.com/pelletier/go-buffruneio v0.2.0
 	github.com/pelletier/go-toml v1.2.0
@@ -119,16 +119,16 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/trivago/tgo v1.0.5
 	github.com/viniciuschiele/tarx v0.0.0-20151205142357-6e3da540444d
-	github.com/wbrefvem/go-bitbucket v0.0.0-20180519060909-27c6c0db883c
+	github.com/wbrefvem/go-bitbucket v0.0.0-20180917214347-1c96061fe622
 	github.com/wbrefvem/go-gitlab v0.0.0-20180816222645-636305533ccf
 	github.com/xanzy/ssh-agent v0.2.0
 	go.opencensus.io v0.15.0
 	golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac
 	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81
-	golang.org/x/net v0.0.0-20180821023952-922f4815f713
+	golang.org/x/net v0.0.0-20181102091132-c10e9556a7bc
 	golang.org/x/oauth2 v0.0.0-20180820191322-f720f1faee02
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
-	golang.org/x/sys v0.0.0-20180821044426-4ea2f632f6e9
+	golang.org/x/sys v0.0.0-20181031143558-9b800f95dbbc
 	golang.org/x/text v0.3.0
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
 	google.golang.org/api v0.0.0-20180818000503-e21acd801f91
@@ -136,6 +136,7 @@ require (
 	google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8
 	google.golang.org/grpc v1.14.0
 	gopkg.in/AlecAivazis/survey.v1 v1.6.2
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5
 	gopkg.in/src-d/go-billy.v4 v4.2.0
@@ -146,9 +147,11 @@ require (
 	k8s.io/api v0.0.0-20180806132203-61b11ee65332
 	k8s.io/apiextensions-apiserver v0.0.0-20180806150303-aaea8ffc6057
 	k8s.io/apimachinery v0.0.0-20180821005732-488889b0007f
-	k8s.io/client-go v0.0.0-20180821074022-f2f85107cac6
+	k8s.io/client-go v8.0.0+incompatible
 	k8s.io/helm v2.7.2+incompatible
 	k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c
 	k8s.io/metrics v0.0.0-20180620010437-b11cf31b380b
-	k8s.io/test-infra v0.0.0-20180828095252-3424108b170d // indirect
+	k8s.io/test-infra v0.0.0-20181016234544-2c26f647f17a
 )
+
+replace k8s.io/test-infra v0.0.0-20181016234544-2c26f647f17a => github.com/jenkins-x/test-infra v0.0.0-20181017095642-0e6fed3d4d4d

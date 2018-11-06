@@ -33,7 +33,7 @@ var (
 // Test is the standard testing object
 type Test struct {
 	Factory       cmd.Factory
-	JenkinsClient *gojenkins.Jenkins
+	JenkinsClient gojenkins.JenkinsClient
 	Interactive   bool
 	WorkDir       string
 	AppName       string

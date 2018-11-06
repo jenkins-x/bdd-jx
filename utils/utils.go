@@ -14,7 +14,7 @@ import (
 	"github.com/jenkins-x/golang-jenkins"
 )
 
-func GetJenkinsClient() (*gojenkins.Jenkins, error) {
+func GetJenkinsClient() (gojenkins.JenkinsClient, error) {
 	url := os.Getenv("BDD_JENKINS_URL")
 	if url == "" {
 		return nil, errors.New("no BDD_JENKINS_URL env var set. Try running this command first:\n\n  eval $(gofabric8 bdd-env)\n")

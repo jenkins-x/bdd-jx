@@ -105,7 +105,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "add", fileName)
 	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "commit", "-a", "-m", "My first PR commit")
-	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "push")
+	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "push", "--set-upstream", "origin", "changes")
 
 	o := cmd.CreatePullRequestOptions{
 		CreateOptions: cmd.CreateOptions{
@@ -173,6 +173,8 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 // ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
 func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) {
+	// NOTE Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
+	time.Sleep(20 * time.Second)
 	fmt.Fprintf(GinkgoWriter, "Checking that there is a job built successfully for %s\n", jobName)
 	t.ExpectCommandExecution(t.WorkDir, (time.Minute * 10), 0, "jx", "get", "build", "logs", jobName)
 }
@@ -296,9 +298,6 @@ func CreateQuickstartTests(quickstartName string) bool {
 
 					if T.TestPullRequest() {
 						By("perform a pull request on the source and assert that a preview environment is created")
-						// NOTE Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
-						time.Sleep(20 * time.Second)
-
 						T.CreatePullRequestAndGetPreviewEnvironment(200)
 					}
 

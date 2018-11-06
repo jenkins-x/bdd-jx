@@ -67,7 +67,7 @@ require (
 	github.com/jenkins-x/chyle v0.0.0-20180226080600-68f7a93a63ec
 	github.com/jenkins-x/draft-repo v0.0.0-20180417100212-2f66cc518135
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v1.3.518
+	github.com/jenkins-x/jx v1.3.519
 	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8
 	github.com/json-iterator/go v1.1.5
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51

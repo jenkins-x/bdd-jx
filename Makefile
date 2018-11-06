@@ -40,11 +40,6 @@ GITEA_EMAIL ?= testuser@acme.com
 
 GIT_PROVIDER_URL ?= https://github.com
 
-
-GITEA_USER ?= testuser
-GITEA_PASSWORD ?= testuser
-GITEA_EMAIL ?= testuser@acme.com
-
 GIT_ORGANISATION ?= jenkins-x-tests
 GHE_PROVIDER_URL ?= https://github.beescloud.com
 GHE_USER ?= dev1

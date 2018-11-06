@@ -2,8 +2,6 @@ package bdd_jx
 
 import (
 	"fmt"
-	"github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
-	"github.com/jenkins-x/jx/pkg/util"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -13,14 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jenkins-x/jx/pkg/util"
+
 	"github.com/cenkalti/backoff"
+	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/jx/cmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-
-	"github.com/jenkins-x/bdd-jx/jenkins"
-	"github.com/jenkins-x/golang-jenkins"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,12 +33,11 @@ var (
 
 // Test is the standard testing object
 type Test struct {
-	Factory       cmd.Factory
-	JenkinsClient gojenkins.JenkinsClient
-	Interactive   bool
-	WorkDir       string
-	AppName       string
-	Organisation  string
+	Factory      cmd.Factory
+	Interactive  bool
+	WorkDir      string
+	AppName      string
+	Organisation string
 }
 
 // GetGitOrganisation Gets the current git organisation/user
@@ -77,15 +74,13 @@ func (t *Test) GitProviderURL() (string, error) {
 
 // TheApplicationShouldBeBuiltAndPromotedViaCICD asserts that the project
 // should be created in Jenkins and that the build should complete successfully
-func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() error {
+func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() {
 	appName := t.GetAppName()
 	owner := t.GetGitOrganisation()
 	jobName := owner + "/" + appName + "/master"
 
-	return t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10*time.Minute)
+	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10*time.Minute)
 }
-
-
 
 // CreatePullRequestAndGetPreviewEnvironment asserts that a pull request can be created
 // on the application and the PR goes green and a preview environment is available
@@ -105,7 +100,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	data := []byte("My First PR/n")
 	err := ioutil.WriteFile(readme, data, util.DefaultWritePermissions)
 	if err != nil {
-	  return err
+		panic(err)
 	}
 
 	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "add", fileName)
@@ -115,16 +110,16 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	o := cmd.CreatePullRequestOptions{
 		CreateOptions: cmd.CreateOptions{
 			CommonOptions: cmd.CommonOptions{
-				Factory: t.Factory,
-				Out: os.Stdout,
-				Err: os.Stderr,
+				Factory:   t.Factory,
+				Out:       os.Stdout,
+				Err:       os.Stderr,
 				BatchMode: true,
 			},
 		},
 		Title: "My First PR commit",
-		Body: "PR comments",
-		Dir: workDir,
-		Base: "master",
+		Body:  "PR comments",
+		Dir:   workDir,
+		Base:  "master",
 	}
 
 	err = o.Run()
@@ -137,11 +132,11 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 	jobName := owner + "/" + appName + "/PR-" + strconv.Itoa(*prNumber)
 
-	err = t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10*time.Minute)
+	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10*time.Minute)
 
 	Expect(err).ShouldNot(HaveOccurred())
 	if err != nil {
-	  return err
+		return err
 	}
 
 	// lets verify that there's a Preview Environment...
@@ -169,7 +164,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 		fmt.Printf("Running Preview Environment application at: %s\n", util.ColorInfo(appUrl))
 
-		return t.ExpectUrlReturns(appUrl, statusCode, time.Minute * 5)
+		return t.ExpectUrlReturns(appUrl, statusCode, time.Minute*5)
 	} else {
 		fmt.Printf("No Preview Environment found in namespace %s for application: %s\n", ns, appName)
 	}
@@ -177,30 +172,10 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 }
 
 // ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
-func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) error {
-	o := cmd.CommonOptions{
-		Factory: t.Factory,
-	}
-	if t.JenkinsClient == nil {
-		client, err := o.JenkinsClient()
-		if err != nil {
-			return err
-		}
-		t.JenkinsClient = client
-	}
-
-	fmt.Printf("Checking that there is a job built successfully for %s\n", util.ColorInfo(jobName))
-
-	f := func() error {
-		err := jenkins.ThereShouldBeAJobThatCompletesSuccessfully(jobName, t.JenkinsClient)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	return t.RetryExponentialBackoff(maxDuration, f)
+func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) {
+	fmt.Fprintf(GinkgoWriter, "Checking that there is a job built successfully for %s\n", jobName)
+	t.ExpectCommandExecution(t.WorkDir, (time.Minute * 10), 0, "jx", "get", "build", "logs", jobName)
 }
-
 
 // RetryExponentialBackoff retries the given function up to the maximum duration
 func (t *Test) RetryExponentialBackoff(maxDuration time.Duration, f func() error) error {
@@ -220,7 +195,6 @@ func (t *Test) GetAppName() string {
 	return appName
 }
 
-
 // ExpectCommandExecution performs the given command in the current work directory and asserts that it completes successfully
 func (t *Test) ExpectCommandExecution(dir string, commandTimeout time.Duration, exitCode int, c string, args ...string) {
 	command := exec.Command(c, args...)
@@ -230,7 +204,6 @@ func (t *Test) ExpectCommandExecution(dir string, commandTimeout time.Duration, 
 	session.Wait(commandTimeout)
 	Eventually(session).Should(gexec.Exit(exitCode))
 }
-
 
 // DeleteApps should we delete apps after the quickstart has run
 func (t *Test) DeleteApps() bool {
@@ -261,11 +234,11 @@ func (t *Test) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration 
 	lastLoggedStatus := -1
 	f := func() error {
 		var httpClient = &http.Client{
-		  Timeout: time.Second * 30,
+			Timeout: time.Second * 30,
 		}
 		response, err := httpClient.Get(url)
 		if err != nil {
-		  return err
+			return err
 		}
 		actualStatusCode := response.StatusCode
 		if actualStatusCode != lastLoggedStatus {
@@ -304,7 +277,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 					gitProviderUrl, err := T.GitProviderURL()
 					Expect(err).NotTo(HaveOccurred())
 					if gitProviderUrl != "" {
-						fmt.Fprintf(GinkgoWriter,"Using Git provider URL %s\n", gitProviderUrl)
+						fmt.Fprintf(GinkgoWriter, "Using Git provider URL %s\n", gitProviderUrl)
 						args = append(args, "--git-provider-url", gitProviderUrl)
 					}
 					command := exec.Command(c, args...)
@@ -315,15 +288,18 @@ func CreateQuickstartTests(quickstartName string) bool {
 					Eventually(session).Should(gexec.Exit(0))
 
 					if T.WaitForFirstRelease() {
-						e := T.TheApplicationShouldBeBuiltAndPromotedViaCICD()
-						Expect(e).NotTo(HaveOccurred())
+						By("wait for first release")
+						// NOTE Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
+						time.Sleep(20 * time.Second)
+						T.TheApplicationShouldBeBuiltAndPromotedViaCICD()
 					}
 
 					if T.TestPullRequest() {
 						By("perform a pull request on the source and assert that a preview environment is created")
+						// NOTE Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
+						time.Sleep(20 * time.Second)
 
-						e := T.CreatePullRequestAndGetPreviewEnvironment(200)
-						Expect(e).NotTo(HaveOccurred())
+						T.CreatePullRequestAndGetPreviewEnvironment(200)
 					}
 
 					if T.DeleteApps() {

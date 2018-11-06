@@ -33,7 +33,7 @@ var _ = Describe("create spring\n", func() {
 				gitProviderUrl, err := T.GitProviderURL()
 				Expect(err).NotTo(HaveOccurred())
 				if gitProviderUrl != "" {
-					fmt.Fprintf(GinkgoWriter,"Using Git provider URL %s\n", gitProviderUrl)
+					fmt.Fprintf(GinkgoWriter, "Using Git provider URL %s\n", gitProviderUrl)
 					args = append(args, "--git-provider-url", gitProviderUrl)
 				}
 				command := exec.Command(c, args...)
@@ -44,15 +44,12 @@ var _ = Describe("create spring\n", func() {
 				Eventually(session).Should(gexec.Exit(0))
 
 				if T.WaitForFirstRelease() {
-					e := T.TheApplicationShouldBeBuiltAndPromotedViaCICD()
-					Expect(e).NotTo(HaveOccurred())
+					T.TheApplicationShouldBeBuiltAndPromotedViaCICD()
 				}
 
 				if T.TestPullRequest() {
 					By("perform a pull request on the source and assert that a preview environment is created")
-
-					e := T.CreatePullRequestAndGetPreviewEnvironment(404)
-					Expect(e).NotTo(HaveOccurred())
+					T.CreatePullRequestAndGetPreviewEnvironment(404)
 				}
 
 				if T.DeleteApps() {

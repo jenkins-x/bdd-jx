@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/jenkins-x/bdd-jx/reporters"
@@ -79,6 +80,9 @@ var _ = SynchronizedAfterSuite(func() {
 		os.Remove(f)
 	}
 	// Cleanup workdir as usual
-	os.RemoveAll(WorkDir)
-	Expect(WorkDir).ToNot(BeADirectory())
+	cleanFlag := os.Getenv("JX_DISABLE_CLEAN_DIR")
+	if  strings.ToLower(cleanFlag) != "true" {
+		os.RemoveAll(WorkDir)
+		Expect(WorkDir).ToNot(BeADirectory())
+	}
 })

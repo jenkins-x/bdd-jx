@@ -2,7 +2,8 @@ package bdd_jx
 
 import (
 	"fmt"
-	"github.com/jenkins-x/jx/pkg/log"
+	"github.com/jenkins-x/jx/pkg/util"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -74,13 +75,49 @@ func (t *Test) GitProviderURL() (string, error) {
 // TheApplicationShouldBeBuiltAndPromotedViaCICD asserts that the project
 // should be created in Jenkins and that the build should complete successfully
 func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() error {
-	appName := t.AppName
-	if appName == "" {
-		_, appName = filepath.Split(t.WorkDir)
-	}
+	appName := t.GetAppName()
 	owner := t.GetGitOrganisation()
 	jobName := owner + "/" + appName + "/master"
 
+	return t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10*time.Minute)
+}
+
+
+
+// CreatePullRequestAndGetPreviewEnvironment asserts that a pull request can be created
+// on the application and the PR goes green and a preview environment is available
+func (t *Test) CreatePullRequestAndGetPreviewEnvironment() error {
+	appName := t.GetAppName()
+	workDir := filepath.Join(t.WorkDir, appName)
+	owner := t.GetGitOrganisation()
+
+	fmt.Fprintf(GinkgoWriter, "Creating a Pull Request in folder: %s\n", t.WorkDir)
+
+	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "checkout", "-b", "changes")
+
+	// now lets make a code change
+	fileName := "README.md"
+	readme := filepath.Join(workDir, fileName)
+
+	data := []byte("My First PR/n")
+	err := ioutil.WriteFile(readme, data, util.DefaultWritePermissions)
+	if err != nil {
+	  return err
+	}
+
+	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "add", fileName)
+	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "commit", "-a", "-m", "My first PR commit")
+	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "push")
+	t.ExpectCommandExecution(workDir, time.Minute, 0, "jx", "create", "pullrequest", "-b", "-t", "My first PR")
+
+	// TODO get the PR number from the create pr command!
+	jobName := owner + "/" + appName + "/PR-1"
+
+	return t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10*time.Minute)
+}
+
+// ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
+func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) error {
 	o := cmd.CommonOptions{
 		Factory: t.Factory,
 	}
@@ -91,6 +128,7 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() error {
 		}
 		t.JenkinsClient = client
 	}
+
 	fmt.Fprintf(GinkgoWriter, "Checking that there is a job built successfully for %s\n", jobName)
 
 	f := func() error {
@@ -100,15 +138,40 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() error {
 		}
 		return nil
 	}
+	return t.RetryExponentialBackoff(maxDuration, f)
+}
+
+
+// RetryExponentialBackoff retries the given function up to the maximum duration
+func (t *Test) RetryExponentialBackoff(maxDuration time.Duration, f func() error) error {
 	exponentialBackOff := backoff.NewExponentialBackOff()
-	exponentialBackOff.MaxElapsedTime = 10 * time.Minute
+	exponentialBackOff.MaxElapsedTime = maxDuration
 	exponentialBackOff.Reset()
 	err := backoff.Retry(f, exponentialBackOff)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
+
+// GetAppName gets the app name for the current test case
+func (t *Test) GetAppName() string {
+	appName := t.AppName
+	if appName == "" {
+		_, appName = filepath.Split(t.WorkDir)
+	}
+	return appName
+}
+
+
+
+// ExpectCommandExecution performs the given command in the current work directory and asserts that it completes successfully
+func (t *Test) ExpectCommandExecution(dir string, commandTimeout time.Duration, exitCode int, c string, args ...string) {
+	command := exec.Command(c, args...)
+	command.Dir = dir
+	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Ω(err).ShouldNot(HaveOccurred())
+	session.Wait(commandTimeout)
+	Eventually(session).Should(gexec.Exit(exitCode))
+}
+
 
 // DeleteApps should we delete apps after the quickstart has run
 func (t *Test) DeleteApps() bool {
@@ -119,6 +182,18 @@ func (t *Test) DeleteApps() bool {
 // DeleteRepos should we delete the git repos after the quickstart has run
 func (t *Test) DeleteRepos() bool {
 	text := os.Getenv("JX_DISABLE_DELETE_REPO")
+	return strings.ToLower(text) != "true"
+}
+
+// TestPullRequest should we test performing a pull request on the repo
+func (t *Test) TestPullRequest() bool {
+	text := os.Getenv("JX_DISABLE_TEST_PULL_REQUEST")
+	return strings.ToLower(text) != "true"
+}
+
+// WaitForFirstRelease should we wait for first release to complete before trying a pull request
+func (t *Test) WaitForFirstRelease() bool {
+	text := os.Getenv("JX_DISABLE_WAIT_FOR_FIRST_RELEASE")
 	return strings.ToLower(text) != "true"
 }
 
@@ -136,6 +211,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 			T.GitProviderURL()
 		})
 
+		commandTimeout := 1 * time.Hour
 		Describe("Given valid parameters", func() {
 			Context("when operating on the quickstart", func() {
 				It("creates a "+quickstartName+" quickstart and promotes it to staging\n", func() {
@@ -146,17 +222,27 @@ func CreateQuickstartTests(quickstartName string) bool {
 					Expect(err).NotTo(HaveOccurred())
 
 					if gitProviderUrl != "" {
-						log.Infof("Using Git provider URL %s\n", gitProviderUrl)
+						fmt.Fprintf(GinkgoWriter,"Using Git provider URL %s\n", gitProviderUrl)
 						args = append(args, "--git-provider-url", gitProviderUrl)
 					}
 					command := exec.Command(c, args...)
 					command.Dir = T.WorkDir
 					session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(1 * time.Hour)
+					session.Wait(commandTimeout)
 					Eventually(session).Should(gexec.Exit(0))
-					e := T.TheApplicationShouldBeBuiltAndPromotedViaCICD()
-					Expect(e).NotTo(HaveOccurred())
+
+					if T.WaitForFirstRelease() {
+						e := T.TheApplicationShouldBeBuiltAndPromotedViaCICD()
+						Expect(e).NotTo(HaveOccurred())
+					}
+
+					if T.TestPullRequest() {
+						By("perform a pull request on the source and assert that a preview environment is created")
+
+						e := T.CreatePullRequestAndGetPreviewEnvironment()
+						Expect(e).NotTo(HaveOccurred())
+					}
 
 					if T.DeleteApps() {
 						By("deletes the app")
@@ -166,7 +252,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 						command.Dir = T.WorkDir
 						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 						Ω(err).ShouldNot(HaveOccurred())
-						session.Wait(1 * time.Hour)
+						session.Wait(commandTimeout)
 						Eventually(session).Should(gexec.Exit(0))
 					}
 
@@ -177,7 +263,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 						command.Dir = T.WorkDir
 						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 						Ω(err).ShouldNot(HaveOccurred())
-						session.Wait(1 * time.Hour)
+						session.Wait(commandTimeout)
 						Eventually(session).Should(gexec.Exit(0))
 					}
 				})
@@ -188,24 +274,14 @@ func CreateQuickstartTests(quickstartName string) bool {
 				It("exits with signal 1\n", func() {
 					c := "jx"
 					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-f", quickstartName}
-					command := exec.Command(c, args...)
-					command.Dir = T.WorkDir
-					session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(1 * time.Hour)
-					Eventually(session).Should(gexec.Exit(1))
+					T.ExpectCommandExecution(T.WorkDir, commandTimeout, 1, c, args...)
 				})
 			})
 			Context("when -f param (filter) does not match any quickstart", func() {
 				It("exits with signal 1\n", func() {
 					c := "jx"
 					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.AppName, "-f", "the_derek_zoolander_app_for_being_really_really_good_looking"}
-					command := exec.Command(c, args...)
-					command.Dir = T.WorkDir
-					session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(1 * time.Hour)
-					Eventually(session).Should(gexec.Exit(1))
+					T.ExpectCommandExecution(T.WorkDir, commandTimeout, 1, c, args...)
 				})
 			})
 		})

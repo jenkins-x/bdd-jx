@@ -39,6 +39,14 @@ GITEA_PASSWORD ?= testuser
 GITEA_EMAIL ?= testuser@acme.com
 
 GIT_PROVIDER_URL ?= https://github.com
+
+
+GITEA_USER ?= testuser
+GITEA_PASSWORD ?= testuser
+GITEA_EMAIL ?= testuser@acme.com
+
+GIT_ORGANISATION ?= jenkins-x-tests
+GHE_PROVIDER_URL ?= https://github.beescloud.com
 GHE_USER ?= dev1
 GHE_TOKEN ?= changeme
 GHE_EMAIL ?= testuser@acme.com
@@ -65,11 +73,12 @@ endif
 
 configure-ghe:
 	echo "Setting up GitHub Enterprise support for user $(GHE_USER) email: $(GITEA_EMAIL)"
-	jx create git server github $(GIT_PROVIDER_URL) -n GHE
+	jx create git server github $(GHE_PROVIDER_URL) -n GHE
 	jx --version
 	jx get git server
-	#jx delete git server github.com 
+	#jx delete git server github.com
 	jx create git token -n GHE $(GHE_USER) -t $(GHE_TOKEN)
+
 
 all: test
 
@@ -141,6 +150,7 @@ install:
 	$(GO) get -u github.com/onsi/gomega/...
 
 bootstrap: install
+
 
 clean:
 	rm -rf build

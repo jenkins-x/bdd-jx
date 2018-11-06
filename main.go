@@ -2,6 +2,7 @@ package bdd_jx
 
 import (
 	"fmt"
+	"github.com/jenkins-x/jx/pkg/log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,7 +11,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	cmd "github.com/jenkins-x/jx/pkg/jx/cmd"
+	"github.com/jenkins-x/jx/pkg/jx/cmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -53,8 +54,8 @@ func (t *Test) GitProviderURL() (string, error) {
 	if gitProviderURL != "" {
 		return gitProviderURL, nil
 	}
-	// find the default load the default one from the current ~/.jx/jenkinsAuth.yaml
-	authConfigSvc, err := t.Factory.CreateAuthConfigService("~/.jx/jenkinsAuth.yaml")
+	// find the default load the default one from the current ~/.jx/gitAuth.yaml
+	authConfigSvc, err := t.Factory.CreateAuthConfigService("~/.jx/gitAuth.yaml")
 	if err != nil {
 		return "", err
 	}
@@ -140,6 +141,14 @@ func CreateQuickstartTests(quickstartName string) bool {
 				It("creates a "+quickstartName+" quickstart and promotes it to staging\n", func() {
 					c := "jx"
 					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.AppName, "-f", quickstartName}
+
+					gitProviderUrl, err := T.GitProviderURL()
+					Expect(err).NotTo(HaveOccurred())
+
+					if gitProviderUrl != "" {
+						log.Infof("Using Git provider URL %s\n", gitProviderUrl)
+						args = append(args, "--git-provider-url", gitProviderUrl)
+					}
 					command := exec.Command(c, args...)
 					command.Dir = T.WorkDir
 					session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)

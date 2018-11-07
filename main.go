@@ -89,7 +89,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	workDir := filepath.Join(t.WorkDir, appName)
 	owner := t.GetGitOrganisation()
 
-	fmt.Printf("Creating a Pull Request in folder: %s\n", workDir)
+	fmt.Fprintf(GinkgoWriter, "Creating a Pull Request in folder: %s\n", workDir)
 
 	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "checkout", "-b", "changes")
 
@@ -140,7 +140,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	}
 
 	// lets verify that there's a Preview Environment...
-	fmt.Printf("Verifying we have a Preview Environment...\n")
+	fmt.Fprintf(GinkgoWriter, "Verifying we have a Preview Environment...\n")
 	jxClient, ns, err := o.JXClientAndDevNamespace()
 	Expect(err).ShouldNot(HaveOccurred())
 
@@ -162,25 +162,24 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 		appUrl := previewEnv.Spec.PreviewGitSpec.ApplicationURL
 		Expect(appUrl).ShouldNot(Equal(""), "No Preview Application URL found")
 
-		fmt.Printf("Running Preview Environment application at: %s\n", util.ColorInfo(appUrl))
+		fmt.Fprintf(GinkgoWriter, "Running Preview Environment application at: %s\n", util.ColorInfo(appUrl))
 
 		return t.ExpectUrlReturns(appUrl, statusCode, time.Minute*5)
 	} else {
-		fmt.Printf("No Preview Environment found in namespace %s for application: %s\n", ns, appName)
+		fmt.Fprintf(GinkgoWriter, "No Preview Environment found in namespace %s for application: %s\n", ns, appName)
 	}
 	return nil
 }
 
 // ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
 func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) {
-	// NOTE Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
-	time.Sleep(20 * time.Second)
+	// NOTE Need to retry here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
 	fmt.Fprintf(GinkgoWriter, "Checking that there is a job built successfully for %s\n", jobName)
 	t.ExpectCommandExecution(t.WorkDir, (time.Minute * 10), 0, "jx", "get", "build", "logs", jobName)
 }
 
 // RetryExponentialBackoff retries the given function up to the maximum duration
-func (t *Test) RetryExponentialBackoff(maxDuration time.Duration, f func() error) error {
+func RetryExponentialBackoff(maxDuration time.Duration, f func() error) error {
 	exponentialBackOff := backoff.NewExponentialBackOff()
 	exponentialBackOff.MaxElapsedTime = maxDuration
 	exponentialBackOff.Reset()
@@ -199,12 +198,15 @@ func (t *Test) GetAppName() string {
 
 // ExpectCommandExecution performs the given command in the current work directory and asserts that it completes successfully
 func (t *Test) ExpectCommandExecution(dir string, commandTimeout time.Duration, exitCode int, c string, args ...string) {
-	command := exec.Command(c, args...)
-	command.Dir = dir
-	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	f := func() error {
+		command := exec.Command(c, args...)
+		command.Dir = dir
+		session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+		session.Wait(commandTimeout)
+		return err
+	}
+	err := RetryExponentialBackoff((1 * time.Minute), f)
 	Ω(err).ShouldNot(HaveOccurred())
-	session.Wait(commandTimeout)
-	Eventually(session).Should(gexec.Exit(exitCode))
 }
 
 // DeleteApps should we delete apps after the quickstart has run
@@ -245,14 +247,14 @@ func (t *Test) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration 
 		actualStatusCode := response.StatusCode
 		if actualStatusCode != lastLoggedStatus {
 			lastLoggedStatus = actualStatusCode
-			fmt.Printf("Invoked %s and got return code: %s\n", util.ColorInfo(url), util.ColorInfo(strconv.Itoa(actualStatusCode)))
+			fmt.Fprintf(GinkgoWriter, "Invoked %s and got return code: %s\n", util.ColorInfo(url), util.ColorInfo(strconv.Itoa(actualStatusCode)))
 		}
 		if actualStatusCode == expectedStatusCode {
 			return nil
 		}
 		return fmt.Errorf("Invalid HTTP status code for %s expected %d but got %d", url, expectedStatusCode, actualStatusCode)
 	}
-	return t.RetryExponentialBackoff(maxDuration, f)
+	return RetryExponentialBackoff(maxDuration, f)
 }
 
 // CreateQuickstartTests Creates quickstart tests

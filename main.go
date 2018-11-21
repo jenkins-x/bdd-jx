@@ -49,6 +49,14 @@ func (t *Test) GetGitOrganisation() string {
 	return org
 }
 
+// GetGitProviderURL returns the environmentally configured git provider url, defaults to GitHub
+func (t *Test) GetGitProviderURL() string {
+	if url, ok := os.LookupEnv("GIT_PROVIDER_URL"); ok {
+		return url
+	}
+	return "https://github.com"
+}
+
 // GitProviderURL Gets the current git provider URL
 func (t *Test) GitProviderURL() (string, error) {
 	gitProviderURL := os.Getenv("GIT_PROVIDER_URL")

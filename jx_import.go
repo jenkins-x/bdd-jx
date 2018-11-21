@@ -34,7 +34,7 @@ var _ = Describe("import\n", func() {
 				dest_dir := T.WorkDir + "/" + T.AppName
 
 				_, err := git.PlainClone(dest_dir, false, &git.CloneOptions{
-					URL:      "https://github.com/jenkins-x-quickstarts/spring-boot-web.git",
+					URL:      "https://github.com/jenkins-x-quickstarts/spring-boot-watch-pipeline-activity.git",
 					Progress: GinkgoWriter,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -44,7 +44,7 @@ var _ = Describe("import\n", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				c := "jx"
-				args := []string{"import", dest_dir, "-b", "--org", T.GetGitOrganisation()}
+				args := []string{"import", dest_dir, "-b", "--org", T.GetGitOrganisation(), "--git-provider-url", T.GitProviderURL()}
 				command := exec.Command(c, args...)
 				command.Dir = dest_dir
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -67,7 +67,7 @@ var _ = Describe("import\n", func() {
 
 				if T.DeleteRepos() {
 					By("deletes the repo")
-					args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.AppName}
+					args = []string{"delete", "repo", "-b", "-g", T.GitProviderURL(), "-o", T.GetGitOrganisation(), "-n", T.AppName}
 					command = exec.Command(c, args...)
 					command.Dir = dest_dir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)

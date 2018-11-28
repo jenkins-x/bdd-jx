@@ -128,7 +128,7 @@ require (
 	golang.org/x/net v0.0.0-20181114220301-adae6a3d119a
 	golang.org/x/oauth2 v0.0.0-20180820191322-f720f1faee02
 	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f
-	golang.org/x/sys v0.0.0-20181121002834-0cf1ed9e522b
+	golang.org/x/sys v0.0.0-20181128092732-4ed8d59d0b35
 	golang.org/x/text v0.3.0
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
 	google.golang.org/api v0.0.0-20180818000503-e21acd801f91

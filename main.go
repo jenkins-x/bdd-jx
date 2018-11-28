@@ -56,11 +56,14 @@ func (t *Test) GitProviderURL() (string, error) {
 		return gitProviderURL, nil
 	}
 	// find the default load the default one from the current ~/.jx/gitAuth.yaml
-	authConfigSvc, err := t.Factory.CreateAuthConfigService("~/.jx/gitAuth.yaml")
+	authConfigSvc, err := t.Factory.CreateAuthConfigService("gitAuth.yaml")
 	if err != nil {
 		return "", err
 	}
-	config := authConfigSvc.Config()
+	config, err := authConfigSvc.LoadConfig()
+	if err != nil {
+		return "", err
+	}
 	url := config.CurrentServer
 	if url != "" {
 		return url, nil

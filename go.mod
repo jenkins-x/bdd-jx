@@ -13,7 +13,7 @@ require (
 	github.com/Pallinder/go-randomdata v0.0.0-20180616180521-15df0648130a
 	github.com/alcortesm/tgz v0.0.0-20161220082320-9c5fe88206d7 // indirect
 	github.com/alexflint/go-filemutex v0.0.0-20171028004239-d358565f3c3f
-	github.com/andygrunwald/go-gerrit v0.0.0-20171029143327-95b11af228a1
+	github.com/andygrunwald/go-gerrit v0.0.0-20181026193842-43cfd7a94eb4
 	github.com/andygrunwald/go-jira v1.5.0
 	github.com/aws/aws-sdk-go v1.15.50
 	github.com/beevik/etree v1.0.1
@@ -36,7 +36,7 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/fatih/structs v1.0.0
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/gfleury/go-bitbucket-v1 v0.0.0-20180807152121-c259e352b38a
+	github.com/gfleury/go-bitbucket-v1 v0.0.0-20181102191809-4910839b609e
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-ini/ini v1.38.1
 	github.com/gobwas/glob v0.2.3
@@ -67,7 +67,7 @@ require (
 	github.com/jenkins-x/chyle v0.0.0-20180226080600-68f7a93a63ec
 	github.com/jenkins-x/draft-repo v0.0.0-20180417100212-2f66cc518135
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v1.3.519
+	github.com/jenkins-x/jx v1.3.613
 	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8
 	github.com/json-iterator/go v1.1.5
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -151,7 +151,7 @@ require (
 	k8s.io/helm v2.7.2+incompatible
 	k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c
 	k8s.io/metrics v0.0.0-20180620010437-b11cf31b380b
-	k8s.io/test-infra v0.0.0-20181016234544-2c26f647f17a
+	k8s.io/test-infra v0.0.0-20181113004108-9b11013021d9
 )
 
 replace k8s.io/test-infra v0.0.0-20181016234544-2c26f647f17a => github.com/jenkins-x/test-infra v0.0.0-20181017095642-0e6fed3d4d4d

@@ -438,8 +438,8 @@ gopkg.in/warnings.v0 v0.1.2/go.mod h1:jksf8JmL6Qr/oQM2OXTHunEvvTAsrWBLb6OOjuVWRN
 gopkg.in/yaml.v2 v2.2.1 h1:mUhvW9EsL+naU5Q3cakzfE91YhliOondGd6ZrsDBHQE=
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 k8s.io/api v0.0.0-20180628040859-072894a440bd/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
-k8s.io/api v0.0.0-20180806132203-61b11ee65332 h1:+ED/2NBbOoeWB9QrGTHxZI7UnE7rnHPKKumOl0WXphs=
-k8s.io/api v0.0.0-20180806132203-61b11ee65332/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
+k8s.io/api v0.0.0-20180806132203-61b11ee65332+incompatible h1:vXkamT0Z3JK5xgmqtYTOcuL09Su2FO/4XnUW1OkJDyQ=
+k8s.io/api v0.0.0-20180806132203-61b11ee65332+incompatible/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
 k8s.io/apiextensions-apiserver v0.0.0-20180621085152-bbc52469f98b/go.mod h1:IxkesAMoaCRoLrPJdZNZUQp9NfZnzqaVzLhb2VEQzXE=
 k8s.io/apiextensions-apiserver v0.0.0-20180806150303-aaea8ffc6057 h1:R1syP8y8AZGIhGlVs3YI7F+NwIMH+u9EVpe0m5WkGNQ=
 k8s.io/apiextensions-apiserver v0.0.0-20180806150303-aaea8ffc6057/go.mod h1:IxkesAMoaCRoLrPJdZNZUQp9NfZnzqaVzLhb2VEQzXE=

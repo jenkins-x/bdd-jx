@@ -144,7 +144,7 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.6.0
 	gopkg.in/warnings.v0 v0.1.2
 	gopkg.in/yaml.v2 v2.2.1
-	k8s.io/api v0.0.0-20180806132203-61b11ee65332
+	k8s.io/api v0.0.0-20180806132203-61b11ee65332+incompatible
 	k8s.io/apiextensions-apiserver v0.0.0-20180806150303-aaea8ffc6057
 	k8s.io/apimachinery v0.0.0-20180821005732-488889b0007f
 	k8s.io/client-go v8.0.0+incompatible

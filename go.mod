@@ -125,10 +125,10 @@ require (
 	go.opencensus.io v0.15.0
 	golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac
 	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81
-	golang.org/x/net v0.0.0-20181114220301-adae6a3d119a
+	golang.org/x/net v0.0.0-20181220203305-927f97764cc3
 	golang.org/x/oauth2 v0.0.0-20180820191322-f720f1faee02
 	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f
-	golang.org/x/sys v0.0.0-20181128092732-4ed8d59d0b35
+	golang.org/x/sys v0.0.0-20181221143128-b4a75ba826a6
 	golang.org/x/text v0.3.0
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
 	google.golang.org/api v0.0.0-20180818000503-e21acd801f91
@@ -143,7 +143,7 @@ require (
 	gopkg.in/src-d/go-git-fixtures.v3 v3.1.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.6.0
 	gopkg.in/warnings.v0 v0.1.2
-	gopkg.in/yaml.v2 v2.2.1
+	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20180806132203-61b11ee65332+incompatible
 	k8s.io/apiextensions-apiserver v0.0.0-20180806150303-aaea8ffc6057
 	k8s.io/apimachinery v0.0.0-20180821005732-488889b0007f

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	gr "github.com/onsi/ginkgo/reporters"
+
 	"github.com/jenkins-x/bdd-jx/reporters"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
@@ -24,6 +26,8 @@ func TestBddJx(t *testing.T) {
 		SpecFailures: specFailures,
 	}
 	reps = append(reps, reporterHTML)
+	reps = append(reps, gr.NewJUnitReporter("reports/junit.xml"))
+
 	RegisterFailHandler(Fail)
 	RunSpecsWithDefaultAndCustomReporters(t, "BddJx Suite", reps)
 }
@@ -81,7 +85,7 @@ var _ = SynchronizedAfterSuite(func() {
 	}
 	// Cleanup workdir as usual
 	cleanFlag := os.Getenv("JX_DISABLE_CLEAN_DIR")
-	if  strings.ToLower(cleanFlag) != "true" {
+	if strings.ToLower(cleanFlag) != "true" {
 		os.RemoveAll(WorkDir)
 		Expect(WorkDir).ToNot(BeADirectory())
 	}

@@ -147,6 +147,12 @@ install:
 
 bootstrap: install
 
+bootstrap-report:
+	npm i -g xunit-viewer
+
+html-report:
+	 xunit-viewer --results=reports/junit.xml --output=reports/junit.html --title="BDD Tests"
+	 echo "Generated test report at: reports/junit.html"
 
 clean:
 	rm -rf build

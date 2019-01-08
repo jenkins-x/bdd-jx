@@ -11,6 +11,10 @@
 
 will install ginkgo gomega and dep
 
+To enable the `report` goal you will also need to install [xunit-viewer](https://github.com/lukejpreston/xunit-viewer) via:
+
+    make bootstrap-report
+    
 ## Running the BDD tests
 
 If you are running the tests locally you probably want to set:
@@ -28,6 +32,10 @@ If you want the sequential version (You may be some time):
 Or you can run an individual spec like this:
 
     make test-quickstart-golang-http
+
+To add the HTML report generation add the goal `html-report` like this:
+
+    make test html-report
 
 To enable verbose logging do this before running `make`
 

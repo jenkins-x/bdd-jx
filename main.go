@@ -2,6 +2,7 @@ package bdd_jx
 
 import (
 	"fmt"
+	"github.com/jenkins-x/bdd-jx/utils"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -14,7 +15,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/util"
 
 	"github.com/cenkalti/backoff"
-	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	"github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/jx/cmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -72,6 +73,49 @@ func (t *Test) GitProviderURL() (string, error) {
 	return servers[0].URL, nil
 }
 
+// TheApplicationIsRunningInStaging lets assert that the app is deployed into the first automatic staging environment
+func (t *Test) TheApplicationIsRunningInStaging() {
+	o := &cmd.GetApplicationsOptions{
+		CommonOptions: cmd.CommonOptions{
+			Factory: t.Factory,
+			Out:     os.Stdout,
+			Err:     os.Stderr,
+		},
+	}
+	err := o.Run()
+	Expect(err).ShouldNot(HaveOccurred(), "get applications")
+
+	appName := t.GetAppName()
+	utils.LogInfof("application name %s application map %#v\n", appName, o.Results.Applications)
+
+	appEnvInfo := o.Results.Applications[appName]
+	appName2 := "jx-" + appName
+	if appEnvInfo == nil {
+		appEnvInfo = o.Results.Applications[appName2]
+	}
+	Expect(appEnvInfo).ShouldNot(BeNil(), "no AppEnvInfo for app %s or %s", appName, appName2)
+
+	if appEnvInfo != nil {
+		key := "staging"
+		m := appEnvInfo[key]
+		if m == nil {
+			for k := range appEnvInfo {
+				utils.LogInfof("has environment key %s\n", k)
+			}
+		}
+		Expect(m).ShouldNot(BeNil(), "no AppEnvInfo for key %s", key)
+		if m != nil {
+			u := m.URL
+			Expect(u).ShouldNot(BeEmpty(), "no AppEnvInfo URL for environment key %s", key)
+
+			if u != "" {
+				statusCode := 200
+				t.ExpectUrlReturns(u, statusCode, time.Minute*5)
+			}
+		}
+	}
+}
+
 // TheApplicationShouldBeBuiltAndPromotedViaCICD asserts that the project
 // should be created in Jenkins and that the build should complete successfully
 func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() {
@@ -79,7 +123,9 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() {
 	owner := t.GetGitOrganisation()
 	jobName := owner + "/" + appName + "/master"
 
-	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10*time.Minute)
+	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 20*time.Minute)
+
+	t.TheApplicationIsRunningInStaging()
 }
 
 // CreatePullRequestAndGetPreviewEnvironment asserts that a pull request can be created
@@ -89,7 +135,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	workDir := filepath.Join(t.WorkDir, appName)
 	owner := t.GetGitOrganisation()
 
-	fmt.Fprintf(GinkgoWriter, "Creating a Pull Request in folder: %s\n", workDir)
+	utils.LogInfof("Creating a Pull Request in folder: %s\n", workDir)
 
 	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "checkout", "-b", "changes")
 
@@ -140,7 +186,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	}
 
 	// lets verify that there's a Preview Environment...
-	fmt.Fprintf(GinkgoWriter, "Verifying we have a Preview Environment...\n")
+	utils.LogInfof("Verifying we have a Preview Environment...\n")
 	jxClient, ns, err := o.JXClientAndDevNamespace()
 	Expect(err).ShouldNot(HaveOccurred())
 
@@ -162,11 +208,11 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 		appUrl := previewEnv.Spec.PreviewGitSpec.ApplicationURL
 		Expect(appUrl).ShouldNot(Equal(""), "No Preview Application URL found")
 
-		fmt.Fprintf(GinkgoWriter, "Running Preview Environment application at: %s\n", util.ColorInfo(appUrl))
+		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(appUrl))
 
 		return t.ExpectUrlReturns(appUrl, statusCode, time.Minute*5)
 	} else {
-		fmt.Fprintf(GinkgoWriter, "No Preview Environment found in namespace %s for application: %s\n", ns, appName)
+		utils.LogInfof("No Preview Environment found in namespace %s for application: %s\n", ns, appName)
 	}
 	return nil
 }
@@ -174,7 +220,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 // ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
 func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) {
 	// NOTE Need to retry here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
-	fmt.Fprintf(GinkgoWriter, "Checking that there is a job built successfully for %s\n", jobName)
+	utils.LogInfof("Checking that there is a job built successfully for %s\n", jobName)
 	t.ExpectCommandExecution(t.WorkDir, (time.Minute * 10), 0, "jx", "get", "build", "logs", "--wait", jobName)
 }
 
@@ -247,7 +293,7 @@ func (t *Test) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration 
 		actualStatusCode := response.StatusCode
 		if actualStatusCode != lastLoggedStatus {
 			lastLoggedStatus = actualStatusCode
-			fmt.Fprintf(GinkgoWriter, "Invoked %s and got return code: %s\n", util.ColorInfo(url), util.ColorInfo(strconv.Itoa(actualStatusCode)))
+			utils.LogInfof("Invoked %s and got return code: %s\n", util.ColorInfo(url), util.ColorInfo(strconv.Itoa(actualStatusCode)))
 		}
 		if actualStatusCode == expectedStatusCode {
 			return nil
@@ -263,12 +309,15 @@ func CreateQuickstartTests(quickstartName string) bool {
 		var T Test
 
 		BeforeEach(func() {
+			appName := TempDirPrefix + quickstartName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
 			T = Test{
-				AppName: TempDirPrefix + quickstartName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
+				AppName: appName,
 				WorkDir: WorkDir,
 				Factory: cmd.NewFactory(),
 			}
 			T.GitProviderURL()
+
+			utils.LogInfof("Creating app %s in dir %s\n", util.ColorInfo(appName), util.ColorInfo(WorkDir))
 		})
 
 		commandTimeout := 1 * time.Hour
@@ -281,7 +330,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 					gitProviderUrl, err := T.GitProviderURL()
 					Expect(err).NotTo(HaveOccurred())
 					if gitProviderUrl != "" {
-						fmt.Fprintf(GinkgoWriter, "Using Git provider URL %s\n", gitProviderUrl)
+						utils.LogInfof("Using Git provider URL %s\n", gitProviderUrl)
 						args = append(args, "--git-provider-url", gitProviderUrl)
 					}
 					command := exec.Command(c, args...)

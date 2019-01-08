@@ -17,6 +17,7 @@
 SHELL := /bin/bash
 NAME := bdd-jx
 GO := go
+GINKGO := ginkgo $(GINKGO_ARGS)
 ROOT_PACKAGE := $(shell $(GO) list .)
 GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
 PACKAGE_DIRS := $(shell $(GO) list ./... | grep -v /vendor/)
@@ -80,61 +81,61 @@ all: test
 check: fmt test
 
 test: info
-	ginkgo --slowSpecThreshold=50000
+	$(GINKGO) --slowSpecThreshold=50000
 
 test-parallel: info
-	ginkgo --slowSpecThreshold=50000 -p --nodes 8
+	$(GINKGO) --slowSpecThreshold=50000 -p --nodes 8
 
 test-import: info
-	ginkgo --slowSpecThreshold=50000 --focus=import
+	$(GINKGO) --slowSpecThreshold=50000 --focus=import
 
 test-create-spring: info
-	ginkgo --slowSpecThreshold=50000 --focus="create spring"
+	$(GINKGO) --slowSpecThreshold=50000 --focus="create spring"
 
 test-quickstart-android-quickstart: info
-	ginkgo --slowSpecThreshold=50000 --focus=android-quickstart
+	$(GINKGO) --slowSpecThreshold=50000 --focus=android-quickstart
 
 test-quickstart-angular-io-quickstart: info
-	ginkgo --slowSpecThreshold=50000 --focus=angular-io-quickstart
+	$(GINKGO) --slowSpecThreshold=50000 --focus=angular-io-quickstart
 
 test-quickstart-aspnet-app: info
-	ginkgo --slowSpecThreshold=50000 --focus=aspnet-app
+	$(GINKGO) --slowSpecThreshold=50000 --focus=aspnet-app
 
 test-quickstart-golang-http: info
-	ginkgo --slowSpecThreshold=50000 --focus=golang-http
+	$(GINKGO) --slowSpecThreshold=50000 --focus=golang-http
 
 test-quickstart-node-http: info
-	ginkgo --slowSpecThreshold=50000 --focus=node-http
+	$(GINKGO) --slowSpecThreshold=50000 --focus=node-http
 
 test-quickstart-open-liberty: info
-	ginkgo --slowSpecThreshold=50000 --focus=open-liberty
+	$(GINKGO) --slowSpecThreshold=50000 --focus=open-liberty
 
 test-quickstart-python-http: info
-	ginkgo --slowSpecThreshold=50000 --focus=python-http
+	$(GINKGO) --slowSpecThreshold=50000 --focus=python-http
 
 test-quickstart-rails-shopping-cart: info
-	ginkgo --slowSpecThreshold=50000 --focus=rails-shopping-cart
+	$(GINKGO) --slowSpecThreshold=50000 --focus=rails-shopping-cart
 
 test-quickstart-react-quickstart: info
-	ginkgo --slowSpecThreshold=50000 --focus=react-quickstart
+	$(GINKGO) --slowSpecThreshold=50000 --focus=react-quickstart
 
 test-quickstart-rust-http: info
-	ginkgo --slowSpecThreshold=50000 --focus=rust-http
+	$(GINKGO) --slowSpecThreshold=50000 --focus=rust-http
 
 test-quickstart-scala-akka-http-quickstart: info
-	ginkgo --slowSpecThreshold=50000 --focus=scala-akka-http-quickstart
+	$(GINKGO) --slowSpecThreshold=50000 --focus=scala-akka-http-quickstart
 
 test-quickstart-spring-boot-http-gradle: info
-	ginkgo --slowSpecThreshold=50000 --focus=spring-boot-http-gradle
+	$(GINKGO) --slowSpecThreshold=50000 --focus=spring-boot-http-gradle
 
 test-quickstart-spring-boot-rest-prometheus: info
-	ginkgo --slowSpecThreshold=50000 --focus=spring-boot-rest-prometheus
+	$(GINKGO) --slowSpecThreshold=50000 --focus=spring-boot-rest-prometheus
 
 test-quickstart-spring-boot-web: info
-	ginkgo --slowSpecThreshold=50000 --focus=spring-boot-web
+	$(GINKGO) --slowSpecThreshold=50000 --focus=spring-boot-web
 
 test-quickstart-vertx-rest-prometheus: info
-	ginkgo --slowSpecThreshold=50000 --focus=vertx-rest-prometheus
+	$(GINKGO) --slowSpecThreshold=50000 --focus=vertx-rest-prometheus
 
 fmt:
 	@FORMATTED=`$(GO) fmt $(PACKAGE_DIRS)`

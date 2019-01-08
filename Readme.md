@@ -8,6 +8,7 @@
 ## Setup
 
     make bootstrap
+
 will install ginkgo gomega and dep
 
 ## Running the BDD tests
@@ -28,8 +29,13 @@ Or you can run an individual spec like this:
 
     make test-quickstart-golang-http
 
+To enable verbose logging do this before running `make`
+
+    export GINKGO_ARGS=-v
+
 ## Environment variables
 
+* `GINKGO_ARGS` to pass in any [ginkgo command line arguments](http://onsi.github.io/ginkgo/#the-ginkgo-cli, like `-v` for verbose logging
 * `GIT_PROVIDER_URL` the git provider URL to test against. e.g. your GitHub Enterprise or BitBucket URL
 * `JX_DISABLE_CLEAN_DIR` set to `true` to disable cleaning up of the temporary work directories 
 * `JX_DISABLE_DELETE_APP` set to `true` to disable deleting of the app from Jenkins X after a test

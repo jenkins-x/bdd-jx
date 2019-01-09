@@ -53,7 +53,7 @@ var _ = Describe("import\n", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 				session.Wait(1 * time.Hour)
 				Eventually(session).Should(gexec.Exit(0))
-				T.TheApplicationShouldBeBuiltAndPromotedViaCICD()
+				T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
 
 				if T.DeleteApps() {
 					By("deletes the app")

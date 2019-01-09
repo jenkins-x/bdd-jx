@@ -74,7 +74,7 @@ func (t *Test) GitProviderURL() (string, error) {
 }
 
 // TheApplicationIsRunningInStaging lets assert that the app is deployed into the first automatic staging environment
-func (t *Test) TheApplicationIsRunningInStaging() {
+func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 	o := &cmd.GetApplicationsOptions{
 		CommonOptions: cmd.CommonOptions{
 			Factory: t.Factory,
@@ -109,7 +109,6 @@ func (t *Test) TheApplicationIsRunningInStaging() {
 			Expect(u).ShouldNot(BeEmpty(), "no AppEnvInfo URL for environment key %s", key)
 
 			if u != "" {
-				statusCode := 200
 				t.ExpectUrlReturns(u, statusCode, time.Minute*5)
 			}
 		}
@@ -118,14 +117,14 @@ func (t *Test) TheApplicationIsRunningInStaging() {
 
 // TheApplicationShouldBeBuiltAndPromotedViaCICD asserts that the project
 // should be created in Jenkins and that the build should complete successfully
-func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD() {
+func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD(statusCode int) {
 	appName := t.GetAppName()
 	owner := t.GetGitOrganisation()
 	jobName := owner + "/" + appName + "/master"
 
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 20*time.Minute)
 
-	t.TheApplicationIsRunningInStaging()
+	t.TheApplicationIsRunningInStaging(statusCode)
 }
 
 // CreatePullRequestAndGetPreviewEnvironment asserts that a pull request can be created
@@ -344,7 +343,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 						By("wait for first release")
 						// NOTE Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
 						time.Sleep(20 * time.Second)
-						T.TheApplicationShouldBeBuiltAndPromotedViaCICD()
+						T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
 					}
 
 					if T.TestPullRequest() {

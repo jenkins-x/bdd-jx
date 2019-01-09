@@ -44,7 +44,7 @@ var _ = Describe("create spring\n", func() {
 				Eventually(session).Should(gexec.Exit(0))
 
 				if T.WaitForFirstRelease() {
-					T.TheApplicationShouldBeBuiltAndPromotedViaCICD()
+					T.TheApplicationShouldBeBuiltAndPromotedViaCICD(404)
 				}
 
 				if T.TestPullRequest() {

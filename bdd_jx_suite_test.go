@@ -2,9 +2,11 @@ package bdd_jx
 
 import (
 	"encoding/json"
+	"github.com/jenkins-x/jx/pkg/util"
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,16 +19,20 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var reporterHTML *reporters.ReporterHTML
+var ReporterTestGrid *reporters.ReporterTestGrid
 
 func TestBddJx(t *testing.T) {
 	specFailures := make(map[string][]bool)
 	reps := []Reporter{}
-	reporterHTML = &reporters.ReporterHTML{
+	ReporterTestGrid = &reporters.ReporterTestGrid{
 		SpecFailures: specFailures,
+		OutputDir:    "reports",
 	}
-	reps = append(reps, reporterHTML)
-	reps = append(reps, gr.NewJUnitReporter("reports/junit.xml"))
+	reps = append(reps, ReporterTestGrid)
+
+	artifactsDir := "reports/artifacts"
+	os.MkdirAll(artifactsDir, util.DefaultWritePermissions)
+	reps = append(reps, gr.NewJUnitReporter(filepath.Join(artifactsDir, "junit_00.xml")))
 
 	RegisterFailHandler(Fail)
 	RunSpecsWithDefaultAndCustomReporters(t, "BddJx Suite", reps)
@@ -43,7 +49,7 @@ var _ = BeforeSuite(func() {
 
 var _ = SynchronizedAfterSuite(func() {
 	// Write json report to file for each node...
-	j, err := json.Marshal(reporterHTML)
+	j, err := json.Marshal(ReporterTestGrid)
 	Expect(err).NotTo(HaveOccurred())
 	fileName := "reports/report-data-" + strconv.Itoa(config.GinkgoConfig.ParallelNode) + ".json"
 	err = ioutil.WriteFile(fileName, j, 0644)
@@ -56,7 +62,7 @@ var _ = SynchronizedAfterSuite(func() {
 	fileNames := []string{}
 	// Read n json report files & build final report from all node reports
 	specFailures := make(map[string][]bool)
-	finalReport := reporters.ReporterHTML{
+	finalReport := reporters.ReporterTestGrid{
 		SpecFailures: specFailures,
 	}
 	for {
@@ -67,7 +73,7 @@ var _ = SynchronizedAfterSuite(func() {
 			break
 		}
 		s := make(map[string][]bool)
-		r := reporters.ReporterHTML{SpecFailures: s}
+		r := reporters.ReporterTestGrid{SpecFailures: s}
 		err = json.Unmarshal(content, &r)
 		if err != nil {
 			log.Fatal(err)
@@ -77,8 +83,7 @@ var _ = SynchronizedAfterSuite(func() {
 		}
 		i++
 	}
-	// Create HTML report
-	finalReport.CreateHTMLReport()
+	finalReport.CreateTestGridReport()
 	// Cleanup node report json files
 	for _, f := range fileNames {
 		os.Remove(f)

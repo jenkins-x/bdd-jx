@@ -288,25 +288,25 @@ var _ = Describe("upgrade ingress\n", func() {
 			})
 		})
 	})
-	// Describe("Given valid parameters", func() {
-	// Context("when running upgrade ingress", func() {
-	// It("creates the ingress resource only for selected service from specified namespace\n", func() {
-	// const testSvc1 = "test-svc1"
-	// const testSvc2 = "test-svc2"
-	// err := test.createService(testSvc1)
-	// Expect(err).NotTo(HaveOccurred())
-	// err = test.createService(testSvc2)
-	// Expect(err).NotTo(HaveOccurred())
-	//
-	// test.runJxCommand([]string{"upgrade", "ingress", "-b", "--skip-resources-update",
-	// "--services=" + testSvc1,
-	// "--namespaces=" + test.namespace, "--config-namespace=" + test.namespace})
-	//
-	// test.expectIngress(testSvc1)
-	// test.notExpectIngress(testSvc2)
-	// })
-	// })
-	// })
+	Describe("Given valid parameters", func() {
+		Context("when running upgrade ingress", func() {
+			It("creates the ingress resource only for selected service from specified namespace\n", func() {
+				const testSvc1 = "test-svc1"
+				const testSvc2 = "test-svc2"
+				err := test.createService(testSvc1)
+				Expect(err).NotTo(HaveOccurred())
+				err = test.createService(testSvc2)
+				Expect(err).NotTo(HaveOccurred())
+
+				test.runJxCommand([]string{"upgrade", "ingress", "-b", "--skip-resources-update",
+					"--services=" + testSvc1,
+					"--namespaces=" + test.namespace, "--config-namespace=" + test.namespace})
+
+				test.expectIngress(testSvc1)
+				test.notExpectIngress(testSvc2)
+			})
+		})
+	})
 	Describe("Given valid parameters", func() {
 		Context("when running upgrade ingress", func() {
 			It("creates the ingress resource and fetch a TLS certificate for services from specified namespace\n", func() {

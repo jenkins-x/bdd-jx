@@ -75,44 +75,58 @@ func (t *Test) GitProviderURL() (string, error) {
 
 // TheApplicationIsRunningInStaging lets assert that the app is deployed into the first automatic staging environment
 func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
-	o := &cmd.GetApplicationsOptions{
-		CommonOptions: cmd.CommonOptions{
-			Factory: t.Factory,
-			Out:     os.Stdout,
-			Err:     os.Stderr,
-		},
-	}
-	err := o.Run()
-	Expect(err).ShouldNot(HaveOccurred(), "get applications")
+	u := ""
+	key := "staging"
 
-	appName := t.GetAppName()
-	utils.LogInfof("application name %s application map %#v\n", appName, o.Results.Applications)
+	f := func() error {
+		o := &cmd.GetApplicationsOptions{
+			CommonOptions: cmd.CommonOptions{
+				Factory: t.Factory,
+				Out:     os.Stdout,
+				Err:     os.Stderr,
+			},
+		}
+		err := o.Run()
+		Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
+		if err != nil {
+			return err
+		}
 
-	appEnvInfo := o.Results.Applications[appName]
-	appName2 := "jx-" + appName
-	if appEnvInfo == nil {
-		appEnvInfo = o.Results.Applications[appName2]
-	}
-	Expect(appEnvInfo).ShouldNot(BeNil(), "no AppEnvInfo for app %s or %s", appName, appName2)
+		appName := t.GetAppName()
+		if len(o.Results.Applications) == 0 {
+			return fmt.Errorf("No applications found")
+		}
+		utils.LogInfof("application name %s application map %#v\n", appName, o.Results.Applications)
 
-	if appEnvInfo != nil {
-		key := "staging"
-		m := appEnvInfo[key]
-		if m == nil {
-			for k := range appEnvInfo {
-				utils.LogInfof("has environment key %s\n", k)
+		appEnvInfo := o.Results.Applications[appName]
+		appName2 := "jx-" + appName
+		if appEnvInfo == nil {
+			appEnvInfo = o.Results.Applications[appName2]
+		}
+		Expect(appEnvInfo).ShouldNot(BeNil(), "no AppEnvInfo for app %s or %s", appName, appName2)
+
+		if appEnvInfo != nil {
+			m := appEnvInfo[key]
+			if m == nil {
+				for k := range appEnvInfo {
+					utils.LogInfof("has environment key %s\n", k)
+				}
+			}
+			Expect(m).ShouldNot(BeNil(), "no AppEnvInfo for key %s", key)
+			if m != nil {
+				u = m.URL
 			}
 		}
-		Expect(m).ShouldNot(BeNil(), "no AppEnvInfo for key %s", key)
-		if m != nil {
-			u := m.URL
-			Expect(u).ShouldNot(BeEmpty(), "no AppEnvInfo URL for environment key %s", key)
-
-			if u != "" {
-				t.ExpectUrlReturns(u, statusCode, time.Minute*5)
-			}
+		if u == "" {
+			return fmt.Errorf("No URL found for environment %s", key)
 		}
+		return nil
 	}
+	err := RetryExponentialBackoff(time.Minute*10, f)
+	Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
+
+	Expect(u).ShouldNot(BeEmpty(), "no AppEnvInfo URL for environment key %s", key)
+	t.ExpectUrlReturns(u, statusCode, time.Minute*5)
 }
 
 // TheApplicationShouldBeBuiltAndPromotedViaCICD asserts that the project

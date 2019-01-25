@@ -2,8 +2,11 @@ package bdd_jx
 
 import (
 	"fmt"
+	"github.com/jenkins-x/bdd-jx/utils"
+	"github.com/jenkins-x/jx/pkg/util"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	cmd "github.com/jenkins-x/jx/pkg/jx/cmd"
@@ -33,9 +36,11 @@ var _ = Describe("create spring\n", func() {
 				gitProviderUrl, err := T.GitProviderURL()
 				Expect(err).NotTo(HaveOccurred())
 				if gitProviderUrl != "" {
-					fmt.Fprintf(GinkgoWriter, "Using Git provider URL %s\n", gitProviderUrl)
+					utils.LogInfof("Using Git provider URL %s\n", gitProviderUrl)
 					args = append(args, "--git-provider-url", gitProviderUrl)
 				}
+				utils.LogInfof("about to run command: %s\n", util.ColorInfo(fmt.Sprintf("%s %s", c, strings.Join(args, " "))))
+
 				command := exec.Command(c, args...)
 				command.Dir = T.WorkDir
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)

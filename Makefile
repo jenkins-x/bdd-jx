@@ -137,6 +137,9 @@ test-quickstart-spring-boot-web: info
 test-quickstart-vertx-rest-prometheus: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus=vertx-rest-prometheus
 
+test-upgrade-ingress: info
+	$(GINKGO) --slowSpecThreshold=50000 --focus=ingress
+
 fmt:
 	@FORMATTED=`$(GO) fmt $(PACKAGE_DIRS)`
 	@([[ ! -z "$(FORMATTED)" ]] && printf "Fixed unformatted files:\n$(FORMATTED)") || true

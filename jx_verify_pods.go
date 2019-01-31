@@ -33,7 +33,7 @@ var _ = Describe("verify pods\n", func() {
 	Describe("Given a completed test run", func() {
 		Context("when running jx step verify pod", func() {
 			It("there are no failed pods\n", func() {
-				c := "/Users/warrenbailey/dev/jx/build/jx"
+				c := "jx"
 				args := []string{"step", "verify", "pod"}
 
 				utils.LogInfof("about to run command: %s\n", util.ColorInfo(fmt.Sprintf("%s %s", c, strings.Join(args, " "))))
@@ -55,7 +55,7 @@ var _ = Describe("verify pods\n", func() {
 
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Expect(string(outBytes)).Should(ContainSubstring("Failed"), "There are failed pods")
+				Expect(string(outBytes)).ShouldNot(ContainSubstring("Failed"), "There are failed pods")
 
 				Eventually(session).Should(gexec.Exit(0))
 

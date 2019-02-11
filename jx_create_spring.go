@@ -20,9 +20,9 @@ var _ = Describe("create spring\n", func() {
 
 	BeforeEach(func() {
 		T = Test{
-			AppName: TempDirPrefix + "spring-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
-			WorkDir: WorkDir,
-			Factory: cmd.NewFactory(),
+			ApplicationName: TempDirPrefix + "spring-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
+			WorkDir:         WorkDir,
+			Factory:         cmd.NewFactory(),
 		}
 		T.GitProviderURL()
 	})
@@ -31,7 +31,7 @@ var _ = Describe("create spring\n", func() {
 		Context("when running jx create spring", func() {
 			It("creates a spring application and promotes it to staging\n", func() {
 				c := "jx"
-				args := []string{"create", "spring", "-b", "--org", T.GetGitOrganisation(), "--artifact", T.AppName, "--name", T.AppName, "-d", "web", "-d", "actuator"}
+				args := []string{"create", "spring", "-b", "--org", T.GetGitOrganisation(), "--artifact", T.ApplicationName, "--name", T.ApplicationName, "-d", "web", "-d", "actuator"}
 
 				gitProviderUrl, err := T.GitProviderURL()
 				Expect(err).NotTo(HaveOccurred())
@@ -57,10 +57,10 @@ var _ = Describe("create spring\n", func() {
 					T.CreatePullRequestAndGetPreviewEnvironment(404)
 				}
 
-				if T.DeleteApps() {
-					By("deletes the app")
-					fullAppName := T.GetGitOrganisation() + "/" + T.AppName
-					args = []string{"delete", "app", "-b", fullAppName}
+				if T.DeleteApplications() {
+					By("deletes the application")
+					fullApplicationName := T.GetGitOrganisation() + "/" + T.ApplicationName
+					args = []string{"delete", "application", "-b", fullApplicationName}
 					command = exec.Command(c, args...)
 					command.Dir = T.WorkDir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -71,7 +71,7 @@ var _ = Describe("create spring\n", func() {
 
 				if T.DeleteRepos() {
 					By("deletes the repo")
-					args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.AppName}
+					args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
 					command = exec.Command(c, args...)
 					command.Dir = T.WorkDir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)

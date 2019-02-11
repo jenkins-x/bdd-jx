@@ -7,5 +7,5 @@ import (
 //var _ = CreateQuickstartTests("angular-io-quickstart")
 
 var _ = PDescribe("quickstart angular-io-quickstart", func() {
-	PIt("Creates an app", func() {})
+	PIt("Creates an application", func() {})
 })

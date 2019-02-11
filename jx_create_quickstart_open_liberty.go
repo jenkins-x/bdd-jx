@@ -7,5 +7,5 @@ import (
 //var _ = CreateQuickstartTests("open-liberty")
 
 var _ = PDescribe("quickstart open-liberty", func() {
-	PIt("Creates an app", func() {})
+	PIt("Creates an application", func() {})
 })

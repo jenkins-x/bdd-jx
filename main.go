@@ -367,8 +367,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 
 					if T.DeleteApps() {
 						By("deletes the app")
-						fullAppName := T.GetGitOrganisation() + "/" + T.AppName
-						args = []string{"delete", "app", "-b", fullAppName}
+						args = []string{"delete", "application", "-b", T.AppName}
 						command = exec.Command(c, args...)
 						command.Dir = T.WorkDir
 						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)

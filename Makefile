@@ -140,6 +140,9 @@ test-quickstart-vertx-rest-prometheus: info
 test-upgrade-ingress: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus=ingress
 
+test-upgrade-platform: info
+	$(GINKGO) --slowSpecThreshold=50000 --focus=platform
+
 fmt:
 	@FORMATTED=`$(GO) fmt $(PACKAGE_DIRS)`
 	@([[ ! -z "$(FORMATTED)" ]] && printf "Fixed unformatted files:\n$(FORMATTED)") || true

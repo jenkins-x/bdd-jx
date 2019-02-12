@@ -89,7 +89,7 @@ test-parallel: info
 test-import: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus=import
 
-test-app-jacoco: info
+test-app-lifecycle: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus="test app" -- -include-apps=jx-app-jacoco:0.0.100
 
 test-app: info

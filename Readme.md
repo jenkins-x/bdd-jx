@@ -45,7 +45,7 @@ To enable verbose logging do this before running `make`
   
 To run a test suite against the jacoco app you can run: 
    
-    make test-app-jacoco 
+    make test-app-lifecycle 
     
 This will test `jx add app` and `jx delete app` against a known stable version of jx-app-jacoco
    

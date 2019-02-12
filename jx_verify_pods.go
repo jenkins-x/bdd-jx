@@ -23,9 +23,9 @@ var _ = Describe("verify pods\n", func() {
 
 	BeforeEach(func() {
 		T = Test{
-			AppName: TempDirPrefix + "verify-pods-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
-			WorkDir: WorkDir,
-			Factory: cmd.NewFactory(),
+			ApplicationName: TempDirPrefix + "verify-pods-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
+			WorkDir:         WorkDir,
+			Factory:         cmd.NewFactory(),
 		}
 		T.GitProviderURL()
 	})
@@ -34,7 +34,7 @@ var _ = Describe("verify pods\n", func() {
 		Context("when running jx step verify pod", func() {
 			It("there are no failed pods\n", func() {
 				c := "jx"
-				args := []string{"step", "verify", "pod"}
+				args := []string{"step", "verify", "pod", "ready"}
 
 				utils.LogInfof("about to run command: %s\n", util.ColorInfo(fmt.Sprintf("%s %s", c, strings.Join(args, " "))))
 

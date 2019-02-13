@@ -7,5 +7,5 @@ import (
 //var _ = CreateQuickstartTests("aspnet-app")
 
 var _ = PDescribe("quickstart aspnet-app", func() {
-	PIt("Creates an app", func() {})
+	PIt("Creates an application", func() {})
 })

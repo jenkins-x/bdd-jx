@@ -7,5 +7,5 @@ import (
 //var _ = CreateQuickstartTests("android-quickstart")
 
 var _ = PDescribe("quickstart android-quickstart", func() {
-	PIt("Creates an app", func() {})
+	PIt("Creates an application", func() {})
 })

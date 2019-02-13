@@ -351,9 +351,9 @@ func AppTest(testAppName string, version string) bool {
 
 		BeforeEach(func() {
 			T = Test{
-				AppName: TempDirPrefix + testAppName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
-				WorkDir: WorkDir,
-				Factory: cmd.NewFactory(),
+				ApplicationName: TempDirPrefix + testAppName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
+				WorkDir:         WorkDir,
+				Factory:         cmd.NewFactory(),
 			}
 			T.GitProviderURL()
 		})

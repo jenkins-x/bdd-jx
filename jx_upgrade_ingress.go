@@ -2,16 +2,15 @@ package bdd_jx
 
 import (
 	"fmt"
-	"os/exec"
 	"strconv"
 	"time"
 
+	"github.com/jenkins-x/bdd-jx/runner"
 	"github.com/jenkins-x/jx/pkg/jx/cmd"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/jenkins-x/jx/pkg/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,8 +19,7 @@ import (
 )
 
 const (
-	setupTimeout   = 1 * time.Minute
-	sessionTimeout = 5 * time.Minute
+	setupTimeout = 1 * time.Minute
 )
 
 type ingressConfig struct {
@@ -147,28 +145,28 @@ func (ic *ingressConfig) copyFromBaseNamespace() error {
 	return nil
 }
 
-type testCase struct {
-	cwd        string
+type testCaseUpgradeIngress struct {
+	*runner.JxRunner
 	kubeClient kubernetes.Interface
 	namespace  string
 	ic         *ingressConfig
 }
 
-func newTestCase(cwd string, factory cmd.Factory, ns string) (*testCase, error) {
+func newTestCaseUpgradeIngress(cwd string, factory cmd.Factory, ns string) (*testCaseUpgradeIngress, error) {
 	client, _, err := factory.CreateKubeClient()
 	if err != nil {
 		return nil, err
 	}
 
-	return &testCase{
-		cwd:        cwd,
+	return &testCaseUpgradeIngress{
+		JxRunner:   runner.New(cwd),
 		kubeClient: client,
 		namespace:  ns,
 		ic:         newIngressConfig(client, ns, "jx"),
 	}, nil
 }
 
-func (t *testCase) setupCluster() error {
+func (t *testCaseUpgradeIngress) setupCluster() error {
 	// ensure that the test namespace does not already exists
 	err := util.Retry(setupTimeout, func() error {
 		_, err := t.kubeClient.CoreV1().Namespaces().Get(t.namespace, metav1.GetOptions{})
@@ -205,7 +203,7 @@ func (t *testCase) setupCluster() error {
 	return nil
 }
 
-func (t *testCase) cleanupCluster() error {
+func (t *testCaseUpgradeIngress) cleanupCluster() error {
 	err := t.kubeClient.CoreV1().Namespaces().Delete(t.namespace, &metav1.DeleteOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "deleting the test namesapce %q", t.namespace)
@@ -213,7 +211,7 @@ func (t *testCase) cleanupCluster() error {
 	return nil
 }
 
-func (t *testCase) createService(name string) error {
+func (t *testCaseUpgradeIngress) createService(name string) error {
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -242,32 +240,22 @@ func (t *testCase) createService(name string) error {
 	return nil
 }
 
-func (t *testCase) runJxCommand(args []string) {
-	cmd := "jx"
-	command := exec.Command(cmd, args...)
-	command.Dir = t.cwd
-	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-	Expect(err).ShouldNot(HaveOccurred())
-	session.Wait(sessionTimeout)
-	Eventually(session).Should(gexec.Exit(0))
-}
-
-func (t *testCase) expectIngress(name string) {
+func (t *testCaseUpgradeIngress) expectIngress(name string) {
 	ing, err := t.kubeClient.Extensions().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(ing.GetName()).To(Equal(name))
 }
 
-func (t *testCase) notExpectIngress(name string) {
+func (t *testCaseUpgradeIngress) notExpectIngress(name string) {
 	_, err := t.kubeClient.Extensions().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
 	Expect(err).To(HaveOccurred())
 }
 
 var _ = Describe("upgrade ingress\n", func() {
-	var test *testCase
+	var test *testCaseUpgradeIngress
 	BeforeEach(func() {
 		var err error
-		test, err = newTestCase(WorkDir, cmd.NewFactory(), "test-upgrade-ingress")
+		test, err = newTestCaseUpgradeIngress(WorkDir, cmd.NewFactory(), "test-upgrade-ingress")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(test).NotTo(BeNil())
 
@@ -281,8 +269,8 @@ var _ = Describe("upgrade ingress\n", func() {
 				err := test.createService(testSvc)
 				Expect(err).NotTo(HaveOccurred())
 
-				test.runJxCommand([]string{"upgrade", "ingress", "-b", "--skip-resources-update",
-					"--namespaces=" + test.namespace, "--config-namespace=" + test.namespace})
+				test.Run("upgrade", "ingress", "-b", "--skip-resources-update",
+					"--namespaces="+test.namespace, "--config-namespace="+test.namespace)
 
 				test.expectIngress(testSvc)
 			})
@@ -298,9 +286,9 @@ var _ = Describe("upgrade ingress\n", func() {
 				err = test.createService(testSvc2)
 				Expect(err).NotTo(HaveOccurred())
 
-				test.runJxCommand([]string{"upgrade", "ingress", "-b", "--skip-resources-update",
-					"--services=" + testSvc1,
-					"--namespaces=" + test.namespace, "--config-namespace=" + test.namespace})
+				test.Run("upgrade", "ingress", "-b", "--skip-resources-update",
+					"--services="+testSvc1,
+					"--namespaces="+test.namespace, "--config-namespace="+test.namespace)
 
 				test.expectIngress(testSvc1)
 				test.notExpectIngress(testSvc2)
@@ -323,9 +311,9 @@ var _ = Describe("upgrade ingress\n", func() {
 				err = test.ic.update()
 				Expect(err).NotTo(HaveOccurred())
 
-				test.runJxCommand([]string{"upgrade", "ingress", "-b", "--skip-resources-update",
-					"--namespaces=" + test.namespace, "--config-namespace=" + test.namespace,
-					"--wait-for-certs"})
+				test.Run("upgrade", "ingress", "-b", "--skip-resources-update",
+					"--namespaces="+test.namespace, "--config-namespace="+test.namespace,
+					"--wait-for-certs")
 
 				test.expectIngress(testSvc)
 

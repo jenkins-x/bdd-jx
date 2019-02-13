@@ -1,6 +1,7 @@
 package bdd_jx
 
 import (
+	"flag"
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/utils"
 	"github.com/jenkins-x/jx/pkg/kube"
@@ -30,16 +31,18 @@ var (
 	// TempDirPrefix The prefix to append to apps created in testing
 	TempDirPrefix = "bdd-"
 	// WorkDir The current working directory
-	WorkDir string
+	WorkDir              string
+	IncludeApps          = flag.String("include-apps", "", "The Jenkins X App names to BDD test")
+	DefaultRepositoryURL = "http://chartmuseum.jenkins-x.io"
 )
 
 // Test is the standard testing object
 type Test struct {
-	Factory      cmd.Factory
-	Interactive  bool
-	WorkDir      string
-	AppName      string
-	Organisation string
+	Factory         cmd.Factory
+	Interactive     bool
+	WorkDir         string
+	ApplicationName string
+	Organisation    string
 }
 
 // GetGitOrganisation Gets the current git organisation/user
@@ -58,11 +61,14 @@ func (t *Test) GitProviderURL() (string, error) {
 		return gitProviderURL, nil
 	}
 	// find the default load the default one from the current ~/.jx/gitAuth.yaml
-	authConfigSvc, err := t.Factory.CreateAuthConfigService("~/.jx/gitAuth.yaml")
+	authConfigSvc, err := t.Factory.CreateAuthConfigService("gitAuth.yaml")
 	if err != nil {
 		return "", err
 	}
-	config := authConfigSvc.Config()
+	config, err := authConfigSvc.LoadConfig()
+	if err != nil {
+		return "", err
+	}
 	url := config.CurrentServer
 	if url != "" {
 		return url, nil
@@ -74,7 +80,7 @@ func (t *Test) GitProviderURL() (string, error) {
 	return servers[0].URL, nil
 }
 
-// TheApplicationIsRunningInStaging lets assert that the app is deployed into the first automatic staging environment
+// TheApplicationIsRunningInStaging lets assert that the application is deployed into the first automatic staging environment
 func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 	u := ""
 	key := "staging"
@@ -93,16 +99,16 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 			return err
 		}
 
-		appName := t.GetAppName()
+		applicationName := t.GetApplicationName()
 		if len(o.Results.Applications) == 0 {
 			return fmt.Errorf("No applications found")
 		}
-		utils.LogInfof("application name %s application map %#v\n", appName, o.Results.Applications)
+		utils.LogInfof("application name %s application map %#v\n", applicationName, o.Results.Applications)
 
-		appEnvInfo := o.Results.Applications[appName]
-		appName2 := "jx-" + appName
+		appEnvInfo := o.Results.Applications[applicationName]
+		applicationName2 := "jx-" + applicationName
 		if appEnvInfo == nil {
-			appEnvInfo = o.Results.Applications[appName2]
+			appEnvInfo = o.Results.Applications[applicationName2]
 		}
 
 		if appEnvInfo != nil {
@@ -135,9 +141,9 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 // TheApplicationShouldBeBuiltAndPromotedViaCICD asserts that the project
 // should be created in Jenkins and that the build should complete successfully
 func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD(statusCode int) {
-	appName := t.GetAppName()
+	applicationName := t.GetApplicationName()
 	owner := t.GetGitOrganisation()
-	jobName := owner + "/" + appName + "/master"
+	jobName := owner + "/" + applicationName + "/master"
 
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10 * time.Minute)
 
@@ -147,8 +153,8 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD(statusCode int) {
 // CreatePullRequestAndGetPreviewEnvironment asserts that a pull request can be created
 // on the application and the PR goes green and a preview environment is available
 func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
-	appName := t.GetAppName()
-	workDir := filepath.Join(t.WorkDir, appName)
+	applicationName := t.GetApplicationName()
+	workDir := filepath.Join(t.WorkDir, applicationName)
 	owner := t.GetGitOrganisation()
 
 	utils.LogInfof("Creating a Pull Request in folder: %s\n", workDir)
@@ -192,7 +198,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	prNumber := pr.Number
 	Expect(prNumber).ShouldNot(BeNil())
 
-	jobName := owner + "/" + appName + "/PR-" + strconv.Itoa(*prNumber)
+	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(*prNumber)
 
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10 * time.Minute)
 
@@ -213,13 +219,13 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	for _, env := range envList.Items {
 		spec := &env.Spec
 		if spec.Kind == v1.EnvironmentKindTypePreview {
-			if spec.PreviewGitSpec.ApplicationName == appName {
+			if spec.PreviewGitSpec.ApplicationName == applicationName {
 				copy := env
 				previewEnv = &copy
 			}
 		}
 	}
-	Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment in namespace %s for app name %s", ns, appName)
+	Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment in namespace %s for application name %s", ns, applicationName)
 	if previewEnv != nil {
 		appUrl := previewEnv.Spec.PreviewGitSpec.ApplicationURL
 		Expect(appUrl).ShouldNot(Equal(""), "No Preview Application URL found")
@@ -228,7 +234,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 		return t.ExpectUrlReturns(appUrl, statusCode, time.Minute * 5)
 	} else {
-		utils.LogInfof("No Preview Environment found in namespace %s for application: %s\n", ns, appName)
+		utils.LogInfof("No Preview Environment found in namespace %s for application: %s\n", ns, applicationName)
 	}
 	return nil
 }
@@ -266,13 +272,13 @@ func RetryExponentialBackoff(maxDuration time.Duration, f func() error) error {
 	return err
 }
 
-// GetAppName gets the app name for the current test case
-func (t *Test) GetAppName() string {
-	appName := t.AppName
-	if appName == "" {
-		_, appName = filepath.Split(t.WorkDir)
+// GetApplicationName gets the application name for the current test case
+func (t *Test) GetApplicationName() string {
+	applicationName := t.ApplicationName
+	if applicationName == "" {
+		_, applicationName = filepath.Split(t.WorkDir)
 	}
-	return appName
+	return applicationName
 }
 
 // ExpectCommandExecution performs the given command in the current work directory and asserts that it completes successfully
@@ -282,14 +288,15 @@ func (t *Test) ExpectCommandExecution(dir string, commandTimeout time.Duration, 
 		command.Dir = dir
 		session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 		session.Wait(commandTimeout)
+		Eventually(session).Should(gexec.Exit(exitCode))
 		return err
 	}
 	err := RetryExponentialBackoff((1 * time.Minute), f)
 	Ω(err).ShouldNot(HaveOccurred())
 }
 
-// DeleteApps should we delete apps after the quickstart has run
-func (t *Test) DeleteApps() bool {
+// DeleteApplications should we delete apps after the quickstart has run
+func (t *Test) DeleteApplications() bool {
 	text := os.Getenv("JX_DISABLE_DELETE_APP")
 	return strings.ToLower(text) != "true"
 }
@@ -336,21 +343,113 @@ func (t *Test) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration 
 	return RetryExponentialBackoff(maxDuration, f)
 }
 
+// AddAppTests Creates a jx add app test
+func AppTests() []bool {
+	flag.Parse()
+	includedApps := *IncludeApps
+	if includedApps != "" {
+		includedAppList := strings.Split(strings.TrimSpace(includedApps), ",")
+		tests := make([]bool, len(includedAppList))
+		for _, testAppName := range includedAppList {
+			nameAndVersion := strings.Split(testAppName, ":")
+			if len(nameAndVersion) == 2 {
+				tests = append(tests, AppTest(nameAndVersion[0], nameAndVersion[1]))
+			} else {
+				tests = append(tests, AppTest(testAppName, ""))
+			}
+
+		}
+		return tests
+	} else {
+		return nil
+	}
+}
+
+func AppTest(testAppName string, version string) bool {
+	return Describe("test app "+testAppName+"\n", func() {
+		var T Test
+
+		BeforeEach(func() {
+			T = Test{
+				ApplicationName: TempDirPrefix + testAppName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
+				WorkDir:         WorkDir,
+				Factory:         cmd.NewFactory(),
+			}
+			T.GitProviderURL()
+		})
+
+		_ = T.AddAppTests(testAppName, version)
+		_ = T.DeleteAppTests(testAppName)
+
+	})
+}
+
+// AddAppTests add app tests
+func (t *Test) AddAppTests(testAppName string, version string) bool {
+	return Describe("Given valid parameters", func() {
+		Context("when running jx add app "+testAppName, func() {
+			commandTimeout := 1 * time.Hour
+			helmAppName := testAppName + "-" + testAppName
+			It("Ensure the app is added\n", func() {
+				By("The App resource does not exist before creation\n")
+				c := "kubectl"
+				args := []string{"get", "app", helmAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 1, c, args...)
+				By("Add app exits with signal 0\n")
+				c = "jx"
+				args = []string{"add", "app", testAppName, "--repository", DefaultRepositoryURL}
+				if version != "" {
+					args = append(args, "--version", version)
+				}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				By("The App resource exists after creation\n")
+				c = "kubectl"
+				args = []string{"get", "app", helmAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+			})
+		})
+	})
+}
+
+// DeleteAppTests delete app tests
+func (t *Test) DeleteAppTests(testAppName string) bool {
+	return Describe("Given valid parameters", func() {
+		Context("when running jx delete app "+testAppName, func() {
+			commandTimeout := 1 * time.Hour
+			helmAppName := testAppName + "-" + testAppName
+			It("Ensure it is deleted\n", func() {
+				By("The App resource exists before deletion\n")
+				c := "kubectl"
+				args := []string{"get", "app", helmAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				By("Delete app exits with signal 0\n")
+				c = "jx"
+				args = []string{"delete", "app", testAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				By("The App resource was removed\n")
+				c = "kubectl"
+				args = []string{"get", "app", helmAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 1, c, args...)
+			})
+		})
+	})
+}
+
 // CreateQuickstartTests Creates quickstart tests
 func CreateQuickstartTests(quickstartName string) bool {
 	return Describe("quickstart "+quickstartName+"\n", func() {
 		var T Test
 
 		BeforeEach(func() {
-			appName := TempDirPrefix + quickstartName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
+			applicationName := TempDirPrefix + quickstartName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
 			T = Test{
-				AppName: appName,
-				WorkDir: WorkDir,
-				Factory: cmd.NewFactory(),
+				ApplicationName: applicationName,
+				WorkDir:         WorkDir,
+				Factory:         cmd.NewFactory(),
 			}
 			T.GitProviderURL()
 
-			utils.LogInfof("Creating app %s in dir %s\n", util.ColorInfo(appName), util.ColorInfo(WorkDir))
+			utils.LogInfof("Creating application %s in dir %s\n", util.ColorInfo(applicationName), util.ColorInfo(WorkDir))
 		})
 
 		commandTimeout := 1 * time.Hour
@@ -358,7 +457,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 			Context("when operating on the quickstart", func() {
 				It("creates a "+quickstartName+" quickstart and promotes it to staging\n", func() {
 					c := "jx"
-					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.AppName, "-f", quickstartName}
+					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.ApplicationName, "-f", quickstartName}
 
 					gitProviderUrl, err := T.GitProviderURL()
 					Expect(err).NotTo(HaveOccurred())
@@ -386,7 +485,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 					}
 
 					if T.DeleteApps() {
-						By("deletes the app")
+						By("deletes the application")
 						args = []string{"delete", "application", "-b", T.AppName}
 						command = exec.Command(c, args...)
 						command.Dir = T.WorkDir
@@ -398,7 +497,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 
 					if T.DeleteRepos() {
 						By("deletes the repo")
-						args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.AppName}
+						args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
 						command = exec.Command(c, args...)
 						command.Dir = T.WorkDir
 						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -420,7 +519,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 			Context("when -f param (filter) does not match any quickstart", func() {
 				It("exits with signal 1\n", func() {
 					c := "jx"
-					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.AppName, "-f", "the_derek_zoolander_app_for_being_really_really_good_looking"}
+					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.ApplicationName, "-f", "the_derek_zoolander_app_for_being_really_really_good_looking"}
 					T.ExpectCommandExecution(T.WorkDir, commandTimeout, 1, c, args...)
 				})
 			})

@@ -41,7 +41,6 @@ var _ = Describe("import\n", func() {
 	Describe("Given valid parameters", func() {
 		Context("when running import from local source", func() {
 			It("creates an application from the specified folder and promotes it to staging\n", func() {
-				return
 				dest_dir := T.WorkDir + "/" + T.ApplicationName
 
 				_, err := git.PlainClone(dest_dir, false, &git.CloneOptions{

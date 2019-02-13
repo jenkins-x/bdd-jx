@@ -41,6 +41,18 @@ To enable verbose logging do this before running `make`
 
     export GINKGO_ARGS=-v
 
+## Running the Apps BDD tests
+  
+To run a test suite against the jacoco app you can run: 
+   
+    make test-app-lifecycle 
+    
+This will test `jx add app` and `jx delete app` against a known stable version of jx-app-jacoco
+   
+To run the same tests as above against multiple apps and versions you can use the following syntax: 
+
+    JX_BDD_INCLUDE_APPS=jx-app-jacoco:0.0.100,my-app:0.0.1 make test-app        
+
 ## Environment variables
 
 * `GINKGO_ARGS` to pass in any [ginkgo command line arguments](http://onsi.github.io/ginkgo/#the-ginkgo-cli, like `-v` for verbose logging

@@ -3,6 +3,7 @@ package bdd_jx
 import (
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/utils"
+	"github.com/jenkins-x/jx/pkg/kube"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -103,7 +104,6 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 		if appEnvInfo == nil {
 			appEnvInfo = o.Results.Applications[appName2]
 		}
-	//	Expect(appEnvInfo).ShouldNot(BeNil(), "no AppEnvInfo for app %s or %s", appName, appName2)
 
 		if appEnvInfo != nil {
 			m := appEnvInfo[key]
@@ -119,14 +119,17 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 		}
 		if u == "" {
 			return fmt.Errorf("No URL found for environment %s", key)
+			utils.LogInfo("still looking for app env info url")
 		}
 		return nil
 	}
-	err := RetryExponentialBackoff(time.Minute*10, f)
-	Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
+	err := RetryExponentialBackoff(time.Minute * 10, f)
+	if err != nil {
+		Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL (error: %s)", err.Error())
+	}
 
 	Expect(u).ShouldNot(BeEmpty(), "no AppEnvInfo URL for environment key %s", key)
-	t.ExpectUrlReturns(u, statusCode, time.Minute*5)
+	t.ExpectUrlReturns(u, statusCode, time.Minute * 5)
 }
 
 // TheApplicationShouldBeBuiltAndPromotedViaCICD asserts that the project
@@ -136,7 +139,7 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD(statusCode int) {
 	owner := t.GetGitOrganisation()
 	jobName := owner + "/" + appName + "/master"
 
-	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 20*time.Minute)
+	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10 * time.Minute)
 
 	t.TheApplicationIsRunningInStaging(statusCode)
 }
@@ -191,7 +194,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 	jobName := owner + "/" + appName + "/PR-" + strconv.Itoa(*prNumber)
 
-	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10*time.Minute)
+	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10 * time.Minute)
 
 	Expect(err).ShouldNot(HaveOccurred())
 	if err != nil {
@@ -223,7 +226,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(appUrl))
 
-		return t.ExpectUrlReturns(appUrl, statusCode, time.Minute*5)
+		return t.ExpectUrlReturns(appUrl, statusCode, time.Minute * 5)
 	} else {
 		utils.LogInfof("No Preview Environment found in namespace %s for application: %s\n", ns, appName)
 	}
@@ -235,6 +238,23 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	// NOTE Need to retry here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
 	utils.LogInfof("Checking that there is a job built successfully for %s\n", jobName)
 	t.ExpectCommandExecution(t.WorkDir, (time.Minute * 10), 0, "jx", "get", "build", "logs", "--wait", jobName)
+
+	o := cmd.CommonOptions{
+			Factory:   t.Factory,
+			Out:       os.Stdout,
+			Err:       os.Stderr,
+			BatchMode: true,
+	}
+
+	jxClient, ns, err := o.JXClientAndDevNamespace()
+	Expect(err).ShouldNot(HaveOccurred())
+	activity, err := jxClient.JenkinsV1().PipelineActivities(ns).Get(kube.ToValidName(jobName + "-1"), metav1.GetOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
+
+	utils.LogInfof("build status for '%s' is '%s'", jobName + "-1", activity.Spec.Status.String())
+
+	Expect(activity.Spec.Status.IsTerminated()).To(BeTrue())
+	Expect(activity.Spec.Status.String()).Should(Equal("Succeeded"))
 }
 
 // RetryExponentialBackoff retries the given function up to the maximum duration
@@ -356,7 +376,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 					if T.WaitForFirstRelease() {
 						By("wait for first release")
 						// NOTE Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
-						time.Sleep(20 * time.Second)
+						time.Sleep(30 * time.Second)
 						T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
 					}
 

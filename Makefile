@@ -47,6 +47,11 @@ GHE_USER ?= dev1
 GHE_TOKEN ?= changeme
 GHE_EMAIL ?= testuser@acme.com
 
+BITBUCKET_PROVIDER_URL ?= https://bitbucket.beescloud.com
+BITBUCKET_USER ?= JenksinX-BDD
+BITBUCKET_TOKEN ?= changeme
+BITBUCKET_EMAIL ?= testuser@acme.com
+
 info:
 ifndef GIT_ORGANISATION
 	@echo "If you are running locally remember to set GIT_ORGANISATION to your git username in your local environment"
@@ -75,6 +80,12 @@ configure-ghe:
 	#jx delete git server github.com
 	jx create git token -n GHE $(GHE_USER) -t $(GHE_TOKEN)
 
+configure-bitbucket:
+	echo "Setting up Bitbucket support for user $(BITBUCKET_USER) email: $(BITBUCKET_EMAIL)"
+	jx create git server --kind bitbucketserver --url $(BITBUCKET_PROVIDER_URL) -n Bitbucket
+	jx --version
+	jx get git server
+	jx create git token -n Bitbucket $(BITBUCKET_USER) -t $(BITBUCKET_TOKEN)
 
 all: test
 

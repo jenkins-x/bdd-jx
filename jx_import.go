@@ -39,7 +39,7 @@ var _ = Describe("import\n", func() {
 	})
 
 	Describe("Given valid parameters", func() {
-		Context("when running import from local source", func() {
+		Context("when running import", func() {
 			It("creates an application from the specified folder and promotes it to staging\n", func() {
 				dest_dir := T.WorkDir + "/" + T.ApplicationName
 

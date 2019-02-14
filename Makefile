@@ -48,7 +48,7 @@ GHE_TOKEN ?= changeme
 GHE_EMAIL ?= testuser@acme.com
 
 BITBUCKET_PROVIDER_URL ?= https://bitbucket.beescloud.com
-BITBUCKET_USER ?= JenksinX-BDD
+BITBUCKET_USER ?= JenkinsX-BDD
 BITBUCKET_TOKEN ?= changeme
 BITBUCKET_EMAIL ?= testuser@acme.com
 

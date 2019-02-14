@@ -89,6 +89,12 @@ test-parallel: info
 test-import: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus=import
 
+test-app-lifecycle: info
+	$(GINKGO) --slowSpecThreshold=50000 --focus="test app" -- -include-apps=jx-app-jacoco:0.0.100
+
+test-app: info
+	$(GINKGO) --slowSpecThreshold=50000 --focus="test app" -- -include-apps=$(JX_BDD_INCLUDE_APPS)
+
 test-create-spring: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus="create spring"
 
@@ -139,6 +145,9 @@ test-quickstart-vertx-rest-prometheus: info
 
 test-upgrade-ingress: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus=ingress
+
+test-upgrade-platform: info
+	$(GINKGO) --slowSpecThreshold=50000 --focus=platform
 
 fmt:
 	@FORMATTED=`$(GO) fmt $(PACKAGE_DIRS)`

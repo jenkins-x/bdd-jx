@@ -30,7 +30,7 @@ var _ = Describe("import\n", func() {
 
 	Describe("Given valid parameters", func() {
 		Context("when running import", func() {
-			It("creates an app from the specified folder and promotes it to staging\n", func() {
+			It("creates an application from the specified folder and promotes it to staging\n", func() {
 				dest_dir := T.WorkDir + "/" + T.ApplicationName
 
 				_, err := git.PlainClone(dest_dir, false, &git.CloneOptions{
@@ -56,9 +56,8 @@ var _ = Describe("import\n", func() {
 				T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
 
 				if T.DeleteApplications() {
-					By("deletes the app")
-					fullAppName := T.GetGitOrganisation() + "/" + T.ApplicationName
-					args = []string{"delete", "app", "-b", fullAppName}
+					By("deletes the application")
+					args = []string{"delete", "application", "-b", T.ApplicationName}
 					command = exec.Command(c, args...)
 					command.Dir = dest_dir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)

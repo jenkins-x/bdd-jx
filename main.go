@@ -1,6 +1,7 @@
 package bdd_jx
 
 import (
+	"flag"
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/utils"
 	"github.com/jenkins-x/jx/pkg/kube"
@@ -30,7 +31,9 @@ var (
 	// TempDirPrefix The prefix to append to applicationss created in testing
 	TempDirPrefix = "bdd-"
 	// WorkDir The current working directory
-	WorkDir string
+	WorkDir              string
+	IncludeApps          = flag.String("include-apps", "", "The Jenkins X App names to BDD test")
+	DefaultRepositoryURL = "http://chartmuseum.jenkins-x.io"
 )
 
 // Test is the standard testing object
@@ -58,11 +61,14 @@ func (t *Test) GitProviderURL() (string, error) {
 		return gitProviderURL, nil
 	}
 	// find the default load the default one from the current ~/.jx/gitAuth.yaml
-	authConfigSvc, err := t.Factory.CreateAuthConfigService("~/.jx/gitAuth.yaml")
+	authConfigSvc, err := t.Factory.CreateAuthConfigService("gitAuth.yaml")
 	if err != nil {
 		return "", err
 	}
-	config := authConfigSvc.Config()
+	config, err := authConfigSvc.LoadConfig()
+	if err != nil {
+		return "", err
+	}
 	url := config.CurrentServer
 	if url != "" {
 		return url, nil
@@ -280,6 +286,7 @@ func (t *Test) ExpectCommandExecution(dir string, commandTimeout time.Duration, 
 		command.Dir = dir
 		session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 		session.Wait(commandTimeout)
+		Eventually(session).Should(gexec.Exit(exitCode))
 		return err
 	}
 	err := RetryExponentialBackoff((1 * time.Minute), f)
@@ -332,6 +339,98 @@ func (t *Test) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration 
 		return fmt.Errorf("Invalid HTTP status code for %s expected %d but got %d", url, expectedStatusCode, actualStatusCode)
 	}
 	return RetryExponentialBackoff(maxDuration, f)
+}
+
+// AddAppTests Creates a jx add app test
+func AppTests() []bool {
+	flag.Parse()
+	includedApps := *IncludeApps
+	if includedApps != "" {
+		includedAppList := strings.Split(strings.TrimSpace(includedApps), ",")
+		tests := make([]bool, len(includedAppList))
+		for _, testAppName := range includedAppList {
+			nameAndVersion := strings.Split(testAppName, ":")
+			if len(nameAndVersion) == 2 {
+				tests = append(tests, AppTest(nameAndVersion[0], nameAndVersion[1]))
+			} else {
+				tests = append(tests, AppTest(testAppName, ""))
+			}
+
+		}
+		return tests
+	} else {
+		return nil
+	}
+}
+
+func AppTest(testAppName string, version string) bool {
+	return Describe("test app "+testAppName+"\n", func() {
+		var T Test
+
+		BeforeEach(func() {
+			T = Test{
+				ApplicationName: TempDirPrefix + testAppName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
+				WorkDir:         WorkDir,
+				Factory:         cmd.NewFactory(),
+			}
+			T.GitProviderURL()
+		})
+
+		_ = T.AddAppTests(testAppName, version)
+		_ = T.DeleteAppTests(testAppName)
+
+	})
+}
+
+// AddAppTests add app tests
+func (t *Test) AddAppTests(testAppName string, version string) bool {
+	return Describe("Given valid parameters", func() {
+		Context("when running jx add app "+testAppName, func() {
+			commandTimeout := 1 * time.Hour
+			helmAppName := testAppName + "-" + testAppName
+			It("Ensure the app is added\n", func() {
+				By("The App resource does not exist before creation\n")
+				c := "kubectl"
+				args := []string{"get", "app", helmAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 1, c, args...)
+				By("Add app exits with signal 0\n")
+				c = "jx"
+				args = []string{"add", "app", testAppName, "--repository", DefaultRepositoryURL}
+				if version != "" {
+					args = append(args, "--version", version)
+				}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				By("The App resource exists after creation\n")
+				c = "kubectl"
+				args = []string{"get", "app", helmAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+			})
+		})
+	})
+}
+
+// DeleteAppTests delete app tests
+func (t *Test) DeleteAppTests(testAppName string) bool {
+	return Describe("Given valid parameters", func() {
+		Context("when running jx delete app "+testAppName, func() {
+			commandTimeout := 1 * time.Hour
+			helmAppName := testAppName + "-" + testAppName
+			It("Ensure it is deleted\n", func() {
+				By("The App resource exists before deletion\n")
+				c := "kubectl"
+				args := []string{"get", "app", helmAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				By("Delete app exits with signal 0\n")
+				c = "jx"
+				args = []string{"delete", "app", testAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				By("The App resource was removed\n")
+				c = "kubectl"
+				args = []string{"get", "app", helmAppName}
+				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 1, c, args...)
+			})
+		})
+	})
 }
 
 // CreateQuickstartTests Creates quickstart tests

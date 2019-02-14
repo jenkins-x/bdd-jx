@@ -21,9 +21,9 @@ var _ = Describe("import\n", func() {
 
 	BeforeEach(func() {
 		T = Test{
-			AppName: TempDirPrefix + "import-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
-			WorkDir: WorkDir,
-			Factory: cmd.NewFactory(),
+			ApplicationName: TempDirPrefix + "import-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
+			WorkDir:         WorkDir,
+			Factory:         cmd.NewFactory(),
 		}
 		T.GitProviderURL()
 	})
@@ -31,7 +31,7 @@ var _ = Describe("import\n", func() {
 	Describe("Given valid parameters", func() {
 		Context("when running import", func() {
 			It("creates an app from the specified folder and promotes it to staging\n", func() {
-				dest_dir := T.WorkDir + "/" + T.AppName
+				dest_dir := T.WorkDir + "/" + T.ApplicationName
 
 				_, err := git.PlainClone(dest_dir, false, &git.CloneOptions{
 					URL:      "https://github.com/jenkins-x-quickstarts/spring-boot-watch-pipeline-activity.git",
@@ -40,7 +40,7 @@ var _ = Describe("import\n", func() {
 				Expect(err).NotTo(HaveOccurred())
 				os.RemoveAll(dest_dir + "/.git")
 				Expect(dest_dir + "/.git").ToNot(BeADirectory())
-				err = utils.ReplaceElement(filepath.Join(dest_dir, "pom.xml"), "artifactId", T.AppName, 1)
+				err = utils.ReplaceElement(filepath.Join(dest_dir, "pom.xml"), "artifactId", T.ApplicationName, 1)
 				Expect(err).NotTo(HaveOccurred())
 
 				c := "jx"
@@ -55,9 +55,9 @@ var _ = Describe("import\n", func() {
 				Eventually(session).Should(gexec.Exit(0))
 				T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
 
-				if T.DeleteApps() {
+				if T.DeleteApplications() {
 					By("deletes the app")
-					fullAppName := T.GetGitOrganisation() + "/" + T.AppName
+					fullAppName := T.GetGitOrganisation() + "/" + T.ApplicationName
 					args = []string{"delete", "app", "-b", fullAppName}
 					command = exec.Command(c, args...)
 					command.Dir = dest_dir
@@ -69,7 +69,7 @@ var _ = Describe("import\n", func() {
 
 				if T.DeleteRepos() {
 					By("deletes the repo")
-					args = []string{"delete", "repo", "-b", "-g", gitProviderUrl, "-o", T.GetGitOrganisation(), "-n", T.AppName}
+					args = []string{"delete", "repo", "-b", "-g", gitProviderUrl, "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
 					command = exec.Command(c, args...)
 					command.Dir = dest_dir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)

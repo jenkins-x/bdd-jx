@@ -27,7 +27,7 @@ import (
 func main() { /* usual main func */ }
 
 var (
-	// TempDirPrefix The prefix to append to apps created in testing
+	// TempDirPrefix The prefix to append to applicationss created in testing
 	TempDirPrefix = "bdd-"
 	// WorkDir The current working directory
 	WorkDir string
@@ -35,11 +35,11 @@ var (
 
 // Test is the standard testing object
 type Test struct {
-	Factory      cmd.Factory
-	Interactive  bool
-	WorkDir      string
-	AppName      string
-	Organisation string
+	Factory         cmd.Factory
+	Interactive     bool
+	WorkDir         string
+	ApplicationName string
+	Organisation    string
 }
 
 // GetGitOrganisation Gets the current git organisation/user
@@ -74,7 +74,7 @@ func (t *Test) GitProviderURL() (string, error) {
 	return servers[0].URL, nil
 }
 
-// TheApplicationIsRunningInStaging lets assert that the app is deployed into the first automatic staging environment
+// TheApplicationIsRunningInStaging lets assert that the application is deployed into the first automatic staging environment
 func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 	u := ""
 	key := "staging"
@@ -93,51 +93,49 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 			return err
 		}
 
-		appName := t.GetAppName()
+		applicationName := t.GetApplicationName()
 		if len(o.Results.Applications) == 0 {
 			return fmt.Errorf("No applications found")
 		}
-		utils.LogInfof("application name %s application map %#v\n", appName, o.Results.Applications)
+		utils.LogInfof("application name %s application map %#v\n", applicationName, o.Results.Applications)
 
-		appEnvInfo := o.Results.Applications[appName]
-		appName2 := "jx-" + appName
-		if appEnvInfo == nil {
-			appEnvInfo = o.Results.Applications[appName2]
+		applicationEnvInfo := o.Results.Applications[applicationName]
+		applicationName2 := "jx-" + applicationName
+		if applicationEnvInfo == nil {
+			applicationEnvInfo = o.Results.Applications[applicationName2]
 		}
 
-		if appEnvInfo != nil {
-			m := appEnvInfo[key]
+		if applicationEnvInfo != nil {
+			m := applicationEnvInfo[key]
 			if m == nil {
-				for k := range appEnvInfo {
+				for k := range applicationEnvInfo {
 					utils.LogInfof("has environment key %s\n", k)
 				}
 			}
-			Expect(m).ShouldNot(BeNil(), "no AppEnvInfo for key %s", key)
+			Expect(m).ShouldNot(BeNil(), "no ApplicationEnvInfo for key %s", key)
 			if m != nil {
 				u = m.URL
 			}
 		}
 		if u == "" {
 			return fmt.Errorf("No URL found for environment %s", key)
-			utils.LogInfo("still looking for app env info url")
+			utils.LogInfo("still looking for application env info url")
 		}
 		return nil
 	}
 	err := RetryExponentialBackoff(time.Minute * 10, f)
-	if err != nil {
-		Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL (error: %s)", err.Error())
-	}
+	Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
 
-	Expect(u).ShouldNot(BeEmpty(), "no AppEnvInfo URL for environment key %s", key)
+	Expect(u).ShouldNot(BeEmpty(), "no ApplicationEnvInfo URL for environment key %s", key)
 	t.ExpectUrlReturns(u, statusCode, time.Minute * 5)
 }
 
 // TheApplicationShouldBeBuiltAndPromotedViaCICD asserts that the project
 // should be created in Jenkins and that the build should complete successfully
 func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD(statusCode int) {
-	appName := t.GetAppName()
+	applicationName := t.GetApplicationName()
 	owner := t.GetGitOrganisation()
-	jobName := owner + "/" + appName + "/master"
+	jobName := owner + "/" + applicationName + "/master"
 
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10 * time.Minute)
 
@@ -147,8 +145,8 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD(statusCode int) {
 // CreatePullRequestAndGetPreviewEnvironment asserts that a pull request can be created
 // on the application and the PR goes green and a preview environment is available
 func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
-	appName := t.GetAppName()
-	workDir := filepath.Join(t.WorkDir, appName)
+	applicationName := t.GetApplicationName()
+	workDir := filepath.Join(t.WorkDir, applicationName)
 	owner := t.GetGitOrganisation()
 
 	utils.LogInfof("Creating a Pull Request in folder: %s\n", workDir)
@@ -192,7 +190,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	prNumber := pr.Number
 	Expect(prNumber).ShouldNot(BeNil())
 
-	jobName := owner + "/" + appName + "/PR-" + strconv.Itoa(*prNumber)
+	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(*prNumber)
 
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10 * time.Minute)
 
@@ -213,22 +211,22 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	for _, env := range envList.Items {
 		spec := &env.Spec
 		if spec.Kind == v1.EnvironmentKindTypePreview {
-			if spec.PreviewGitSpec.ApplicationName == appName {
+			if spec.PreviewGitSpec.ApplicationName == applicationName {
 				copy := env
 				previewEnv = &copy
 			}
 		}
 	}
-	Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment in namespace %s for app name %s", ns, appName)
+	Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment in namespace %s for application name %s", ns, applicationName)
 	if previewEnv != nil {
-		appUrl := previewEnv.Spec.PreviewGitSpec.ApplicationURL
-		Expect(appUrl).ShouldNot(Equal(""), "No Preview Application URL found")
+		applicationUrl := previewEnv.Spec.PreviewGitSpec.ApplicationURL
+		Expect(applicationUrl).ShouldNot(Equal(""), "No Preview Application URL found")
 
-		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(appUrl))
+		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
 
-		return t.ExpectUrlReturns(appUrl, statusCode, time.Minute * 5)
+		return t.ExpectUrlReturns(applicationUrl, statusCode, time.Minute * 5)
 	} else {
-		utils.LogInfof("No Preview Environment found in namespace %s for application: %s\n", ns, appName)
+		utils.LogInfof("No Preview Environment found in namespace %s for application: %s\n", ns, applicationName)
 	}
 	return nil
 }
@@ -266,13 +264,13 @@ func RetryExponentialBackoff(maxDuration time.Duration, f func() error) error {
 	return err
 }
 
-// GetAppName gets the app name for the current test case
-func (t *Test) GetAppName() string {
-	appName := t.AppName
-	if appName == "" {
-		_, appName = filepath.Split(t.WorkDir)
+// GetApplicationName gets the application name for the current test case
+func (t *Test) GetApplicationName() string {
+	applicationName := t.ApplicationName
+	if applicationName == "" {
+		_, applicationName = filepath.Split(t.WorkDir)
 	}
-	return appName
+	return applicationName
 }
 
 // ExpectCommandExecution performs the given command in the current work directory and asserts that it completes successfully
@@ -288,8 +286,8 @@ func (t *Test) ExpectCommandExecution(dir string, commandTimeout time.Duration, 
 	Ω(err).ShouldNot(HaveOccurred())
 }
 
-// DeleteApps should we delete apps after the quickstart has run
-func (t *Test) DeleteApps() bool {
+// DeleteApplications should we delete applications after the quickstart has run
+func (t *Test) DeleteApplications() bool {
 	text := os.Getenv("JX_DISABLE_DELETE_APP")
 	return strings.ToLower(text) != "true"
 }
@@ -342,15 +340,15 @@ func CreateQuickstartTests(quickstartName string) bool {
 		var T Test
 
 		BeforeEach(func() {
-			appName := TempDirPrefix + quickstartName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
+			applicationName := TempDirPrefix + quickstartName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
 			T = Test{
-				AppName: appName,
-				WorkDir: WorkDir,
-				Factory: cmd.NewFactory(),
+				ApplicationName: applicationName,
+				WorkDir:         WorkDir,
+				Factory:         cmd.NewFactory(),
 			}
 			T.GitProviderURL()
 
-			utils.LogInfof("Creating app %s in dir %s\n", util.ColorInfo(appName), util.ColorInfo(WorkDir))
+			utils.LogInfof("Creating application %s in dir %s\n", util.ColorInfo(applicationName), util.ColorInfo(WorkDir))
 		})
 
 		commandTimeout := 1 * time.Hour
@@ -358,7 +356,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 			Context("when operating on the quickstart", func() {
 				It("creates a "+quickstartName+" quickstart and promotes it to staging\n", func() {
 					c := "jx"
-					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.AppName, "-f", quickstartName}
+					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.ApplicationName, "-f", quickstartName}
 
 					gitProviderUrl, err := T.GitProviderURL()
 					Expect(err).NotTo(HaveOccurred())
@@ -385,9 +383,9 @@ func CreateQuickstartTests(quickstartName string) bool {
 						T.CreatePullRequestAndGetPreviewEnvironment(200)
 					}
 
-					if T.DeleteApps() {
-						By("deletes the app")
-						args = []string{"delete", "application", "-b", T.AppName}
+					if T.DeleteApplications() {
+						By("deletes the application")
+						args = []string{"delete", "application", "-b", T.ApplicationName}
 						command = exec.Command(c, args...)
 						command.Dir = T.WorkDir
 						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -398,7 +396,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 
 					if T.DeleteRepos() {
 						By("deletes the repo")
-						args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.AppName}
+						args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
 						command = exec.Command(c, args...)
 						command.Dir = T.WorkDir
 						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -420,7 +418,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 			Context("when -f param (filter) does not match any quickstart", func() {
 				It("exits with signal 1\n", func() {
 					c := "jx"
-					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.AppName, "-f", "the_derek_zoolander_app_for_being_really_really_good_looking"}
+					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.ApplicationName, "-f", "the_derek_zoolander_app_for_being_really_really_good_looking"}
 					T.ExpectCommandExecution(T.WorkDir, commandTimeout, 1, c, args...)
 				})
 			})

@@ -20,6 +20,7 @@ GO := go
 GINKGO := ginkgo $(GINKGO_ARGS)
 ROOT_PACKAGE := $(shell $(GO) list .)
 GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
+JX_VERSION := `jx version -n`
 PACKAGE_DIRS := $(shell $(GO) list ./... | grep -v /vendor/)
 
 REV        := $(shell git rev-parse --short HEAD 2> /dev/null  || echo 'unknown')
@@ -48,6 +49,10 @@ GHE_TOKEN ?= changeme
 GHE_EMAIL ?= testuser@acme.com
 
 info:
+	@echo "JX VERISON INFORMATION"
+	@echo
+	@echo "$(JX_VERSION)"
+	@echo
 ifndef GIT_ORGANISATION
 	@echo "If you are running locally remember to set GIT_ORGANISATION to your git username in your local environment"
 else

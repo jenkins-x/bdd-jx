@@ -73,6 +73,11 @@ ifdef JX_DISABLE_DELETE_REPO
 else
 	@echo "JX_DISABLE_DELETE_REPO is not set. If you would like to disable the automatic deletion of repos created by the tests set this variable to TRUE."
 endif
+ifdef JX_DISABLE_WAIT_FOR_FIRST_RELEASE
+	@echo "JX_DISABLE_WAIT_FOR_FIRST_RELEASE is set.  Will not wait for build to be promoted to staging"
+else
+	@echo "JX_DISABLE_WAIT_FOR_FIRST_RELEASE is not set.  If you would like to disable waiting for the build to be promoted to staging set this variable to TRUE"
+endif
 
 configure-ghe:
 	echo "Setting up GitHub Enterprise support for user $(GHE_USER) email: $(GITEA_EMAIL)"

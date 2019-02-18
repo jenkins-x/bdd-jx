@@ -459,7 +459,6 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 
 			}
 			applicationName := TempDirPrefix + qsAbbr + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
-			applicationName := TempDirPrefix + quickstartName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
 			T = Test{
 				ApplicationName: applicationName,
 				WorkDir:         WorkDir,
@@ -490,16 +489,25 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 					session.Wait(commandTimeout)
 					Eventually(session).Should(gexec.Exit(0))
 
+					applicationName := T.GetApplicationName()
+					owner := T.GetGitOrganisation()
+					jobName := owner + "/" + applicationName + "/master"
+
 					if T.WaitForFirstRelease() {
 						By("wait for first release")
 						// NOTE Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
 						time.Sleep(20 * time.Second)
-						T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
-					}
 
-					if T.TestPullRequest() {
-						By("perform a pull request on the source and assert that a preview environment is created")
-						T.CreatePullRequestAndGetPreviewEnvironment(200)
+						T.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 20*time.Minute)
+
+						T.TheApplicationIsRunningInStaging(200)
+
+						if T.TestPullRequest() {
+							By("perform a pull request on the source and assert that a preview environment is created")
+							T.CreatePullRequestAndGetPreviewEnvironment(200)
+						}
+					} else {
+						T.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 20*time.Minute)
 					}
 
 					if T.DeleteApplications() {

@@ -452,6 +452,13 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 		var T Test
 
 		BeforeEach(func() {
+			qsNameParts := strings.Split(quickstartName,"-")
+			qsAbbr := ""
+			for s := range qsNameParts {
+				qsAbbr = qsAbbr + qsNameParts[s][:1]
+
+			}
+			applicationName := TempDirPrefix + qsAbbr + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
 			applicationName := TempDirPrefix + quickstartName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
 			T = Test{
 				ApplicationName: applicationName,

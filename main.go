@@ -507,6 +507,7 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 							T.CreatePullRequestAndGetPreviewEnvironment(200)
 						}
 					} else {
+						By("wait for first successful build of master")
 						T.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 20*time.Minute)
 					}
 

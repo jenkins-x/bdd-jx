@@ -1,3 +1,3 @@
 package bdd_jx
 
-var _ = CreateQuickstartTests("node-http")
+var _ = CreateQuickstartTest("node-http")

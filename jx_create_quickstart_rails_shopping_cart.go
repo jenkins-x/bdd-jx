@@ -1,3 +1,3 @@
 package bdd_jx
 
-var _ = CreateQuickstartTests("rails-shopping-cart")
+var _ = CreateQuickstartTest("rails-shopping-cart")

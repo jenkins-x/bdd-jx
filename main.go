@@ -32,6 +32,7 @@ var (
 	// WorkDir The current working directory
 	WorkDir              string
 	IncludeApps          = flag.String("include-apps", "", "The Jenkins X App names to BDD test")
+	IncludeQuickstarts   = flag.String("include-quickstarts", "", "The Jenkins X quickstarts to BDD test")
 	DefaultRepositoryURL = "http://chartmuseum.jenkins-x.io"
 )
 
@@ -345,6 +346,22 @@ func AppTests() []bool {
 	}
 }
 
+// AddAppTests Creates a jx add app test
+func AllQuickstartsTest() []bool {
+	flag.Parse()
+	includedQuickstarts := *IncludeQuickstarts
+	if includedQuickstarts != "" {
+		includedQuickstartList := strings.Split(strings.TrimSpace(includedQuickstarts), ",")
+		tests := make([]bool, len(includedQuickstartList))
+		for _, testQuickstartName := range includedQuickstartList {
+			tests = append(tests, CreateBatchQuickstartsTests(testQuickstartName))
+		}
+		return tests
+	} else {
+		return nil
+	}
+}
+
 func AppTest(testAppName string, version string) bool {
 	return Describe("test app "+testAppName+"\n", func() {
 		var T Test
@@ -415,9 +432,23 @@ func (t *Test) DeleteAppTests(testAppName string) bool {
 	})
 }
 
-// CreateQuickstartTests Creates quickstart tests
-func CreateQuickstartTests(quickstartName string) bool {
-	return Describe("quickstart "+quickstartName+"\n", func() {
+//CreateQuickstartTest creates a quickstart test for the given quickstart
+func CreateQuickstartTest(quickstartName string) bool {
+	return createQuickstartTests(quickstartName, false)
+}
+
+//CreateBatchQuickstartsTests creates a batch quickstart test for the given quickstart
+func CreateBatchQuickstartsTests(quickstartName string) bool {
+	return createQuickstartTests(quickstartName, true)
+}
+
+// CreateQuickstartTest Creates quickstart tests.  If batch == true, add 'batch' to the test spec
+func createQuickstartTests(quickstartName string, batch bool) bool {
+	description := ""
+	if batch {
+		description = "[batch] "
+	}
+	return Describe(description +"quickstart "+quickstartName+"\n", func() {
 		var T Test
 
 		BeforeEach(func() {

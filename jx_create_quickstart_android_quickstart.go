@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-//var _ = CreateQuickstartTests("android-quickstart")
+//var _ = CreateQuickstartTest("android-quickstart")
 
 var _ = PDescribe("quickstart android-quickstart", func() {
 	PIt("Creates an application", func() {})

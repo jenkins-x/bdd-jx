@@ -62,3 +62,9 @@ To run the same tests as above against multiple apps and versions you can use th
 * `JX_DISABLE_DELETE_REPO` set to `true` to disable deleting of the repo from Jenkins X after a test
 * `JX_DISABLE_TEST_PULL_REQUEST` set to `true` to disable testing the PR workflow
 * `JX_DISABLE_WAIT_FOR_FIRST_RELEASE` set to `true` to disable waiting for the first release pipeline to complete. Handy if you are testing/debugging the Pull Request flow as it speeds up the test
+
+## Debugging tests in your IDE
+### Goland
+* To run specific test change the value for `ginkgo.focus=`
+* To run all tests (may take a long time) do not set a value for `ginkgo.focus`
+![goland ide debug settings](goland_ide_debug_settings.png "goland ide debug settings")

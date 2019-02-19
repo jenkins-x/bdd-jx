@@ -57,8 +57,7 @@ var _ = Describe("import\n", func() {
 
 				if T.DeleteApplications() {
 					By("deletes the application")
-					fullApplicationName := T.GetGitOrganisation() + "/" + T.ApplicationName
-					args = []string{"delete", "application", "-b", fullApplicationName}
+					args = []string{"delete", "application", "-b", T.ApplicationName}
 					command = exec.Command(c, args...)
 					command.Dir = dest_dir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)

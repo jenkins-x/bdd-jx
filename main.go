@@ -515,11 +515,8 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 						By("wait for first release")
 						// NOTE Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
 						time.Sleep(30 * time.Second)
-						T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
-					}
 
 						T.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 20*time.Minute)
-
 						T.TheApplicationIsRunningInStaging(200)
 
 						if T.TestPullRequest() {

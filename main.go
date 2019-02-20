@@ -34,6 +34,22 @@ var (
 	WorkDir              string
 	IncludeApps          = flag.String("include-apps", "", "The Jenkins X App names to BDD test")
 	DefaultRepositoryURL = "http://chartmuseum.jenkins-x.io"
+
+	// all timeout values are in minutes
+	// timeout for a build to complete successfully
+	TimeoutBuildCompletes = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_COMPLETES", 20)
+	// Timeout for promoting an application to staging environment
+	TimeoutBuildIsRunningInStaging = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", 10)
+	// Timeout for a given URL to return an expected status code
+	TimeoutUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_URL_RETURNS", 5)
+	// Timeout to wait for a command line execution to complete
+	TimeoutCmdLine = utils.GetTimeoutFromEnv("BDD_TIMEOUT_CMD_LINE", 1)
+	// Timeout to wait for a jx get build log to return data
+	TimeoutGetBuildLog = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_LOG", 10)
+	// Timeout for waiting for jx add app to complete
+	TimeoutAppTests = utils.GetTimeoutFromEnv("BDD_TIMEOUT_APP_TESTS", 60)
+	// Session wait timeout
+	TimeoutSessionWait = utils.GetTimeoutFromEnv("BDD_TIMEOUT_SESSION_WAIT", 60)
 )
 
 // Test is the standard testing object
@@ -129,11 +145,11 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 		}
 		return nil
 	}
-	err := RetryExponentialBackoff(time.Minute * 10, f)
+	err := RetryExponentialBackoff(TimeoutBuildIsRunningInStaging, f)
 	Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
 
 	Expect(u).ShouldNot(BeEmpty(), "no ApplicationEnvInfo URL for environment key %s", key)
-	t.ExpectUrlReturns(u, statusCode, time.Minute * 5)
+	t.ExpectUrlReturns(u, statusCode, TimeoutUrlReturns)
 }
 
 // TheApplicationShouldBeBuiltAndPromotedViaCICD asserts that the project
@@ -143,7 +159,7 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD(statusCode int) {
 	owner := t.GetGitOrganisation()
 	jobName := owner + "/" + applicationName + "/master"
 
-	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 20 * time.Minute)
+	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
 
 	t.TheApplicationIsRunningInStaging(statusCode)
 }
@@ -157,7 +173,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 	utils.LogInfof("Creating a Pull Request in folder: %s\n", workDir)
 
-	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "checkout", "-b", "changes")
+	t.ExpectCommandExecution(workDir, TimeoutCmdLine, 0, "git", "checkout", "-b", "changes")
 
 	// now lets make a code change
 	fileName := "README.md"
@@ -198,7 +214,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(*prNumber)
 
-	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10 * time.Minute)
+	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
 
 	Expect(err).ShouldNot(HaveOccurred())
 	if err != nil {
@@ -230,7 +246,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
 
-		return t.ExpectUrlReturns(applicationUrl, statusCode, time.Minute * 5)
+		return t.ExpectUrlReturns(applicationUrl, statusCode, TimeoutUrlReturns)
 	} else {
 		utils.LogInfof("No Preview Environment found in namespace %s for application: %s\n", ns, applicationName)
 	}
@@ -241,7 +257,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) {
 	// NOTE Need to retry here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
 	utils.LogInfof("Checking that there is a job built successfully for %s\n", jobName)
-	t.ExpectCommandExecution(t.WorkDir, (time.Minute * 10), 0, "jx", "get", "build", "logs", "--wait", jobName)
+	t.ExpectCommandExecution(t.WorkDir, TimeoutGetBuildLog, 0, "jx", "get", "build", "logs", "--wait", jobName)
 
 	o := cmd.CommonOptions{
 			Factory:   t.Factory,
@@ -289,7 +305,7 @@ func (t *Test) ExpectCommandExecution(dir string, commandTimeout time.Duration, 
 		Eventually(session).Should(gexec.Exit(exitCode))
 		return err
 	}
-	err := RetryExponentialBackoff((1 * time.Minute), f)
+	err := RetryExponentialBackoff((TimeoutCmdLine), f)
 	Ω(err).ShouldNot(HaveOccurred())
 }
 
@@ -386,24 +402,23 @@ func AppTest(testAppName string, version string) bool {
 func (t *Test) AddAppTests(testAppName string, version string) bool {
 	return Describe("Given valid parameters", func() {
 		Context("when running jx add app "+testAppName, func() {
-			commandTimeout := 1 * time.Hour
 			helmAppName := testAppName + "-" + testAppName
 			It("Ensure the app is added\n", func() {
 				By("The App resource does not exist before creation\n")
 				c := "kubectl"
 				args := []string{"get", "app", helmAppName}
-				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 1, c, args...)
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 1, c, args...)
 				By("Add app exits with signal 0\n")
 				c = "jx"
 				args = []string{"add", "app", testAppName, "--repository", DefaultRepositoryURL}
 				if version != "" {
 					args = append(args, "--version", version)
 				}
-				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
 				By("The App resource exists after creation\n")
 				c = "kubectl"
 				args = []string{"get", "app", helmAppName}
-				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
 			})
 		})
 	})
@@ -413,21 +428,20 @@ func (t *Test) AddAppTests(testAppName string, version string) bool {
 func (t *Test) DeleteAppTests(testAppName string) bool {
 	return Describe("Given valid parameters", func() {
 		Context("when running jx delete app "+testAppName, func() {
-			commandTimeout := 1 * time.Hour
 			helmAppName := testAppName + "-" + testAppName
 			It("Ensure it is deleted\n", func() {
 				By("The App resource exists before deletion\n")
 				c := "kubectl"
 				args := []string{"get", "app", helmAppName}
-				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
 				By("Delete app exits with signal 0\n")
 				c = "jx"
 				args = []string{"delete", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 0, c, args...)
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
 				By("The App resource was removed\n")
 				c = "kubectl"
 				args = []string{"get", "app", helmAppName}
-				t.ExpectCommandExecution(t.WorkDir, commandTimeout, 1, c, args...)
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 1, c, args...)
 			})
 		})
 	})
@@ -450,7 +464,6 @@ func CreateQuickstartTests(quickstartName string) bool {
 			utils.LogInfof("Creating application %s in dir %s\n", util.ColorInfo(applicationName), util.ColorInfo(WorkDir))
 		})
 
-		commandTimeout := 1 * time.Hour
 		Describe("Given valid parameters", func() {
 			Context("when operating on the quickstart", func() {
 				It("creates a "+quickstartName+" quickstart and promotes it to staging\n", func() {
@@ -467,7 +480,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 					command.Dir = T.WorkDir
 					session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(commandTimeout)
+					session.Wait(TimeoutAppTests)
 					Eventually(session).Should(gexec.Exit(0))
 
 					if T.WaitForFirstRelease() {
@@ -489,7 +502,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 						command.Dir = T.WorkDir
 						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 						Ω(err).ShouldNot(HaveOccurred())
-						session.Wait(commandTimeout)
+						session.Wait(TimeoutAppTests)
 						Eventually(session).Should(gexec.Exit(0))
 					}
 
@@ -500,7 +513,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 						command.Dir = T.WorkDir
 						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 						Ω(err).ShouldNot(HaveOccurred())
-						session.Wait(commandTimeout)
+						session.Wait(TimeoutAppTests)
 						Eventually(session).Should(gexec.Exit(0))
 					}
 				})
@@ -511,14 +524,14 @@ func CreateQuickstartTests(quickstartName string) bool {
 				It("exits with signal 1\n", func() {
 					c := "jx"
 					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-f", quickstartName}
-					T.ExpectCommandExecution(T.WorkDir, commandTimeout, 1, c, args...)
+					T.ExpectCommandExecution(T.WorkDir, TimeoutAppTests, 1, c, args...)
 				})
 			})
 			Context("when -f param (filter) does not match any quickstart", func() {
 				It("exits with signal 1\n", func() {
 					c := "jx"
 					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.ApplicationName, "-f", "the_derek_zoolander_app_for_being_really_really_good_looking"}
-					T.ExpectCommandExecution(T.WorkDir, commandTimeout, 1, c, args...)
+					T.ExpectCommandExecution(T.WorkDir, TimeoutAppTests, 1, c, args...)
 				})
 			})
 		})

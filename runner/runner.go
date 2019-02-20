@@ -1,17 +1,20 @@
 package runner
 
 import (
-	"os/exec"
-	"time"
-
+	"github.com/jenkins-x/bdd-jx/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"os/exec"
 )
 
 const (
 	jx             = "jx"
-	sessionTimeout = 5 * time.Minute
+)
+
+var (
+	// jxRunner session timeout
+	TimeoutJxRunner = utils.GetTimeoutFromEnv("BDD_TIMEOUT_JX_RUNNER", 5)
 )
 
 // Runner runs a jx command
@@ -32,6 +35,6 @@ func (r *JxRunner) Run(args ...string) {
 	command.Dir = r.cwd
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).ShouldNot(HaveOccurred())
-	session.Wait(sessionTimeout)
+	session.Wait(TimeoutJxRunner)
 	Eventually(session).Should(gexec.Exit(0))
 }

@@ -256,7 +256,7 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	activity, err := jxClient.JenkinsV1().PipelineActivities(ns).Get(kube.ToValidName(jobName + "-1"), metav1.GetOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 
-	utils.LogInfof("build status for '%s' is '%s'", jobName + "-1", activity.Spec.Status.String())
+	utils.LogInfof("build status for '%s' is '%s'\n", jobName + "-1", activity.Spec.Status.String())
 
 	Expect(activity.Spec.Status.IsTerminated()).To(BeTrue())
 	Expect(activity.Spec.Status.String()).Should(Equal("Succeeded"))

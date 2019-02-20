@@ -143,7 +143,7 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD(statusCode int) {
 	owner := t.GetGitOrganisation()
 	jobName := owner + "/" + applicationName + "/master"
 
-	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 10 * time.Minute)
+	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, 20 * time.Minute)
 
 	t.TheApplicationIsRunningInStaging(statusCode)
 }

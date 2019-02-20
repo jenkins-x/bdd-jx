@@ -141,7 +141,7 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 		}
 		if u == "" {
 			return fmt.Errorf("No URL found for environment %s", key)
-			utils.LogInfo("still looking for application env info url")
+			utils.LogInfo("still looking for application env info url\n")
 		}
 		return nil
 	}

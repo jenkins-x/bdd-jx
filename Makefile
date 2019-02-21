@@ -22,7 +22,10 @@ ROOT_PACKAGE := $(shell $(GO) list .)
 GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
 JX_VERSION := `jx version -n`
 SLOW_SPEC_THRESHOLD := 50000
+
+# get list of all available quickstarts, and convert it into a comma delimited list that can be passed into test
 JX_BDD_ALL_QUICKSTARTS := $(shell jx get quickstarts --short | sed -e 'H;$${x;s/\n/,/g;s/^,//;p;};d')
+
 PACKAGE_DIRS := $(shell $(GO) list ./... | grep -v /vendor/)
 
 REV        := $(shell git rev-parse --short HEAD 2> /dev/null  || echo 'unknown')

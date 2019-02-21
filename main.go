@@ -376,7 +376,7 @@ func AllQuickstartsTest() []bool {
 		}
 		return tests
 	} else {
-		return nil
+		return make([]bool, 0)
 	}
 }
 

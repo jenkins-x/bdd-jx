@@ -56,8 +56,6 @@ BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING ?= 10
 BDD_TIMEOUT_URL_RETURNS ?= 5
 # timeout for executing jx command line steps
 BDD_TIMEOUT_CMD_LINE ?= 1
-# timeout for jx get build log to return data
-BDD_TIMEOUT_BUILD_LOG ?= 10
 # timeout for jx add app to complete
 BDD_TIMEOUT_APP_TESTS ?= 60
 # session wait timeout
@@ -89,7 +87,6 @@ endif
 	@echo "BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING timeout value is $(BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING)"
 	@echo "BDD_TIMEOUT_URL_RETURNS timeout value is $(BDD_TIMEOUT_URL_RETURNS)"
 	@echo "BDD_TIMEOUT_CMD_LINE timeout value is $(BDD_TIMEOUT_CMD_LINE)"
-	@echo "BDD_TIMEOUT_BUILD_LOG timeout value is $(BDD_TIMEOUT_BUILD_LOG)"
 	@echo "BDD_TIMEOUT_APP_TESTS timeout value is $(BDD_TIMEOUT_APP_TESTS)"
 	@echo "BDD_TIMEOUT_SESSION_WAIT timeout value is $(BDD_TIMEOUT_SESSION_WAIT)"
 	@echo "BDD_TIMEOUT_JX_RUNNER timeout value is $(BDD_TIMEOUT_JX_RUNNER)"

@@ -44,8 +44,6 @@ var (
 	TimeoutUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_URL_RETURNS", 5)
 	// Timeout to wait for a command line execution to complete
 	TimeoutCmdLine = utils.GetTimeoutFromEnv("BDD_TIMEOUT_CMD_LINE", 1)
-	// Timeout to wait for a jx get build log to return data
-	TimeoutGetBuildLog = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_LOG", 10)
 	// Timeout for waiting for jx add app to complete
 	TimeoutAppTests = utils.GetTimeoutFromEnv("BDD_TIMEOUT_APP_TESTS", 60)
 	// Session wait timeout
@@ -158,9 +156,7 @@ func (t *Test) TheApplicationShouldBeBuiltAndPromotedViaCICD(statusCode int) {
 	applicationName := t.GetApplicationName()
 	owner := t.GetGitOrganisation()
 	jobName := owner + "/" + applicationName + "/master"
-
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
-
 	t.TheApplicationIsRunningInStaging(statusCode)
 }
 
@@ -172,7 +168,6 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	owner := t.GetGitOrganisation()
 
 	utils.LogInfof("Creating a Pull Request in folder: %s\n", workDir)
-
 	t.ExpectCommandExecution(workDir, TimeoutCmdLine, 0, "git", "checkout", "-b", "changes")
 
 	// now lets make a code change
@@ -213,7 +208,6 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	Expect(prNumber).ShouldNot(BeNil())
 
 	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(*prNumber)
-
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
 
 	Expect(err).ShouldNot(HaveOccurred())

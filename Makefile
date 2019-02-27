@@ -153,7 +153,7 @@ fmt:
 	@FORMATTED=`$(GO) fmt $(PACKAGE_DIRS)`
 	@([[ ! -z "$(FORMATTED)" ]] && printf "Fixed unformatted files:\n$(FORMATTED)") || true
 
-install:
+install: build
 	$(GO) get -u github.com/onsi/ginkgo/ginkgo
 	$(GO) get -u github.com/onsi/gomega/...
 
@@ -168,5 +168,8 @@ html-report:
 
 clean:
 	rm -rf build
+
+build:
+	$(GO) build $(BUILDFLAGS) -o build/$(NAME) main.go
 
 .PHONY: release clean test

@@ -16,7 +16,7 @@
 
 SHELL := /bin/bash
 NAME := bdd-jx
-GO := go
+GO := GO111MODULE=on go
 GINKGO := ginkgo $(GINKGO_ARGS)
 ROOT_PACKAGE := $(shell $(GO) list .)
 GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')

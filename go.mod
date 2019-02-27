@@ -43,7 +43,7 @@ require (
 	github.com/iancoleman/orderedmap v0.0.0-20181121102841-22c6ecc9fe13
 	github.com/jenkins-x/draft-repo v0.0.0-20180417100212-2f66cc518135
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v1.3.933
+	github.com/jenkins-x/jx v1.3.934
 	github.com/jetstack/cert-manager v0.5.2
 	github.com/knative/build v0.3.0
 	github.com/knative/build-pipeline v0.1.0

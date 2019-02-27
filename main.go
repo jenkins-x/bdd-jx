@@ -89,11 +89,11 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 	f := func() error {
 		o := &cmd.GetApplicationsOptions{
 			CommonOptions: &cmd.CommonOptions{
-				//Factory: t.Factory,
-				Out:     os.Stdout,
-				Err:     os.Stderr,
+				Out: os.Stdout,
+				Err: os.Stderr,
 			},
 		}
+		o.CommonOptions.SetFactory(t.Factory)
 		err := o.Run()
 		Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
 		if err != nil {
@@ -177,7 +177,6 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	o := cmd.CreatePullRequestOptions{
 		CreateOptions: cmd.CreateOptions{
 			CommonOptions: &cmd.CommonOptions{
-				//Factory:   t.Factory,
 				Out:       os.Stdout,
 				Err:       os.Stderr,
 				BatchMode: true,
@@ -188,6 +187,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 		Dir:   workDir,
 		Base:  "master",
 	}
+	o.CommonOptions.SetFactory(t.Factory)
 
 	err = o.Run()
 	pr := o.Results.PullRequest
@@ -245,12 +245,11 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	t.ExpectCommandExecution(t.WorkDir, maxDuration, 0, "jx", "get", "build", "logs", "--wait", jobName)
 
 	o := cmd.CommonOptions{
-		// TODO
-		// Factory:   t.Factory,
 		Out:       os.Stdout,
 		Err:       os.Stderr,
 		BatchMode: true,
 	}
+	o.SetFactory(t.Factory)
 
 	jxClient, ns, err := o.JXClientAndDevNamespace()
 	Expect(err).ShouldNot(HaveOccurred())

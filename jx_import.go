@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/jenkins-x/bdd-jx/utils"
-	cmd "github.com/jenkins-x/jx/pkg/jx/cmd"
+	cmd "github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"

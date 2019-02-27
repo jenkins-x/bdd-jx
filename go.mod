@@ -100,5 +100,3 @@ replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190122181752-bebe27e
 replace k8s.io/client-go => k8s.io/client-go v2.0.0-alpha.0.0.20190115164855-701b91367003+incompatible
 
 replace github.com/shurcooL/graphql => github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f
-
-replace github.com/cpuguy83/go-md2man => github.com/cpuguy83/go-md2man v1.0.9-0.20180129160249-c6b32e290712

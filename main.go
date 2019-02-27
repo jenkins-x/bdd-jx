@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/utils"
+	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"io/ioutil"
 	"net/http"
@@ -38,7 +39,7 @@ var (
 
 // Test is the standard testing object
 type Test struct {
-	Factory         cmd.Factory
+	Factory         clients.Factory
 	Interactive     bool
 	WorkDir         string
 	ApplicationName string
@@ -87,8 +88,8 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 
 	f := func() error {
 		o := &cmd.GetApplicationsOptions{
-			CommonOptions: cmd.CommonOptions{
-				Factory: t.Factory,
+			CommonOptions: &cmd.CommonOptions{
+				//Factory: t.Factory,
 				Out:     os.Stdout,
 				Err:     os.Stderr,
 			},
@@ -175,8 +176,8 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 	o := cmd.CreatePullRequestOptions{
 		CreateOptions: cmd.CreateOptions{
-			CommonOptions: cmd.CommonOptions{
-				Factory:   t.Factory,
+			CommonOptions: &cmd.CommonOptions{
+				//Factory:   t.Factory,
 				Out:       os.Stdout,
 				Err:       os.Stderr,
 				BatchMode: true,
@@ -244,7 +245,8 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	t.ExpectCommandExecution(t.WorkDir, maxDuration, 0, "jx", "get", "build", "logs", "--wait", jobName)
 
 	o := cmd.CommonOptions{
-		Factory:   t.Factory,
+		// TODO
+		// Factory:   t.Factory,
 		Out:       os.Stdout,
 		Err:       os.Stderr,
 		BatchMode: true,
@@ -375,7 +377,7 @@ func AppTest(testAppName string, version string) bool {
 			T = Test{
 				ApplicationName: TempDirPrefix + testAppName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
 				WorkDir:         WorkDir,
-				Factory:         cmd.NewFactory(),
+				Factory:         clients.NewFactory(),
 			}
 			T.GitProviderURL()
 		})
@@ -447,7 +449,7 @@ func CreateQuickstartTests(quickstartName string) bool {
 			T = Test{
 				ApplicationName: applicationName,
 				WorkDir:         WorkDir,
-				Factory:         cmd.NewFactory(),
+				Factory:         clients.NewFactory(),
 			}
 			T.GitProviderURL()
 

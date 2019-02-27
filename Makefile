@@ -17,7 +17,7 @@
 SHELL := /bin/bash
 NAME := bdd-jx
 GO := GO111MODULE=on go
-GINKGO := ginkgo $(GINKGO_ARGS)
+GINKGO := GO111MODULE=on ginkgo $(GINKGO_ARGS)
 ROOT_PACKAGE := $(shell $(GO) list .)
 GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
 PACKAGE_DIRS := $(shell $(GO) list ./... | grep -v /vendor/)

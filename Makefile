@@ -189,8 +189,8 @@ fmt:
 	@([[ ! -z "$(FORMATTED)" ]] && printf "Fixed unformatted files:\n$(FORMATTED)") || true
 
 install: build
-	$(GO) get -u github.com/onsi/ginkgo/ginkgo
-	$(GO) get -u github.com/onsi/gomega/...
+	$(GO) get github.com/onsi/ginkgo/ginkgo
+	$(GO) get github.com/onsi/gomega/...
 
 bootstrap: install
 

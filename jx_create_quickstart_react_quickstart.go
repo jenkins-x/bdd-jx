@@ -1,3 +1,3 @@
 package bdd_jx
 
-var _ = CreateQuickstartTests("react-quickstart")
+var _ = CreateQuickstartTest("react-quickstart")

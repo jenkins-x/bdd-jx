@@ -1,3 +1,3 @@
 package bdd_jx
 
-var _ = CreateQuickstartTests("python-http")
+var _ = CreateQuickstartTest("python-http")

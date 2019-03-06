@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-//var _ = CreateQuickstartTests("open-liberty")
+//var _ = CreateQuickstartTest("open-liberty")
 
 var _ = PDescribe("quickstart open-liberty", func() {
 	PIt("Creates an application", func() {})

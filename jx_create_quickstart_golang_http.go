@@ -1,3 +1,3 @@
 package bdd_jx
 
-var _ = CreateQuickstartTests("golang-http")
+var _ = CreateQuickstartTest("golang-http")

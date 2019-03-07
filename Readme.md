@@ -55,7 +55,7 @@ To run the same tests as above against multiple apps and versions you can use th
 
 ## Environment variables
 
-* `GINKGO_ARGS` to pass in any [ginkgo command line arguments](http://onsi.github.io/ginkgo/#the-ginkgo-cli, like `-v` for verbose logging
+* `GINKGO_ARGS` to pass in any [ginkgo command line arguments](http://onsi.github.io/ginkgo/#the-ginkgo-cli), like `-v` for verbose logging
 * `GIT_PROVIDER_URL` the git provider URL to test against. e.g. your GitHub Enterprise or BitBucket URL
 * `JX_DISABLE_CLEAN_DIR` set to `true` to disable cleaning up of the temporary work directories 
 * `JX_DISABLE_DELETE_APP` set to `true` to disable deleting of the app from Jenkins X after a test
@@ -64,7 +64,5 @@ To run the same tests as above against multiple apps and versions you can use th
 * `JX_DISABLE_WAIT_FOR_FIRST_RELEASE` set to `true` to disable waiting for the first release pipeline to complete. Handy if you are testing/debugging the Pull Request flow as it speeds up the test
 
 ## Debugging tests in your IDE
-### Goland
-* To run specific test change the value for `ginkgo.focus=`
-* To run all tests (may take a long time) do not set a value for `ginkgo.focus`
-![goland ide debug settings](goland_ide_debug_settings.png "goland ide debug settings")
+
+See [Debugging](Debugging.md) for guidance on how to debug these tests in various IDEs.

@@ -229,6 +229,6 @@ clean:
 	rm -rf build
 
 build:
-	$(GO) build $(BUILDFLAGS) -o build/$(NAME) main.go
+	$(GO) build $(BUILDFLAGS) -o build/$(NAME) *.go 
 
 .PHONY: release clean test

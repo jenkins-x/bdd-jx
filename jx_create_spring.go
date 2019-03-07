@@ -3,14 +3,8 @@ package bdd_jx
 import (
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/utils"
-	"github.com/jenkins-x/jx/pkg/jx/cmd"
+	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/util"
-	"os/exec"
-	"strconv"
-	"strings"
-	"time"
-
-	cmd "github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -26,7 +20,7 @@ var _ = Describe("create spring\n", func() {
 		T = Test{
 			ApplicationName: TempDirPrefix + "spring-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
 			WorkDir:         WorkDir,
-			Factory:         cmd.NewFactory(),
+			Factory:         clients.NewFactory(),
 		}
 		T.GitProviderURL()
 	})

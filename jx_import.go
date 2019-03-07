@@ -2,7 +2,7 @@ package bdd_jx
 
 import (
 	"github.com/jenkins-x/bdd-jx/utils"
-	"github.com/jenkins-x/jx/pkg/jx/cmd"
+	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -21,7 +21,7 @@ var _ = Describe("import\n", func() {
 		T = Test{
 			ApplicationName: TempDirPrefix + "import-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
 			WorkDir:         WorkDir,
-			Factory:         cmd.NewFactory(),
+			Factory:         clients.NewFactory(),
 		}
 		T.GitProviderURL()
 	})

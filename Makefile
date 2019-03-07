@@ -53,6 +53,22 @@ GHE_USER ?= dev1
 GHE_TOKEN ?= changeme
 GHE_EMAIL ?= testuser@acme.com
 
+# Timeouts used in various test steps (in minutes)
+# timeout for a given build to complete
+BDD_TIMEOUT_BUILD_COMPLETES ?= 20
+# the application is deployed into the first automatic staging environment
+BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING ?= 10
+# given URL returns the given status code within the given time period
+BDD_TIMEOUT_URL_RETURNS ?= 5
+# timeout for executing jx command line steps
+BDD_TIMEOUT_CMD_LINE ?= 1
+# timeout for jx add app to complete
+BDD_TIMEOUT_APP_TESTS ?= 60
+# session wait timeout
+BDD_TIMEOUT_SESSION_WAIT ?= 60
+# jx runner session timeout
+BDD_TIMEOUT_JX_RUNNER_SESSION ?= 5
+
 info:
 	@echo "JX VERISON INFORMATION"
 	@echo
@@ -81,6 +97,14 @@ ifdef JX_DISABLE_WAIT_FOR_FIRST_RELEASE
 else
 	@echo "JX_DISABLE_WAIT_FOR_FIRST_RELEASE is not set.  If you would like to disable waiting for the build to be promoted to staging set this variable to TRUE"
 endif
+
+	@echo "BDD_TIMEOUT_BUILD_COMPLETES timeout value is $(BDD_TIMEOUT_BUILD_COMPLETES)"
+	@echo "BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING timeout value is $(BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING)"
+	@echo "BDD_TIMEOUT_URL_RETURNS timeout value is $(BDD_TIMEOUT_URL_RETURNS)"
+	@echo "BDD_TIMEOUT_CMD_LINE timeout value is $(BDD_TIMEOUT_CMD_LINE)"
+	@echo "BDD_TIMEOUT_APP_TESTS timeout value is $(BDD_TIMEOUT_APP_TESTS)"
+	@echo "BDD_TIMEOUT_SESSION_WAIT timeout value is $(BDD_TIMEOUT_SESSION_WAIT)"
+	@echo "BDD_TIMEOUT_JX_RUNNER timeout value is $(BDD_TIMEOUT_JX_RUNNER)"
 
 configure-ghe:
 	echo "Setting up GitHub Enterprise support for user $(GHE_USER) email: $(GITEA_EMAIL)"

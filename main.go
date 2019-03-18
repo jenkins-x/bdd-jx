@@ -1,11 +1,7 @@
 package bdd_jx
 
 import (
-	"flag"
 	"fmt"
-	"github.com/jenkins-x/bdd-jx/utils"
-	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
-	"github.com/jenkins-x/jx/pkg/kube"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -15,10 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jenkins-x/bdd-jx/utils"
+	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
+	"github.com/jenkins-x/jx/pkg/kube"
+
 	"github.com/jenkins-x/jx/pkg/util"
 
 	"github.com/cenkalti/backoff"
-	"github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/jx/cmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,8 +33,8 @@ var (
 	TempDirPrefix = "bdd-"
 	// WorkDir The current working directory
 	WorkDir              string
-	IncludeApps          = flag.String("include-apps", "", "The Jenkins X App names to BDD test")
-	IncludeQuickstarts   = flag.String("include-quickstarts", "", "The Jenkins X quickstarts to BDD test")
+	IncludeApps          = os.Getenv("JX_BDD_INCLUDE_APPS")
+	IncludeQuickstarts   = os.Getenv("JX_BDD_QUICKSTARTS")
 	DefaultRepositoryURL = "http://chartmuseum.jenkins-x.io"
 
 	// all timeout values are in minutes
@@ -370,33 +370,11 @@ func (t *Test) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration 
 }
 
 // AddAppTests Creates a jx add app test
-func AppTests() []bool {
-	flag.Parse()
-	includedApps := *IncludeApps
-	if includedApps != "" {
-		includedAppList := strings.Split(strings.TrimSpace(includedApps), ",")
-		tests := make([]bool, len(includedAppList))
-		for _, testAppName := range includedAppList {
-			nameAndVersion := strings.Split(testAppName, ":")
-			if len(nameAndVersion) == 2 {
-				tests = append(tests, AppTest(nameAndVersion[0], nameAndVersion[1]))
-			} else {
-				tests = append(tests, AppTest(testAppName, ""))
-			}
-
-		}
-		return tests
-	} else {
-		return nil
-	}
-}
 
 // AddAppTests Creates a jx add app test
 func AllQuickstartsTest() []bool {
-	flag.Parse()
-	includedQuickstarts := *IncludeQuickstarts
-	if includedQuickstarts != "" {
-		includedQuickstartList := strings.Split(strings.TrimSpace(includedQuickstarts), ",")
+	if IncludeQuickstarts != "" {
+		includedQuickstartList := strings.Split(strings.TrimSpace(IncludeQuickstarts), ",")
 		tests := make([]bool, len(includedQuickstartList))
 		for _, testQuickstartName := range includedQuickstartList {
 			tests = append(tests, CreateBatchQuickstartsTests(testQuickstartName))
@@ -405,74 +383,6 @@ func AllQuickstartsTest() []bool {
 	} else {
 		return make([]bool, 0)
 	}
-}
-
-func AppTest(testAppName string, version string) bool {
-	return Describe("test app "+testAppName+"\n", func() {
-		var T Test
-
-		BeforeEach(func() {
-			T = Test{
-				ApplicationName: TempDirPrefix + testAppName + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
-				WorkDir:         WorkDir,
-				Factory:         clients.NewFactory(),
-			}
-			T.GitProviderURL()
-		})
-
-		_ = T.AddAppTests(testAppName, version)
-		_ = T.DeleteAppTests(testAppName)
-
-	})
-}
-
-// AddAppTests add app tests
-func (t *Test) AddAppTests(testAppName string, version string) bool {
-	return Describe("Given valid parameters", func() {
-		Context("when running jx add app "+testAppName, func() {
-			helmAppName := testAppName + "-" + testAppName
-			It("Ensure the app is added\n", func() {
-				By("The App resource does not exist before creation\n")
-				c := "kubectl"
-				args := []string{"get", "app", helmAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 1, c, args...)
-				By("Add app exits with signal 0\n")
-				c = "jx"
-				args = []string{"add", "app", testAppName, "--repository", DefaultRepositoryURL}
-				if version != "" {
-					args = append(args, "--version", version)
-				}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
-				By("The App resource exists after creation\n")
-				c = "kubectl"
-				args = []string{"get", "app", helmAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
-			})
-		})
-	})
-}
-
-// DeleteAppTests delete app tests
-func (t *Test) DeleteAppTests(testAppName string) bool {
-	return Describe("Given valid parameters", func() {
-		Context("when running jx delete app "+testAppName, func() {
-			helmAppName := testAppName + "-" + testAppName
-			It("Ensure it is deleted\n", func() {
-				By("The App resource exists before deletion\n")
-				c := "kubectl"
-				args := []string{"get", "app", helmAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
-				By("Delete app exits with signal 0\n")
-				c = "jx"
-				args = []string{"delete", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
-				By("The App resource was removed\n")
-				c = "kubectl"
-				args = []string{"get", "app", helmAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 1, c, args...)
-			})
-		})
-	})
 }
 
 //CreateQuickstartTest creates a quickstart test for the given quickstart

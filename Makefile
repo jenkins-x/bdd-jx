@@ -52,6 +52,7 @@ GHE_PROVIDER_URL ?= https://github.beescloud.com
 GHE_USER ?= dev1
 GHE_TOKEN ?= changeme
 GHE_EMAIL ?= testuser@acme.com
+JX_BDD_INCLUDE_APPS ?= jx-app-jacoco:0.0.100
 
 # Timeouts used in various test steps (in minutes)
 # timeout for a given build to complete
@@ -105,6 +106,11 @@ endif
 	@echo "BDD_TIMEOUT_APP_TESTS timeout value is $(BDD_TIMEOUT_APP_TESTS)"
 	@echo "BDD_TIMEOUT_SESSION_WAIT timeout value is $(BDD_TIMEOUT_SESSION_WAIT)"
 	@echo "BDD_TIMEOUT_JX_RUNNER timeout value is $(BDD_TIMEOUT_JX_RUNNER)"
+ifdef JX_BDD_INCLUDE_APPS
+	@echo "JX_BDD_INCLUDE_APPS is set to $(JX_BDD_INCLUDE_APPS)"
+else
+	@echo "JX_BDD_INCLUDE_APPS is not set."
+endif
 
 configure-ghe:
 	echo "Setting up GitHub Enterprise support for user $(GHE_USER) email: $(GITEA_EMAIL)"
@@ -129,10 +135,7 @@ test-import: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=import
 
 test-app-lifecycle: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="test app" -- -include-apps=jx-app-jacoco:0.0.100
-
-test-app: info
-	$(GINKGO) --slowSpecThreshold=50000 --focus="test app" -- -include-apps=$(JX_BDD_INCLUDE_APPS)
+	JX_BDD_INCLUDE_APPS="$(JX_BDD_INCLUDE_APPS)" $(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="test app"
 
 test-verify-pods: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus="verify pods"
@@ -147,69 +150,69 @@ test-upgrade-platform: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=platform
 
 test-all-quickstarts: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=$(JX_BDD_ALL_QUICKSTARTS)
+	JX_BDD_QUICKSTARTS=$(JX_BDD_ALL_QUICKSTARTS) $(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="batch"
 
 #targets for individual quickstarts
 
 test-quickstart-dlang-http: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=dlang-http
+	JX_BDD_QUICKSTARTS=dlang-http (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-jenkins-cwp-quickstart: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=jenkins-cwp-quickstart
+	JX_BDD_QUICKSTARTS=jenkins-cwp-quickstart (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-jenkins-quickstart: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=jenkins-quickstart
+	JX_BDD_QUICKSTARTS=jenkins-quickstart (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-node-http-watch-pipeline-activity: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=node-http-watch-pipeline-activity
+	JX_BDD_QUICKSTARTS=node-http-watch-pipeline-activity (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-spring-boot-watch-pipeline-activity: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=spring-boot-watch-pipeline-activity
+	JX_BDD_QUICKSTARTS=spring-boot-watch-pipeline-activity (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-android-quickstart: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=android-quickstart
+	JX_BDD_QUICKSTARTS=android-quickstart (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-angular-io-quickstart: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=angular-io-quickstart
+	JX_BDD_QUICKSTARTS=angular-io-quickstart (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-aspnet-app: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=aspnet-app
+	JX_BDD_QUICKSTARTS=aspnet-app (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-golang-http: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=golang-http
+	JX_BDD_QUICKSTARTS=golang-http (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-node-http: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=node-http
+	JX_BDD_ALL_QUICKSTARTS=node-http $(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch
 
 test-quickstart-open-liberty: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=open-liberty
+	JX_BDD_QUICKSTARTS=open-liberty (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-python-http: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=python-http
+	JX_BDD_QUICKSTARTS=python-http (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-rails-shopping-cart: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=rails-shopping-cart
+	JX_BDD_QUICKSTARTS=rails-shopping-cart (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-react-quickstart: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=react-quickstart
+	JX_BDD_QUICKSTARTS=react-quickstart (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-rust-http: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=rust-http
+	JX_BDD_QUICKSTARTS=rust-http (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-scala-akka-http-quickstart: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=scala-akka-http-quickstart
+	JX_BDD_QUICKSTARTS=scala-akka-http-quickstart (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-spring-boot-http-gradle: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=spring-boot-http-gradle
+	JX_BDD_QUICKSTARTS=spring-boot-http-gradle (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-spring-boot-rest-prometheus: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=spring-boot-rest-prometheus
+	JX_BDD_QUICKSTARTS=spring-boot-rest-prometheus (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-spring-boot-web: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=spring-boot-web
+	JX_BDD_QUICKSTARTS=spring-boot-web (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 test-quickstart-vertx-rest-prometheus: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=vertx-rest-prometheus
+	JX_BDD_QUICKSTARTS=vertx-rest-prometheus (GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch 
 
 fmt:
 	@FORMATTED=`$(GO) fmt $(PACKAGE_DIRS)`

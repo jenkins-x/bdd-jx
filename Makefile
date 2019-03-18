@@ -24,7 +24,7 @@ JX_VERSION := `jx version -n`
 SLOW_SPEC_THRESHOLD := 50000
 
 # get list of all available quickstarts, and convert it into a comma delimited list that can be passed into test
-JX_BDD_ALL_QUICKSTARTS := $(shell jx get quickstarts --short | sed -e 'H;$${x;s/\n/,/g;s/^,//;p;};d')
+#JX_BDD_ALL_QUICKSTARTS := $(shell jx get quickstarts --short | sed -e 'H;$${x;s/\n/,/g;s/^,//;p;};d')
 
 PACKAGE_DIRS := $(shell $(GO) list ./... | grep -v /vendor/)
 
@@ -52,6 +52,7 @@ GHE_PROVIDER_URL ?= https://github.beescloud.com
 GHE_USER ?= dev1
 GHE_TOKEN ?= changeme
 GHE_EMAIL ?= testuser@acme.com
+JX_BDD_INCLUDE_APPS ?= jx-app-jacoco:0.0.100
 
 info:
 	@echo "JX VERISON INFORMATION"
@@ -82,6 +83,12 @@ else
 	@echo "JX_DISABLE_WAIT_FOR_FIRST_RELEASE is not set.  If you would like to disable waiting for the build to be promoted to staging set this variable to TRUE"
 endif
 
+ifdef JX_BDD_INCLUDE_APPS
+	@echo "JX_BDD_INCLUDE_APPS is set to $(JX_BDD_INCLUDE_APPS)"
+else
+	@echo "JX_BDD_INCLUDE_APPS is not set."
+endif
+
 configure-ghe:
 	echo "Setting up GitHub Enterprise support for user $(GHE_USER) email: $(GITEA_EMAIL)"
 	jx create git server github $(GHE_PROVIDER_URL) -n GHE
@@ -105,10 +112,10 @@ test-import: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=import
 
 test-app-lifecycle: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="test app" -- -include-apps=jx-app-jacoco:0.0.100
+	JX_BDD_INCLUDE_APPS="$(JX_BDD_INCLUDE_APPS)" $(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="test app"
 
 test-app: info
-	$(GINKGO) --slowSpecThreshold=50000 --focus="test app" -- -include-apps=$(JX_BDD_INCLUDE_APPS)
+	$(GINKGO) --slowSpecThreshold=50000 --focus="test app"
 
 test-create-spring: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="create spring"
@@ -120,7 +127,7 @@ test-upgrade-platform: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=platform
 
 test-all-quickstarts: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=$(JX_BDD_ALL_QUICKSTARTS)
+	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="quickstart"
 
 #targets for individual quickstarts
 

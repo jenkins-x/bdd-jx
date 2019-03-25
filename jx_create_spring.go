@@ -3,16 +3,14 @@ package bdd_jx
 import (
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/utils"
+	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/util"
-	"os/exec"
-	"strconv"
-	"strings"
-	"time"
-
-	cmd "github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"os/exec"
+	"strconv"
+	"strings"
 )
 
 var _ = Describe("create spring\n", func() {
@@ -22,7 +20,7 @@ var _ = Describe("create spring\n", func() {
 		T = Test{
 			ApplicationName: TempDirPrefix + "spring-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
 			WorkDir:         WorkDir,
-			Factory:         cmd.NewFactory(),
+			Factory:         clients.NewFactory(),
 		}
 		T.GitProviderURL()
 	})
@@ -45,7 +43,7 @@ var _ = Describe("create spring\n", func() {
 				command.Dir = T.WorkDir
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
-				session.Wait(1 * time.Hour)
+				session.Wait(TimeoutSessionWait)
 				Eventually(session).Should(gexec.Exit(0))
 
 				if T.WaitForFirstRelease() {
@@ -64,7 +62,7 @@ var _ = Describe("create spring\n", func() {
 					command.Dir = T.WorkDir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(1 * time.Hour)
+					session.Wait(TimeoutAppTests)
 					Eventually(session).Should(gexec.Exit(0))
 				}
 
@@ -75,7 +73,7 @@ var _ = Describe("create spring\n", func() {
 					command.Dir = T.WorkDir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(1 * time.Hour)
+					session.Wait(TimeoutSessionWait)
 					Eventually(session).Should(gexec.Exit(0))
 				}
 			})

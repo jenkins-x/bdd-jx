@@ -1,18 +1,16 @@
 package bdd_jx
 
 import (
+	"github.com/jenkins-x/bdd-jx/utils"
+	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
+	"gopkg.in/src-d/go-git.v4"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"time"
-
-	"github.com/jenkins-x/bdd-jx/utils"
-	cmd "github.com/jenkins-x/jx/pkg/jx/cmd/clients"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
-	git "gopkg.in/src-d/go-git.v4"
 )
 
 var _ = Describe("import\n", func() {
@@ -23,7 +21,7 @@ var _ = Describe("import\n", func() {
 		T = Test{
 			ApplicationName: TempDirPrefix + "import-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
 			WorkDir:         WorkDir,
-			Factory:         cmd.NewFactory(),
+			Factory:         clients.NewFactory(),
 		}
 		T.GitProviderURL()
 	})
@@ -51,7 +49,7 @@ var _ = Describe("import\n", func() {
 				command.Dir = dest_dir
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Ω(err).ShouldNot(HaveOccurred())
-				session.Wait(1 * time.Hour)
+				session.Wait(TimeoutSessionWait)
 				Eventually(session).Should(gexec.Exit(0))
 				T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
 
@@ -62,7 +60,7 @@ var _ = Describe("import\n", func() {
 					command.Dir = dest_dir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(1 * time.Hour)
+					session.Wait(TimeoutSessionWait)
 					Eventually(session).Should(gexec.Exit(0))
 				}
 
@@ -73,7 +71,7 @@ var _ = Describe("import\n", func() {
 					command.Dir = dest_dir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(1 * time.Hour)
+					session.Wait(TimeoutSessionWait)
 					Eventually(session).Should(gexec.Exit(0))
 				}
 			})

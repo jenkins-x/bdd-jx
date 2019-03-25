@@ -9,10 +9,22 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/jenkins-x/golang-jenkins"
 )
+
+
+// GetEnv fetches a timeout value from an environment variable, and returns the fallback value if that variable does not exist
+func GetTimeoutFromEnv(key string, fallback int) time.Duration {
+	if value, ok := os.LookupEnv(key); ok {
+		if intVal, err := strconv.Atoi(value); err == nil {
+			return time.Duration(intVal)
+		}
+	}
+	return time.Duration(fallback) * time.Minute
+}
 
 func GetJenkinsClient() (gojenkins.JenkinsClient, error) {
 	url := os.Getenv("BDD_JENKINS_URL")

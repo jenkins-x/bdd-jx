@@ -24,7 +24,7 @@ JX_VERSION := `jx version -n`
 SLOW_SPEC_THRESHOLD := 50000
 
 # get list of all available quickstarts, and convert it into a comma delimited list that can be passed into test
-#JX_BDD_ALL_QUICKSTARTS := $(shell jx get quickstarts --short | sed -e 'H;$${x;s/\n/,/g;s/^,//;p;};d')
+JX_BDD_ALL_QUICKSTARTS := $(shell jx get quickstarts --short | sed -e 'H;$${x;s/\n/,/g;s/^,//;p;};d')
 
 PACKAGE_DIRS := $(shell $(GO) list ./... | grep -v /vendor/)
 
@@ -53,6 +53,22 @@ GHE_USER ?= dev1
 GHE_TOKEN ?= changeme
 GHE_EMAIL ?= testuser@acme.com
 JX_BDD_INCLUDE_APPS ?= jx-app-jacoco:0.0.100
+
+# Timeouts used in various test steps (in minutes)
+# timeout for a given build to complete
+BDD_TIMEOUT_BUILD_COMPLETES ?= 20
+# the application is deployed into the first automatic staging environment
+BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING ?= 10
+# given URL returns the given status code within the given time period
+BDD_TIMEOUT_URL_RETURNS ?= 5
+# timeout for executing jx command line steps
+BDD_TIMEOUT_CMD_LINE ?= 1
+# timeout for jx add app to complete
+BDD_TIMEOUT_APP_TESTS ?= 60
+# session wait timeout
+BDD_TIMEOUT_SESSION_WAIT ?= 60
+# jx runner session timeout
+BDD_TIMEOUT_JX_RUNNER_SESSION ?= 5
 
 info:
 	@echo "JX VERISON INFORMATION"
@@ -89,6 +105,14 @@ else
 	@echo "JX_BDD_INCLUDE_APPS is not set."
 endif
 
+	@echo "BDD_TIMEOUT_BUILD_COMPLETES timeout value is $(BDD_TIMEOUT_BUILD_COMPLETES)"
+	@echo "BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING timeout value is $(BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING)"
+	@echo "BDD_TIMEOUT_URL_RETURNS timeout value is $(BDD_TIMEOUT_URL_RETURNS)"
+	@echo "BDD_TIMEOUT_CMD_LINE timeout value is $(BDD_TIMEOUT_CMD_LINE)"
+	@echo "BDD_TIMEOUT_APP_TESTS timeout value is $(BDD_TIMEOUT_APP_TESTS)"
+	@echo "BDD_TIMEOUT_SESSION_WAIT timeout value is $(BDD_TIMEOUT_SESSION_WAIT)"
+	@echo "BDD_TIMEOUT_JX_RUNNER timeout value is $(BDD_TIMEOUT_JX_RUNNER)"
+
 configure-ghe:
 	echo "Setting up GitHub Enterprise support for user $(GHE_USER) email: $(GITEA_EMAIL)"
 	jx create git server github $(GHE_PROVIDER_URL) -n GHE
@@ -116,6 +140,9 @@ test-app-lifecycle: info
 
 test-app: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus="test app"
+
+test-verify-pods: info
+	$(GINKGO) --slowSpecThreshold=50000 --focus="verify pods"
 
 test-create-spring: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="create spring"
@@ -212,6 +239,6 @@ clean:
 	rm -rf build
 
 build:
-	$(GO) build $(BUILDFLAGS) -o build/$(NAME) main.go
+	$(GO) build $(BUILDFLAGS) -o build/$(NAME) *.go
 
 .PHONY: release clean test

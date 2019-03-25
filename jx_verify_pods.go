@@ -3,7 +3,7 @@ package bdd_jx
 import (
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/utils"
-	"github.com/jenkins-x/jx/pkg/jx/cmd"
+	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,7 +25,7 @@ var _ = Describe("verify pods\n", func() {
 		T = Test{
 			ApplicationName: TempDirPrefix + "verify-pods-" + strconv.FormatInt(GinkgoRandomSeed(), 10),
 			WorkDir:         WorkDir,
-			Factory:         cmd.NewFactory(),
+			Factory:         clients.NewFactory(),
 		}
 		T.GitProviderURL()
 	})

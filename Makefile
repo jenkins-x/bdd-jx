@@ -134,6 +134,9 @@ test-app-lifecycle: info
 test-app: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus="test app" -- -include-apps=$(JX_BDD_INCLUDE_APPS)
 
+test-verify-pods: info
+	$(GINKGO) --slowSpecThreshold=50000 --focus="verify pods"
+
 test-create-spring: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="create spring"
 

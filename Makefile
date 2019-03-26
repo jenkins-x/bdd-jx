@@ -138,9 +138,6 @@ test-import: info
 test-app-lifecycle: info
 	JX_BDD_INCLUDE_APPS="$(JX_BDD_INCLUDE_APPS)" $(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="test app"
 
-test-app: info
-	$(GINKGO) --slowSpecThreshold=50000 --focus="test app"
-
 test-verify-pods: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus="verify pods"
 

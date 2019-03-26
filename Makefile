@@ -154,7 +154,7 @@ test-upgrade-platform: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=platform
 
 test-all-quickstarts: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="quickstart"
+	JX_BDD_ALL_QUICKSTARTS=$(JX_BDD_ALL_QUICKSTARTS) $(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="batch"
 
 #targets for individual quickstarts
 

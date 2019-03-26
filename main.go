@@ -1,7 +1,6 @@
 package bdd_jx
 
 import (
-	"flag"
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/utils"
 	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
@@ -33,8 +32,8 @@ var (
 	TempDirPrefix = "bdd-"
 	// WorkDir The current working directory
 	WorkDir              string
-	IncludeApps          = flag.String("include-apps", "", "The Jenkins X App names to BDD test")
-	IncludeQuickstarts   = flag.String("include-quickstarts", "", "The Jenkins X quickstarts to BDD test")
+	IncludeApps          = os.Getenv("JX_BDD_INCLUDE_APPS")
+	IncludeQuickstarts   = os.Getenv("JX_BDD_ALL_QUICKSTARTS")
 	DefaultRepositoryURL = "http://chartmuseum.jenkins-x.io"
 
 	// all timeout values are in minutes
@@ -367,9 +366,8 @@ func (t *Test) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration 
 
 // AddAppTests Creates a jx add app test
 func AllQuickstartsTest() []bool {
-	includedQuickstarts := *IncludeQuickstarts
-	if includedQuickstarts != "" {
-		includedQuickstartList := strings.Split(strings.TrimSpace(includedQuickstarts), ",")
+	if IncludeQuickstarts != "" {
+		includedQuickstartList := strings.Split(strings.TrimSpace(IncludeQuickstarts), ",")
 		tests := make([]bool, len(includedQuickstartList))
 		for _, testQuickstartName := range includedQuickstartList {
 			tests = append(tests, CreateBatchQuickstartsTests(testQuickstartName))

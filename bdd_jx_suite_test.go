@@ -2,7 +2,6 @@ package bdd_jx
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/jenkins-x/jx/pkg/util"
 	"io/ioutil"
 	"log"
@@ -21,12 +20,8 @@ import (
 )
 
 var ReporterTestGrid *reporters.ReporterTestGrid
-func init() {
-	fmt.Println("initfunc")
-}
-func TestBddJx(t *testing.T) {
-	fmt.Println("TestBddJxStart")
 
+func TestBddJx(t *testing.T) {
 	specFailures := make(map[string][]bool)
 	reps := []Reporter{}
 	ReporterTestGrid = &reporters.ReporterTestGrid{
@@ -45,7 +40,6 @@ func TestBddJx(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	var err error
-	fmt.Println("BeforeSuiteStuff")
 	WorkDir, err = ioutil.TempDir("", TempDirPrefix)
 	Expect(err).NotTo(HaveOccurred())
 	err = os.MkdirAll(WorkDir, 0760)

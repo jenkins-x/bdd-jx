@@ -1,7 +1,6 @@
 package bdd_jx
 
 import (
-	"fmt"
 	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	. "github.com/onsi/ginkgo"
 	"strconv"
@@ -54,7 +53,6 @@ func (t *Test) AddAppTests(testAppName string, version string) bool {
 				By("The App resource does not exist before creation\n")
 				c := "jx"
 				args := []string{"get", "app", testAppName}
-				fmt.Println("ARGS",args)
 				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 1, c, args...)
 				By("Add app exits with signal 0\n")
 				c = "jx"
@@ -62,7 +60,6 @@ func (t *Test) AddAppTests(testAppName string, version string) bool {
 				if version != "" {
 					args = append(args, "--version", version)
 				}
-				fmt.Println("ARGS",args)
 				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
 				By("The App resource exists after creation\n")
 				c = "jx"

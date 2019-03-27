@@ -77,7 +77,13 @@ func (t *Test) GitProviderURL() (string, error) {
 		return gitProviderURL, nil
 	}
 	// find the default load the default one from the current ~/.jx/gitAuth.yaml
-	authConfigSvc, err := t.Factory.CreateAuthConfigService("gitAuth.yaml")
+	ns := "jx"
+	_, ns2, _ := t.Factory.CreateKubeClient()
+	if ns2 != "" {
+		ns = ns2
+
+	}
+	authConfigSvc, err := t.Factory.CreateAuthConfigService("gitAuth.yaml", ns)
 	if err != nil {
 		return "", err
 	}

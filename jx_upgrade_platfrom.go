@@ -2,6 +2,7 @@ package bdd_jx
 
 import (
 	"os"
+	"time"
 
 	"github.com/jenkins-x/bdd-jx/runner"
 	"github.com/jenkins-x/bdd-jx/utils"
@@ -46,7 +47,7 @@ func (t *testCaseUpgradePlatfrom) CheckJenkins() {
 	url, err := services.FindServiceURL(t.client, t.namespace, kube.ServiceJenkins)
 	Expect(err).NotTo(HaveOccurred())
 	utils.LogInfof("Checking health of Jekins service: %q\n", url)
-	err = jenkins.CheckHealth(url)
+	err = jenkins.CheckHealth(url, time.Minute*5)
 	Expect(err).NotTo(HaveOccurred())
 }
 

@@ -206,6 +206,9 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	err = o.Run()
 	pr := o.Results.PullRequest
 
+	if err != nil {
+		utils.LogInfof("FAILED to create Pull Request: %s\n", err.Error())
+	}
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(pr).ShouldNot(BeNil())
 	prNumber := pr.Number
@@ -272,7 +275,7 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 		utils.LogInfof("got error loading PipelineActivities for %s due to %s", paName, err.Error())
 	} else {
 
-	utils.LogInfof("build status for '%s' is '%s'\n", jobName + "-1", activity.Spec.Status.String())
+		utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-1", activity.Spec.Status.String())
 
 		// TODO lets temporarily disable this assertion as we have an issue on our production cluster with build statuses not being set correctly
 		// TODO lets put this back ASAP once we're on tekton!
@@ -485,11 +488,11 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 	if batch {
 		description = "[batch] "
 	}
-	return Describe(description +"quickstart "+quickstartName+"\n", func() {
+	return Describe(description+"quickstart "+quickstartName+"\n", func() {
 		var T Test
 
 		BeforeEach(func() {
-			qsNameParts := strings.Split(quickstartName,"-")
+			qsNameParts := strings.Split(quickstartName, "-")
 			qsAbbr := ""
 			for s := range qsNameParts {
 				qsAbbr = qsAbbr + qsNameParts[s][:1]

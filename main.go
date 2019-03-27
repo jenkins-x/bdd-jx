@@ -206,10 +206,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	err = o.Run()
 	pr := o.Results.PullRequest
 
-	if err != nil {
-		utils.LogInfof("FAILED to create Pull Request: %s\n", err.Error())
-	}
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 	Expect(pr).ShouldNot(BeNil())
 	prNumber := pr.Number
 	Expect(prNumber).ShouldNot(BeNil())
@@ -217,7 +214,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(*prNumber)
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
 
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 	if err != nil {
 		return err
 	}
@@ -225,10 +222,10 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	// lets verify that there's a Preview Environment...
 	utils.LogInfof("Verifying we have a Preview Environment...\n")
 	jxClient, ns, err := o.JXClientAndDevNamespace()
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 
 	envList, err := jxClient.JenkinsV1().Environments(ns).List(metav1.ListOptions{})
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 
 	var previewEnv *v1.Environment
 	for _, env := range envList.Items {
@@ -268,7 +265,7 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	o.SetFactory(t.Factory)
 
 	jxClient, ns, err := o.JXClientAndDevNamespace()
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 	paName := kube.ToValidName(jobName + "-1")
 	activity, err := jxClient.JenkinsV1().PipelineActivities(ns).Get(paName, metav1.GetOptions{})
 	if err != nil {

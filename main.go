@@ -77,7 +77,13 @@ func (t *Test) GitProviderURL() (string, error) {
 		return gitProviderURL, nil
 	}
 	// find the default load the default one from the current ~/.jx/gitAuth.yaml
-	authConfigSvc, err := t.Factory.CreateAuthConfigService("gitAuth.yaml")
+	ns := "jx"
+	_, ns2, _ := t.Factory.CreateKubeClient()
+	if ns2 != "" {
+		ns = ns2
+
+	}
+	authConfigSvc, err := t.Factory.CreateAuthConfigService("gitAuth.yaml", ns)
 	if err != nil {
 		return "", err
 	}
@@ -206,7 +212,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	err = o.Run()
 	pr := o.Results.PullRequest
 
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 	Expect(pr).ShouldNot(BeNil())
 	prNumber := pr.Number
 	Expect(prNumber).ShouldNot(BeNil())
@@ -214,7 +220,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(*prNumber)
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
 
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 	if err != nil {
 		return err
 	}
@@ -222,10 +228,10 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	// lets verify that there's a Preview Environment...
 	utils.LogInfof("Verifying we have a Preview Environment...\n")
 	jxClient, ns, err := o.JXClientAndDevNamespace()
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 
 	envList, err := jxClient.JenkinsV1().Environments(ns).List(metav1.ListOptions{})
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 
 	var previewEnv *v1.Environment
 	for _, env := range envList.Items {
@@ -265,14 +271,14 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	o.SetFactory(t.Factory)
 
 	jxClient, ns, err := o.JXClientAndDevNamespace()
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 	paName := kube.ToValidName(jobName + "-1")
 	activity, err := jxClient.JenkinsV1().PipelineActivities(ns).Get(paName, metav1.GetOptions{})
 	if err != nil {
 		utils.LogInfof("got error loading PipelineActivities for %s due to %s", paName, err.Error())
 	} else {
 
-	utils.LogInfof("build status for '%s' is '%s'\n", jobName + "-1", activity.Spec.Status.String())
+		utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-1", activity.Spec.Status.String())
 
 		// TODO lets temporarily disable this assertion as we have an issue on our production cluster with build statuses not being set correctly
 		// TODO lets put this back ASAP once we're on tekton!
@@ -485,11 +491,11 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 	if batch {
 		description = "[batch] "
 	}
-	return Describe(description +"quickstart "+quickstartName+"\n", func() {
+	return Describe(description+"quickstart "+quickstartName+"\n", func() {
 		var T Test
 
 		BeforeEach(func() {
-			qsNameParts := strings.Split(quickstartName,"-")
+			qsNameParts := strings.Split(quickstartName, "-")
 			qsAbbr := ""
 			for s := range qsNameParts {
 				qsAbbr = qsAbbr + qsNameParts[s][:1]

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	jx             = "jx"
+	jx = "jx"
 )
 
 var (
@@ -34,7 +34,7 @@ func (r *JxRunner) Run(args ...string) {
 	command := exec.Command(jx, args...)
 	command.Dir = r.cwd
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-	Expect(err).ShouldNot(HaveOccurred())
+	utils.ExpectNoError(err)
 	session.Wait(TimeoutJxRunner)
 	Eventually(session).Should(gexec.Exit(0))
 }

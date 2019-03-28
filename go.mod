@@ -13,7 +13,7 @@ require (
 	github.com/andygrunwald/go-gerrit v0.0.0-20181026193842-43cfd7a94eb4
 	github.com/andygrunwald/go-jira v1.5.0
 	github.com/antham/chyle v1.4.0
-	github.com/aws/aws-sdk-go v1.16.20
+	github.com/aws/aws-sdk-go v1.17.10
 	github.com/banzaicloud/bank-vaults v0.0.0-20181129101211-e31657d7c4fe
 	github.com/beevik/etree v1.0.1
 	github.com/blang/semver v3.5.1+incompatible
@@ -43,7 +43,7 @@ require (
 	github.com/iancoleman/orderedmap v0.0.0-20181121102841-22c6ecc9fe13
 	github.com/jenkins-x/draft-repo v0.0.0-20180417100212-2f66cc518135
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v1.3.934
+	github.com/jenkins-x/jx v1.3.1037
 	github.com/jetstack/cert-manager v0.5.2
 	github.com/knative/build v0.3.0
 	github.com/knative/build-pipeline v0.1.0
@@ -59,7 +59,7 @@ require (
 	github.com/pkg/errors v0.8.0
 	github.com/rodaine/hclencoder v0.0.0-20180926060551-0680c4321930
 	github.com/russross/blackfriday v1.5.1
-	github.com/satori/go.uuid v1.2.0
+	github.com/satori/go.uuid v1.2.1-0.20180103174451-36e9d2ebbde5
 	github.com/sethvargo/go-password v0.1.2
 	github.com/shirou/gopsutil v0.0.0-20180901134234-eb1f1ab16f2e
 	github.com/sirupsen/logrus v1.2.0
@@ -89,7 +89,7 @@ require (
 
 )
 
-replace github.com/heptio/sonobuoy => github.com/jenkins-x/sonobuoy v0.11.7-0.20190131193045-dad27c12bf17
+replace github.com/heptio/sonobuoy => github.com/jenkins-x/sonobuoy v0.11.7-0.20190318120422-253758214767
 
 replace k8s.io/api => k8s.io/api v0.0.0-20181128191700-6db15a15d2d3
 
@@ -98,5 +98,7 @@ replace k8s.io/metrics => k8s.io/metrics v0.0.0-20181128195641-3954d62a524d
 replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190122181752-bebe27e40fb7
 
 replace k8s.io/client-go => k8s.io/client-go v2.0.0-alpha.0.0.20190115164855-701b91367003+incompatible
+
+replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
 
 replace github.com/shurcooL/graphql => github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f

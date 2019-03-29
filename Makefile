@@ -129,10 +129,10 @@ test-import: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=import
 
 test-app-lifecycle: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="test app" -- -include-apps=jx-app-jacoco:0.0.100
+	JX_BDD_INCLUDE_APPS=jx-app-test-lifecycle $(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="test app"
 
 test-app: info
-	$(GINKGO) --slowSpecThreshold=50000 --focus="test app" -- -include-apps=$(JX_BDD_INCLUDE_APPS)
+	$(GINKGO) --slowSpecThreshold=50000 --focus="test app"
 
 test-verify-pods: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus="verify pods"

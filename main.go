@@ -33,7 +33,6 @@ var (
 	TempDirPrefix = "bdd-"
 	// WorkDir The current working directory
 	WorkDir              string
-	IncludeApps          = flag.String("include-apps", "", "The Jenkins X App names to BDD test")
 	IncludeQuickstarts   = flag.String("include-quickstarts", "", "The Jenkins X quickstarts to BDD test")
 	DefaultRepositoryURL = "http://chartmuseum.jenkins-x.io"
 
@@ -371,8 +370,7 @@ func (t *Test) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration 
 
 // AddAppTests Creates a jx add app test
 func AppTests() []bool {
-	flag.Parse()
-	includedApps := *IncludeApps
+	includedApps := os.Getenv("JX_BDD_INCLUDE_APPS")
 	if includedApps != "" {
 		includedAppList := strings.Split(strings.TrimSpace(includedApps), ",")
 		tests := make([]bool, len(includedAppList))

@@ -52,6 +52,7 @@ GHE_PROVIDER_URL ?= https://github.beescloud.com
 GHE_USER ?= dev1
 GHE_TOKEN ?= changeme
 GHE_EMAIL ?= testuser@acme.com
+JX_BDD_INCLUDE_APPS ?= jx-app-jacoco:0.0.100
 
 # Timeouts used in various test steps (in minutes)
 # timeout for a given build to complete
@@ -98,6 +99,12 @@ else
 	@echo "JX_DISABLE_WAIT_FOR_FIRST_RELEASE is not set.  If you would like to disable waiting for the build to be promoted to staging set this variable to TRUE"
 endif
 
+ifdef JX_BDD_INCLUDE_APPS
+	@echo "JX_BDD_INCLUDE_APPS is set to $(JX_BDD_INCLUDE_APPS)"
+else
+	@echo "JX_BDD_INCLUDE_APPS is not set."
+endif
+
 	@echo "BDD_TIMEOUT_BUILD_COMPLETES timeout value is $(BDD_TIMEOUT_BUILD_COMPLETES)"
 	@echo "BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING timeout value is $(BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING)"
 	@echo "BDD_TIMEOUT_URL_RETURNS timeout value is $(BDD_TIMEOUT_URL_RETURNS)"
@@ -129,10 +136,7 @@ test-import: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=import
 
 test-app-lifecycle: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="test app" -- -include-apps=jx-app-jacoco:0.0.100
-
-test-app: info
-	$(GINKGO) --slowSpecThreshold=50000 --focus="test app" -- -include-apps=$(JX_BDD_INCLUDE_APPS)
+	JX_BDD_INCLUDE_APPS="$(JX_BDD_INCLUDE_APPS)" $(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="test app"
 
 test-verify-pods: info
 	$(GINKGO) --slowSpecThreshold=50000 --focus="verify pods"
@@ -147,7 +151,7 @@ test-upgrade-platform: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=platform
 
 test-all-quickstarts: info
-	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus=batch -- -include-quickstarts=$(JX_BDD_ALL_QUICKSTARTS)
+	JX_BDD_ALL_QUICKSTARTS=$(JX_BDD_ALL_QUICKSTARTS) $(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) --focus="batch"
 
 #targets for individual quickstarts
 
@@ -232,6 +236,6 @@ clean:
 	rm -rf build
 
 build:
-	$(GO) build $(BUILDFLAGS) -o build/$(NAME) *.go 
+	$(GO) build $(BUILDFLAGS) -o build/$(NAME) *.go
 
 .PHONY: release clean test

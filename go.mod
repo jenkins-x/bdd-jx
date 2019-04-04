@@ -51,8 +51,8 @@ require (
 	github.com/magiconair/properties v1.8.0
 	github.com/mitchellh/mapstructure v0.0.0-20180715050151-f15292f7a699
 	github.com/nlopes/slack v0.0.0-20180721202243-347a74b1ea30
-	github.com/onsi/ginkgo v1.7.0
-	github.com/onsi/gomega v1.4.3
+	github.com/onsi/ginkgo v1.8.0
+	github.com/onsi/gomega v1.5.0
 	github.com/pborman/uuid v0.0.0-20170612153648-e790cca94e6c
 	github.com/petergtz/pegomock v0.0.0-20181206220228-b113d17a7e81
 	github.com/pkg/browser v0.0.0-20170505125900-c90ca0c84f15

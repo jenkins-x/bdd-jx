@@ -99,6 +99,12 @@ else
 	@echo "JX_DISABLE_WAIT_FOR_FIRST_RELEASE is not set.  If you would like to disable waiting for the build to be promoted to staging set this variable to TRUE"
 endif
 
+ifdef JX_BDD_INCLUDE_APPS
+	@echo "JX_BDD_INCLUDE_APPS is set to $(JX_BDD_INCLUDE_APPS)"
+else
+	@echo "JX_BDD_INCLUDE_APPS is not set."
+endif
+
 	@echo "BDD_TIMEOUT_BUILD_COMPLETES timeout value is $(BDD_TIMEOUT_BUILD_COMPLETES)"
 	@echo "BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING timeout value is $(BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING)"
 	@echo "BDD_TIMEOUT_URL_RETURNS timeout value is $(BDD_TIMEOUT_URL_RETURNS)"
@@ -235,6 +241,6 @@ clean:
 	rm -rf build
 
 build:
-	$(GO) build $(BUILDFLAGS) -o build/$(NAME) *.go 
+	$(GO) build $(BUILDFLAGS) -o build/$(NAME) *.go
 
 .PHONY: release clean test

@@ -2,9 +2,6 @@ package bdd_jx
 
 import (
 	"fmt"
-	"github.com/jenkins-x/bdd-jx/utils"
-	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
-	"github.com/jenkins-x/jx/pkg/kube"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -14,10 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jenkins-x/bdd-jx/utils"
+	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
+	"github.com/jenkins-x/jx/pkg/kube"
+
 	"github.com/jenkins-x/jx/pkg/util"
 
 	"github.com/cenkalti/backoff"
-	"github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/jx/cmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +34,7 @@ var (
 	// WorkDir The current working directory
 	WorkDir              string
 	IncludeApps          = os.Getenv("JX_BDD_INCLUDE_APPS")
-	IncludeQuickstarts   = os.Getenv("JX_BDD_ALL_QUICKSTARTS")
+	IncludeQuickstarts   = os.Getenv("JX_BDD_QUICKSTARTS")
 	DefaultRepositoryURL = "http://chartmuseum.jenkins-x.io"
 
 	// all timeout values are in minutes
@@ -383,8 +384,6 @@ func AllQuickstartsTest() []bool {
 		return make([]bool, 0)
 	}
 }
-
-
 
 //CreateQuickstartTest creates a quickstart test for the given quickstart
 func CreateQuickstartTest(quickstartName string) bool {

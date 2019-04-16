@@ -48,7 +48,6 @@ func AppTest(testAppName string, version string) bool {
 func (t *Test) AddAppTests(testAppName string, version string) bool {
 	return Describe("Given valid parameters", func() {
 		Context("when running jx add app "+testAppName, func() {
-
 			It("Ensure the app is added\n", func() {
 				By("The App resource does not exist before creation\n")
 				c := "jx"

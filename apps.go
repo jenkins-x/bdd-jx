@@ -39,6 +39,8 @@ func AppTest(testAppName string, version string) bool {
 		})
 
 		_ = T.AddAppTests(testAppName, version)
+		_ = T.GetAppsTests(testAppName)
+		_ = T.UpgradeAppTests(testAppName)
 		_ = T.DeleteAppTests(testAppName)
 
 	})
@@ -63,6 +65,41 @@ func (t *Test) AddAppTests(testAppName string, version string) bool {
 				By("The App resource exists after creation\n")
 				c = "jx"
 				args = []string{"get", "app", testAppName}
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+			})
+		})
+	})
+}
+
+func (t *Test) GetAppsTests(testAppName string) bool {
+	return Describe("Given valid parameters", func() {
+		Context("when running jx get apps "+testAppName, func() {
+			It("Ensure it returns correct data\n", func() {
+				By("There is at least one app created\n")
+				c := "jx"
+				args := []string{"get", "app", testAppName}
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				By("Can export the data as yaml\n")
+				args = []string{"get", "app", testAppName, "-o", "yaml"}
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				By("Can export the data as json\n")
+				args = []string{"get", "app", testAppName, "-o", "json"}
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+			})
+		})
+	})
+}
+
+func (t *Test) UpgradeAppTests(testAppName string) bool {
+	return Describe("Given valid parameters", func() {
+		Context("when running jx upgrade app "+testAppName, func() {
+			It("Ensure it is upgraded\n", func() {
+				By("The App resource exists before upgrade\n")
+				c := "jx"
+				args := []string{"get", "app", testAppName}
+				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				By("Upgrade an app exists with signal 0\n")
+				args = []string{"upgrade", "app", testAppName}
 				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
 			})
 		})

@@ -4,17 +4,41 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	errors2 "github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jenkins-x/golang-jenkins"
 )
 
+func AddCoverageArgsIfNeeded(args []string, id string) ([]string, error){
+	if os.Getenv("ENABLE_COVERAGE") == strings.ToLower("true") || os.Getenv("ENABLE_COVERAGE") == strings.ToLower("1") || os.Getenv("ENABLE_COVERAGE") == strings.ToLower("on") {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, errors2.Wrapf(err, "getting current dir")
+		}
+		outDir := filepath.Join(cwd, "coverage")
+		outFile := filepath.Join(outDir, fmt.Sprintf("%s.coverage.out", id))
+		LogInfof("Enabling coverage, writing coverage to %s\n", outFile)
+		err = os.Setenv("COVER_JX_BINARY", "true")
+		if err != nil {
+			return nil, errors2.Wrapf(err, "setting env var COVER_JX_BINARY to true")
+		}
+		err = os.MkdirAll(outDir, 0700)
+		if err != nil {
+			return nil, errors2.Wrapf(err, "creating coverage dir")
+		}
+		args = append([]string{"-test.coverprofile", outFile}, args...)
+	}
+	return args, nil
+}
 
 // GetEnv fetches a timeout value from an environment variable, and returns the fallback value if that variable does not exist
 func GetTimeoutFromEnv(key string, fallback int) time.Duration {

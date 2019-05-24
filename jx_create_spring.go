@@ -38,7 +38,8 @@ var _ = Describe("create spring\n", func() {
 					args = append(args, "--git-provider-url", gitProviderUrl)
 				}
 				utils.LogInfof("about to run command: %s\n", util.ColorInfo(fmt.Sprintf("%s %s", c, strings.Join(args, " "))))
-
+				args, err = utils.AddCoverageArgsIfNeeded(args, "jx_create_spring__create_spring")
+				Ω(err).ShouldNot(HaveOccurred())
 				command := exec.Command(c, args...)
 				command.Dir = T.WorkDir
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -58,6 +59,8 @@ var _ = Describe("create spring\n", func() {
 				if T.DeleteApplications() {
 					By("deletes the application")
 					args = []string{"delete", "application", "-b", T.ApplicationName}
+					args, err = utils.AddCoverageArgsIfNeeded(args, "jx_create_spring__delete_application")
+					Ω(err).ShouldNot(HaveOccurred())
 					command = exec.Command(c, args...)
 					command.Dir = T.WorkDir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -69,6 +72,8 @@ var _ = Describe("create spring\n", func() {
 				if T.DeleteRepos() {
 					By("deletes the repo")
 					args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
+					args, err = utils.AddCoverageArgsIfNeeded(args, "jx_create_spring__delete_repo")
+					Ω(err).ShouldNot(HaveOccurred())
 					command = exec.Command(c, args...)
 					command.Dir = T.WorkDir
 					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)

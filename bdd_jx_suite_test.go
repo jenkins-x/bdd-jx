@@ -29,6 +29,7 @@ func TestBddJx(t *testing.T) {
 		OutputDir:    "reports",
 	}
 	reps = append(reps, ReporterTestGrid)
+	reps = append(reps, gr.NewJUnitReporter("junit.xml"))
 
 	artifactsDir := "reports/artifacts"
 	os.MkdirAll(artifactsDir, util.DefaultWritePermissions)

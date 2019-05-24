@@ -4,3 +4,4 @@ vendor/
 reports/*.html
 reports/*.json
 reports/*.md
+junit*.xml

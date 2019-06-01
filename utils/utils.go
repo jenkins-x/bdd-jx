@@ -20,14 +20,19 @@ import (
 
 func AddCoverageArgsIfNeeded(args []string, id string) ([]string, error){
 	if os.Getenv("ENABLE_COVERAGE") == strings.ToLower("true") || os.Getenv("ENABLE_COVERAGE") == strings.ToLower("1") || os.Getenv("ENABLE_COVERAGE") == strings.ToLower("on") {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return nil, errors2.Wrapf(err, "getting current dir")
+
+		reportsDir := os.Getenv("REPORTS_DIR")
+		if reportsDir == "" {
+			cwd, err := os.Getwd()
+			if err != nil {
+				return nil, errors2.Wrapf(err, "getting current dir")
+			}
+			reportsDir = cwd
 		}
-		outDir := filepath.Join(cwd, "build","reports")
+		outDir := filepath.Join(reportsDir, "build","reports")
 		outFile := filepath.Join(outDir, fmt.Sprintf("%s.coverage.out", id))
 		LogInfof("Enabling coverage, writing coverage to %s\n", outFile)
-		err = os.Setenv("COVER_JX_BINARY", "true")
+		err := os.Setenv("COVER_JX_BINARY", "true")
 		if err != nil {
 			return nil, errors2.Wrapf(err, "setting env var COVER_JX_BINARY to true")
 		}

@@ -24,7 +24,7 @@ func AddCoverageArgsIfNeeded(args []string, id string) ([]string, error){
 		if err != nil {
 			return nil, errors2.Wrapf(err, "getting current dir")
 		}
-		outDir := filepath.Join(cwd, "coverage")
+		outDir := filepath.Join(cwd, "build","reports")
 		outFile := filepath.Join(outDir, fmt.Sprintf("%s.coverage.out", id))
 		LogInfof("Enabling coverage, writing coverage to %s\n", outFile)
 		err = os.Setenv("COVER_JX_BINARY", "true")

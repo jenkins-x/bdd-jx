@@ -50,22 +50,19 @@ func AppTest(testAppName string, version string) bool {
 func (t *Test) AddAppTests(testAppName string, version string) bool {
 	return Describe("Given valid parameters", func() {
 		Context("when running jx add app "+testAppName, func() {
-			It("Ensure the app is added\n", func() {
+			It("ensure the app is added\n", func() {
 				By("The App resource does not exist before creation\n")
-				c := "jx"
 				args := []string{"get", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 1, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 1, args...)
 				By("Add app exits with signal 0\n")
-				c = "jx"
 				args = []string{"add", "app", testAppName, "--repository", DefaultRepositoryURL}
 				if version != "" {
 					args = append(args, "--version", version)
 				}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
 				By("The App resource exists after creation\n")
-				c = "jx"
 				args = []string{"get", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
 			})
 		})
 	})
@@ -74,17 +71,16 @@ func (t *Test) AddAppTests(testAppName string, version string) bool {
 func (t *Test) GetAppsTests(testAppName string) bool {
 	return Describe("Given valid parameters", func() {
 		Context("when running jx get apps "+testAppName, func() {
-			It("Ensure it returns correct data\n", func() {
+			It("ensure the correct output\n", func() {
 				By("There is at least one app created\n")
-				c := "jx"
 				args := []string{"get", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
 				By("Can export the data as yaml\n")
 				args = []string{"get", "app", testAppName, "-o", "yaml"}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
 				By("Can export the data as json\n")
 				args = []string{"get", "app", testAppName, "-o", "json"}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
 			})
 		})
 	})
@@ -93,14 +89,13 @@ func (t *Test) GetAppsTests(testAppName string) bool {
 func (t *Test) UpgradeAppTests(testAppName string) bool {
 	return Describe("Given valid parameters", func() {
 		Context("when running jx upgrade app "+testAppName, func() {
-			It("Ensure it is upgraded\n", func() {
+			It("ensure the app is upgraded\n", func() {
 				By("The App resource exists before upgrade\n")
-				c := "jx"
 				args := []string{"get", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
 				By("Upgrade an app exists with signal 0\n")
 				args = []string{"upgrade", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
 			})
 		})
 	})
@@ -110,19 +105,16 @@ func (t *Test) UpgradeAppTests(testAppName string) bool {
 func (t *Test) DeleteAppTests(testAppName string) bool {
 	return Describe("Given valid parameters", func() {
 		Context("when running jx delete app "+testAppName, func() {
-			It("Ensure it is deleted\n", func() {
+			It("ensure the app is deleted\n", func() {
 				By("The App resource exists before deletion\n")
-				c := "jx"
 				args := []string{"get", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
 				By("Delete app exits with signal 0\n")
-				c = "jx"
 				args = []string{"delete", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 0, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
 				By("The App resource was removed\n")
-				c = "jx"
 				args = []string{"get", "app", testAppName}
-				t.ExpectCommandExecution(t.WorkDir, TimeoutAppTests, 1, c, args...)
+				t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 1, args...)
 			})
 		})
 	})

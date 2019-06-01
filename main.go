@@ -2,6 +2,7 @@ package bdd_jx
 
 import (
 	"fmt"
+	"github.com/jenkins-x/bdd-jx/runner"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -262,9 +263,7 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	// NOTE Need to retry here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
 	utils.LogInfof("Checking that there is a job built successfully for %s\n", jobName)
 	args := []string{"get", "build", "logs", "--wait", jobName}
-	args, err := utils.AddCoverageArgsIfNeeded(args, "jx_create_spring__get_build_logs")
-	Ω(err).ShouldNot(HaveOccurred())
-	t.ExpectCommandExecution(t.WorkDir, maxDuration, 0, "jx", args...)
+	t.ExpectJxExecution(t.WorkDir, maxDuration, 0, args...)
 
 	o := cmd.CommonOptions{
 		Out:       os.Stdout,
@@ -322,6 +321,11 @@ func (t *Test) ExpectCommandExecution(dir string, commandTimeout time.Duration, 
 	}
 	err := RetryExponentialBackoff((TimeoutCmdLine), f)
 	Ω(err).ShouldNot(HaveOccurred())
+}
+
+func (t *Test) ExpectJxExecution(dir string, commandTimeout time.Duration, exitCode int, args ...string) {
+	r := runner.New(dir, &commandTimeout, exitCode)
+	r.Run(args...)
 }
 
 // DeleteApplications should we delete applications after the quickstart has run
@@ -428,7 +432,6 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 		Describe("Given valid parameters", func() {
 			Context("when operating on the quickstart", func() {
 				It("creates a "+quickstartName+" quickstart and promotes it to staging\n", func() {
-					c := "jx"
 					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.ApplicationName, "-f", quickstartName}
 
 					gitProviderUrl, err := T.GitProviderURL()
@@ -437,12 +440,7 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 						utils.LogInfof("Using Git provider URL %s\n", gitProviderUrl)
 						args = append(args, "--git-provider-url", gitProviderUrl)
 					}
-					command := exec.Command(c, args...)
-					command.Dir = T.WorkDir
-					session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(TimeoutAppTests)
-					Eventually(session).Should(gexec.Exit(0))
+					T.ExpectJxExecution(T.WorkDir, TimeoutAppTests, 0, args...)
 
 					applicationName := T.GetApplicationName()
 					owner := T.GetGitOrganisation()
@@ -468,23 +466,13 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 					if T.DeleteApplications() {
 						By("deletes the application")
 						args = []string{"delete", "application", "-b", T.ApplicationName}
-						command = exec.Command(c, args...)
-						command.Dir = T.WorkDir
-						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
-						Ω(err).ShouldNot(HaveOccurred())
-						session.Wait(TimeoutAppTests)
-						Eventually(session).Should(gexec.Exit(0))
+						T.ExpectJxExecution(T.WorkDir, TimeoutAppTests, 0, args...)
 					}
 
 					if T.DeleteRepos() {
 						By("deletes the repo")
 						args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
-						command = exec.Command(c, args...)
-						command.Dir = T.WorkDir
-						session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
-						Ω(err).ShouldNot(HaveOccurred())
-						session.Wait(TimeoutAppTests)
-						Eventually(session).Should(gexec.Exit(0))
+						T.ExpectJxExecution(T.WorkDir, TimeoutAppTests, 0, args...)
 					}
 				})
 			})
@@ -492,16 +480,14 @@ func createQuickstartTests(quickstartName string, batch bool) bool {
 		Describe("Given invalid parameters", func() {
 			Context("when -p param (project name) is missing", func() {
 				It("exits with signal 1\n", func() {
-					c := "jx"
 					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-f", quickstartName}
-					T.ExpectCommandExecution(T.WorkDir, TimeoutAppTests, 1, c, args...)
+					T.ExpectJxExecution(T.WorkDir, TimeoutAppTests, 1, args...)
 				})
 			})
 			Context("when -f param (filter) does not match any quickstart", func() {
 				It("exits with signal 1\n", func() {
-					c := "jx"
 					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.ApplicationName, "-f", "the_derek_zoolander_app_for_being_really_really_good_looking"}
-					T.ExpectCommandExecution(T.WorkDir, TimeoutAppTests, 1, c, args...)
+					T.ExpectJxExecution(T.WorkDir, TimeoutAppTests, 1, args...)
 				})
 			})
 		})

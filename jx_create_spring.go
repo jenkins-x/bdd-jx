@@ -7,8 +7,6 @@ import (
 	"github.com/jenkins-x/jx/pkg/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
-	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -38,15 +36,7 @@ var _ = Describe("create spring\n", func() {
 					args = append(args, "--git-provider-url", gitProviderUrl)
 				}
 				utils.LogInfof("about to run command: %s\n", util.ColorInfo(fmt.Sprintf("%s %s", c, strings.Join(args, " "))))
-				args, err = utils.AddCoverageArgsIfNeeded(args, "jx_create_spring__create_spring")
-				Ω(err).ShouldNot(HaveOccurred())
-				command := exec.Command(c, args...)
-				command.Dir = T.WorkDir
-				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
-				session.Wait(TimeoutSessionWait)
-				Eventually(session).Should(gexec.Exit(0))
-
+				T.ExpectJxExecution(T.WorkDir, TimeoutSessionWait, 0, args...)
 				if T.WaitForFirstRelease() {
 					T.TheApplicationShouldBeBuiltAndPromotedViaCICD(404)
 				}
@@ -59,27 +49,13 @@ var _ = Describe("create spring\n", func() {
 				if T.DeleteApplications() {
 					By("deletes the application")
 					args = []string{"delete", "application", "-b", T.ApplicationName}
-					args, err = utils.AddCoverageArgsIfNeeded(args, "jx_create_spring__delete_application")
-					Ω(err).ShouldNot(HaveOccurred())
-					command = exec.Command(c, args...)
-					command.Dir = T.WorkDir
-					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(TimeoutAppTests)
-					Eventually(session).Should(gexec.Exit(0))
+					T.ExpectJxExecution(T.WorkDir, TimeoutAppTests, 0, args...)
 				}
 
 				if T.DeleteRepos() {
 					By("deletes the repo")
 					args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
-					args, err = utils.AddCoverageArgsIfNeeded(args, "jx_create_spring__delete_repo")
-					Ω(err).ShouldNot(HaveOccurred())
-					command = exec.Command(c, args...)
-					command.Dir = T.WorkDir
-					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(TimeoutSessionWait)
-					Eventually(session).Should(gexec.Exit(0))
+					T.ExpectJxExecution(T.WorkDir, TimeoutSessionWait, 0, args...)
 				}
 			})
 		})

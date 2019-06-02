@@ -28,7 +28,9 @@ func TestBddJx(t *testing.T) {
 		reportsDir = filepath.Join("build", "reports")
 	}
 	err := os.MkdirAll(reportsDir, 0700)
-	utils.ExpectNoError(err)
+	if err != nil {
+		t.Errorf("cannot create %s because %v", reportsDir, err)
+	}
 	specFailures := make(map[string][]bool)
 	reps := []Reporter{}
 	ReporterTestGrid = &reporters.ReporterTestGrid{

@@ -2,7 +2,6 @@ package bdd_jx
 
 import (
 	"encoding/json"
-	"github.com/jenkins-x/bdd-jx/utils"
 	"github.com/jenkins-x/jx/pkg/util"
 	"io/ioutil"
 	"log"

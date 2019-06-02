@@ -2,6 +2,7 @@ package bdd_jx
 
 import (
 	"encoding/json"
+	"github.com/jenkins-x/bdd-jx/utils"
 	"github.com/jenkins-x/jx/pkg/util"
 	"io/ioutil"
 	"log"
@@ -22,14 +23,20 @@ import (
 var ReporterTestGrid *reporters.ReporterTestGrid
 
 func TestBddJx(t *testing.T) {
+	reportsDir := os.Getenv("REPORTS_DIR")
+	if reportsDir == "" {
+		reportsDir = filepath.Join("build", "reports")
+	}
+	err := os.MkdirAll(reportsDir, 0700)
+	utils.ExpectNoError(err)
 	specFailures := make(map[string][]bool)
 	reps := []Reporter{}
 	ReporterTestGrid = &reporters.ReporterTestGrid{
 		SpecFailures: specFailures,
-		OutputDir:    "reports",
+		OutputDir:    reportsDir,
 	}
 	reps = append(reps, ReporterTestGrid)
-	reps = append(reps, gr.NewJUnitReporter("junit.xml"))
+	reps = append(reps, gr.NewJUnitReporter(filepath.Join(reportsDir, "junit.xml")))
 
 	artifactsDir := "reports/artifacts"
 	os.MkdirAll(artifactsDir, util.DefaultWritePermissions)

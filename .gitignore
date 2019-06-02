@@ -1,7 +1,5 @@
 build/
 vendor/
 .idea/
-reports/*.html
-reports/*.json
-reports/*.md
+reports/
 junit*.xml

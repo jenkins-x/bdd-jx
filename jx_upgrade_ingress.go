@@ -159,7 +159,7 @@ func newTestCaseUpgradeIngress(cwd string, factory cmd.Factory, ns string) (*tes
 	}
 
 	return &testCaseUpgradeIngress{
-		JxRunner:   runner.New(cwd),
+		JxRunner:   runner.New(cwd, nil, 0),
 		kubeClient: client,
 		namespace:  ns,
 		ic:         newIngressConfig(client, ns, "jx"),

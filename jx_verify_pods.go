@@ -2,7 +2,6 @@ package bdd_jx
 
 import (
 	"fmt"
-	"github.com/jenkins-x/bdd-jx/runner"
 	"github.com/jenkins-x/bdd-jx/utils"
 	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/util"
@@ -39,8 +38,6 @@ var _ = Describe("verify pods\n", func() {
 
 				utils.LogInfof("about to run command: %s\n", util.ColorInfo(fmt.Sprintf("%s %s", c, strings.Join(args, " "))))
 
-				args, err := runner.AddCoverageArgsIfNeeded(args, "jx_verify_pods_step_verify_pod_ready")
-				Ω(err).ShouldNot(HaveOccurred())
 				command := exec.Command(c, args...)
 				command.Dir = T.WorkDir
 

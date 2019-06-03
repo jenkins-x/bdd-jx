@@ -15,7 +15,6 @@ import (
 	"github.com/jenkins-x/golang-jenkins"
 )
 
-
 // GetEnv fetches a timeout value from an environment variable, and returns the fallback value if that variable does not exist
 func GetTimeoutFromEnv(key string, fallback int) time.Duration {
 	if value, ok := os.LookupEnv(key); ok {

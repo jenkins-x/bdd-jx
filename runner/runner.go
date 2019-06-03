@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"os/exec"
+	"time"
 )
 
 const (
@@ -20,12 +21,19 @@ var (
 // Runner runs a jx command
 type JxRunner struct {
 	cwd string
+	timeout time.Duration
+	exitCode int
 }
 
 // New creates a new jx command runnner
-func New(cwd string) *JxRunner {
+func New(cwd string, timeout* time.Duration, exitCode int) *JxRunner {
+	if timeout == nil {
+		timeout = &TimeoutJxRunner
+	}
 	return &JxRunner{
 		cwd: cwd,
+		timeout: *timeout,
+		exitCode: exitCode,
 	}
 }
 
@@ -35,6 +43,6 @@ func (r *JxRunner) Run(args ...string) {
 	command.Dir = r.cwd
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	utils.ExpectNoError(err)
-	session.Wait(TimeoutJxRunner)
-	Eventually(session).Should(gexec.Exit(0))
+	session.Wait(r.timeout)
+	Eventually(session).Should(gexec.Exit(r.exitCode))
 }

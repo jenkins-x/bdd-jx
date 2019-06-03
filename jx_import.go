@@ -5,10 +5,8 @@ import (
 	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	"gopkg.in/src-d/go-git.v4"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 )
@@ -41,38 +39,22 @@ var _ = Describe("import\n", func() {
 				err = utils.ReplaceElement(filepath.Join(dest_dir, "pom.xml"), "artifactId", T.ApplicationName, 1)
 				Expect(err).NotTo(HaveOccurred())
 
-				c := "jx"
 				gitProviderUrl, err := T.GitProviderURL()
 				Expect(err).NotTo(HaveOccurred())
 				args := []string{"import", dest_dir, "-b", "--org", T.GetGitOrganisation(), "--git-provider-url", gitProviderUrl}
-				command := exec.Command(c, args...)
-				command.Dir = dest_dir
-				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-				Ω(err).ShouldNot(HaveOccurred())
-				session.Wait(TimeoutSessionWait)
-				Eventually(session).Should(gexec.Exit(0))
+				T.ExpectJxExecution(T.WorkDir, TimeoutSessionWait, 0, args...)
 				T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
 
 				if T.DeleteApplications() {
 					By("deletes the application")
 					args = []string{"delete", "application", "-b", T.ApplicationName}
-					command = exec.Command(c, args...)
-					command.Dir = dest_dir
-					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(TimeoutSessionWait)
-					Eventually(session).Should(gexec.Exit(0))
+					T.ExpectJxExecution(T.WorkDir, TimeoutSessionWait, 0, args...)
 				}
 
 				if T.DeleteRepos() {
 					By("deletes the repo")
 					args = []string{"delete", "repo", "-b", "-g", gitProviderUrl, "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
-					command = exec.Command(c, args...)
-					command.Dir = dest_dir
-					session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
-					Ω(err).ShouldNot(HaveOccurred())
-					session.Wait(TimeoutSessionWait)
-					Eventually(session).Should(gexec.Exit(0))
+					T.ExpectJxExecution(T.WorkDir, TimeoutSessionWait, 0, args...)
 				}
 			})
 		})

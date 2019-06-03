@@ -29,7 +29,7 @@ func newTestCaseUpgradePlatfrom(cwd string, version string, factory cmd.Factory)
 	}
 
 	return &testCaseUpgradePlatfrom{
-		JxRunner:  runner.New(cwd),
+		JxRunner:  runner.New(cwd, nil, 0),
 		version:   version,
 		client:    client,
 		namespace: ns,

@@ -22,13 +22,22 @@ import (
 var ReporterTestGrid *reporters.ReporterTestGrid
 
 func TestBddJx(t *testing.T) {
+	reportsDir := os.Getenv("REPORTS_DIR")
+	if reportsDir == "" {
+		reportsDir = filepath.Join("build", "reports")
+	}
+	err := os.MkdirAll(reportsDir, 0700)
+	if err != nil {
+		t.Errorf("cannot create %s because %v", reportsDir, err)
+	}
 	specFailures := make(map[string][]bool)
 	reps := []Reporter{}
 	ReporterTestGrid = &reporters.ReporterTestGrid{
 		SpecFailures: specFailures,
-		OutputDir:    "reports",
+		OutputDir:    reportsDir,
 	}
 	reps = append(reps, ReporterTestGrid)
+	reps = append(reps, gr.NewJUnitReporter(filepath.Join(reportsDir, "junit.xml")))
 
 	artifactsDir := "reports/artifacts"
 	os.MkdirAll(artifactsDir, util.DefaultWritePermissions)

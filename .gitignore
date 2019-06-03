@@ -2,8 +2,6 @@ build/
 vendor/
 .idea/
 .vscode/
-reports/*.html
-reports/*.json
-reports/*.md
-reports/artifacts
+reports/
+junit*.xml
 debug.test

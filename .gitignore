@@ -1,5 +1,7 @@
 build/
 vendor/
 .idea/
+.vscode/
 reports/
 junit*.xml
+debug.test

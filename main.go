@@ -3,6 +3,8 @@ package bdd_jx
 import (
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/runner"
+	"github.com/jenkins-x/bdd-jx/utils/parsers"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -14,17 +16,12 @@ import (
 
 	"github.com/jenkins-x/bdd-jx/utils"
 	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
-	"github.com/jenkins-x/jx/pkg/kube"
-
 	"github.com/jenkins-x/jx/pkg/util"
 
 	"github.com/cenkalti/backoff"
-	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
-	"github.com/jenkins-x/jx/pkg/jx/cmd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func main() { /* usual main func */ }
@@ -77,30 +74,16 @@ func (t *Test) GitProviderURL() (string, error) {
 	if gitProviderURL != "" {
 		return gitProviderURL, nil
 	}
-	// find the default load the default one from the current ~/.jx/gitAuth.yaml
-	ns := "jx"
-	_, ns2, _ := t.Factory.CreateKubeClient()
-	if ns2 != "" {
-		ns = ns2
-
-	}
-	authConfigSvc, err := t.Factory.CreateAuthConfigService("gitAuth.yaml", ns)
+	r := runner.New(t.WorkDir, nil, 0)
+	out := r.RunWithOutput("get", "gitserver")
+	gitServers, err := parsers.ParseJxGetGitServer(out)
 	if err != nil {
 		return "", err
 	}
-	config, err := authConfigSvc.LoadConfig()
-	if err != nil {
-		return "", err
+	if len(gitServers) < 1 {
+		return "", errors.Errorf("Must be at least 1 git server configured")
 	}
-	url := config.CurrentServer
-	if url != "" {
-		return url, nil
-	}
-	servers := config.Servers
-	if len(servers) == 0 {
-		return "", fmt.Errorf("No servers in the ~/.jx/gitAuth.yaml file")
-	}
-	return servers[0].URL, nil
+	return gitServers[0].Url, nil
 }
 
 // TheApplicationIsRunningInStaging lets assert that the application is deployed into the first automatic staging environment
@@ -109,46 +92,27 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 	key := "staging"
 
 	f := func() error {
-		o := &cmd.GetApplicationsOptions{
-			CommonOptions: &cmd.CommonOptions{
-				Out: os.Stdout,
-				Err: os.Stderr,
-			},
-		}
-		o.CommonOptions.SetFactory(t.Factory)
-		err := o.Run()
-		Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
-		if err != nil {
-			return err
-		}
-
+		r := runner.New(t.WorkDir, nil, 0)
+		out:= r.RunWithOutput("get", "applications", "-e", key)
+		applications, err := parsers.ParseJxGetApplications(out)
+		utils.ExpectNoError(err)
 		applicationName := t.GetApplicationName()
-		if len(o.Results.Applications) == 0 {
+		if len(applications) == 0 {
 			return fmt.Errorf("No applications found")
 		}
-		utils.LogInfof("application name %s application map %#v\n", applicationName, o.Results.Applications)
+		utils.LogInfof("application name %s; application mP %#v\n", applicationName, applications)
 
-		applicationEnvInfo := o.Results.Applications[applicationName]
-		applicationName2 := "jx-" + applicationName
-		if applicationEnvInfo == nil {
-			applicationEnvInfo = o.Results.Applications[applicationName2]
+		applicationEnvInfo, ok := applications[applicationName]
+		if !ok {
+			applicationName = "jx-" + applicationName
+			applicationEnvInfo, ok = applications[applicationName]
 		}
 
-		if applicationEnvInfo != nil {
-			m := applicationEnvInfo[key]
-			if m == nil {
-				for k := range applicationEnvInfo {
-					utils.LogInfof("has environment key %s\n", k)
-				}
-			}
-			Expect(m).ShouldNot(BeNil(), "no ApplicationEnvInfo for key %s", key)
-			if m != nil {
-				u = m.URL
-			}
-		}
+		Expect(applicationEnvInfo).ShouldNot(BeNil(), "no application found for % in environment %s", applicationName, key)
+		u = applicationEnvInfo.Url
 		if u == "" {
 			return fmt.Errorf("No URL found for environment %s", key)
-			utils.LogInfo("still looking for application env info url\n")
+			utils.LogInfof("still looking for application %s in env %s\n", applicationName, key)
 		}
 		return nil
 	}
@@ -156,7 +120,7 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 	err := RetryExponentialBackoff(TimeoutBuildIsRunningInStaging, f)
 	Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
 
-	Expect(u).ShouldNot(BeEmpty(), "no ApplicationEnvInfo URL for environment key %s", key)
+	Expect(u).ShouldNot(BeEmpty(), "no URL for environment %s", key)
 	t.ExpectUrlReturns(u, statusCode, TimeoutUrlReturns)
 }
 
@@ -195,30 +159,15 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "commit", "-a", "-m", "My first PR commit")
 	t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "push", "--set-upstream", "origin", "changes")
 
-	o := cmd.CreatePullRequestOptions{
-		CreateOptions: cmd.CreateOptions{
-			CommonOptions: &cmd.CommonOptions{
-				Out:       os.Stdout,
-				Err:       os.Stderr,
-				BatchMode: true,
-			},
-		},
-		Title: "My First PR commit",
-		Body:  "PR comments",
-		Dir:   workDir,
-		Base:  "master",
-	}
-	o.CommonOptions.SetFactory(t.Factory)
-
-	err = o.Run()
-	pr := o.Results.PullRequest
-
+	r := runner.New(workDir, nil, 0)
+	out := r.RunWithOutput("create", "pullrequest", "-b", "--title", "My First PR commit", "--body", "PR comments")
+	pr, err := parsers.ParseJxCreatePullRequest(out)
 	utils.ExpectNoError(err)
 	Expect(pr).ShouldNot(BeNil())
-	prNumber := pr.Number
+	prNumber := pr.PullRequestNumber
 	Expect(prNumber).ShouldNot(BeNil())
 
-	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(*prNumber)
+	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(prNumber)
 	t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
 
 	utils.ExpectNoError(err)
@@ -228,33 +177,18 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 	// lets verify that there's a Preview Environment...
 	utils.LogInfof("Verifying we have a Preview Environment...\n")
-	jxClient, ns, err := o.JXClientAndDevNamespace()
+	out  = r.RunWithOutput("get", "previews")
+	previews, err := parsers.ParseJxGetPreviews(out)
 	utils.ExpectNoError(err)
 
-	envList, err := jxClient.JenkinsV1().Environments(ns).List(metav1.ListOptions{})
-	utils.ExpectNoError(err)
+	previewEnv := previews[pr.Url]
+	Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment for application name %s", applicationName)
+	applicationUrl := previewEnv.Url
+	Expect(applicationUrl).ShouldNot(Equal(""), "No Preview Application URL found")
 
-	var previewEnv *v1.Environment
-	for _, env := range envList.Items {
-		spec := &env.Spec
-		if spec.Kind == v1.EnvironmentKindTypePreview {
-			if spec.PreviewGitSpec.ApplicationName == applicationName {
-				copy := env
-				previewEnv = &copy
-			}
-		}
-	}
-	Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment in namespace %s for application name %s", ns, applicationName)
-	if previewEnv != nil {
-		applicationUrl := previewEnv.Spec.PreviewGitSpec.ApplicationURL
-		Expect(applicationUrl).ShouldNot(Equal(""), "No Preview Application URL found")
+	utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
 
-		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
-
-		return t.ExpectUrlReturns(applicationUrl, statusCode, TimeoutUrlReturns)
-	} else {
-		utils.LogInfof("No Preview Environment found in namespace %s for application: %s\n", ns, applicationName)
-	}
+	return t.ExpectUrlReturns(applicationUrl, statusCode, TimeoutUrlReturns)
 	return nil
 }
 
@@ -265,30 +199,22 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	args := []string{"get", "build", "logs", "--wait", jobName}
 	t.ExpectJxExecution(t.WorkDir, maxDuration, 0, args...)
 
-	o := cmd.CommonOptions{
-		Out:       os.Stdout,
-		Err:       os.Stderr,
-		BatchMode: true,
-	}
-	o.SetFactory(t.Factory)
-
-	jxClient, ns, err := o.JXClientAndDevNamespace()
+	r := runner.New(t.WorkDir, nil, 0)
+	out := r.RunWithOutput("get", "activities", "--filter", jobName, "--build", "1")
+	activities, err := parsers.ParseJxGetActivities(out)
 	utils.ExpectNoError(err)
-	paName := kube.ToValidName(jobName + "-1")
-	activity, err := jxClient.JenkinsV1().PipelineActivities(ns).Get(paName, metav1.GetOptions{})
-	if err != nil {
-		utils.LogInfof("got error loading PipelineActivities for %s due to %s", paName, err.Error())
-	} else {
+	Expect(activities).Should(HaveLen(1), fmt.Sprintf("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v", len(activities), jobName, activities))
+	activity, ok := activities[fmt.Sprintf("%s #%d", jobName, 1)]
+	Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #%d",jobName,1))
 
-		utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-1", activity.Spec.Status.String())
+	utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-1", activity.Status)
 
-		// TODO lets temporarily disable this assertion as we have an issue on our production cluster with build statuses not being set correctly
-		// TODO lets put this back ASAP once we're on tekton!
-		/*
-			Expect(activity.Spec.Status.IsTerminated()).To(BeTrue())
-			Expect(activity.Spec.Status.String()).Should(Equal("Succeeded"))
-		*/
-	}
+	// TODO lets temporarily disable this assertion as we have an issue on our production cluster with build statuses not being set correctly
+	// TODO lets put this back ASAP once we're on tekton!
+	/*
+		Expect(activity.Spec.Status.IsTerminated()).To(BeTrue())
+		Expect(activity.Spec.Status.String()).Should(Equal("Succeeded"))
+	*/
 }
 
 // RetryExponentialBackoff retries the given function up to the maximum duration

@@ -15,20 +15,20 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type testCaseUpgradePlatfrom struct {
+type testCaseUpgradePlatform struct {
 	*runner.JxRunner
 	version   string
 	client    kubernetes.Interface
 	namespace string
 }
 
-func newTestCaseUpgradePlatfrom(cwd string, version string, factory cmd.Factory) (*testCaseUpgradePlatfrom, error) {
+func newTestCaseUpgradePlatfrom(cwd string, version string, factory cmd.Factory) (*testCaseUpgradePlatform, error) {
 	client, ns, err := factory.CreateKubeClient()
 	if err != nil {
 		return nil, err
 	}
 
-	return &testCaseUpgradePlatfrom{
+	return &testCaseUpgradePlatform{
 		JxRunner:  runner.New(cwd, nil, 0),
 		version:   version,
 		client:    client,
@@ -36,14 +36,14 @@ func newTestCaseUpgradePlatfrom(cwd string, version string, factory cmd.Factory)
 	}, nil
 }
 
-func (t *testCaseUpgradePlatfrom) Upgrade(args ...string) {
+func (t *testCaseUpgradePlatform) Upgrade(args ...string) {
 	allargs := []string{"upgrade", "platform",
 		"--version=" + t.version, "-b"}
 	allargs = append(allargs, args...)
 	t.Run(allargs...)
 }
 
-func (t *testCaseUpgradePlatfrom) CheckJenkins() {
+func (t *testCaseUpgradePlatform) CheckJenkins() {
 	url, err := services.FindServiceURL(t.client, t.namespace, kube.ServiceJenkins)
 	Expect(err).NotTo(HaveOccurred())
 	utils.LogInfof("Checking health of Jekins service: %q\n", url)
@@ -52,7 +52,7 @@ func (t *testCaseUpgradePlatfrom) CheckJenkins() {
 }
 
 var _ = Describe("upgrade platfrom\n", func() {
-	var test *testCaseUpgradePlatfrom
+	var test *testCaseUpgradePlatform
 	skipJenkinsCheck := false
 
 	BeforeEach(func() {

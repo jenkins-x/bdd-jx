@@ -203,6 +203,7 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	out := r.RunWithOutput("get", "activities", "--filter", jobName, "--build", "1")
 	activities, err := parsers.ParseJxGetActivities(out)
 	utils.ExpectNoError(err)
+	utils.LogInfof("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v\n", len(activities), jobName, activities)
 	Expect(activities).Should(HaveLen(1), fmt.Sprintf("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v", len(activities), jobName, activities))
 	activity, ok := activities[fmt.Sprintf("%s #%d", jobName, 1)]
 	Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #%d",jobName,1))

@@ -93,7 +93,7 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 
 	f := func() error {
 		r := runner.New(t.WorkDir, nil, 0)
-		out:= r.RunWithOutput("get", "applications", "-e", key)
+		out := r.RunWithOutput("get", "applications", "-e", key)
 		applications, err := parsers.ParseJxGetApplications(out)
 		utils.ExpectNoError(err)
 		applicationName := t.GetApplicationName()
@@ -177,7 +177,7 @@ func (t *Test) CreatePullRequestAndGetPreviewEnvironment(statusCode int) error {
 
 	// lets verify that there's a Preview Environment...
 	utils.LogInfof("Verifying we have a Preview Environment...\n")
-	out  = r.RunWithOutput("get", "previews")
+	out = r.RunWithOutput("get", "previews")
 	previews, err := parsers.ParseJxGetPreviews(out)
 	utils.ExpectNoError(err)
 
@@ -200,13 +200,15 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	t.ExpectJxExecution(t.WorkDir, maxDuration, 0, args...)
 
 	r := runner.New(t.WorkDir, nil, 0)
-	out := r.RunWithOutput("get", "activities", "--filter", jobName, "--build", "1")
+	// TODO the current --build 1 breaks as it can be number 2 these days!
+	//out := r.RunWithOutput("get", "activities", "--filter", jobName, "--build", "1")
+	out := r.RunWithOutput("get", "activities", "--filter", jobName)
 	activities, err := parsers.ParseJxGetActivities(out)
 	utils.ExpectNoError(err)
 	utils.LogInfof("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v\n", len(activities), jobName, activities)
 	Expect(activities).Should(HaveLen(1), fmt.Sprintf("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v", len(activities), jobName, activities))
 	activity, ok := activities[fmt.Sprintf("%s #%d", jobName, 1)]
-	Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #%d",jobName,1))
+	Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #%d", jobName, 1))
 
 	utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-1", activity.Status)
 

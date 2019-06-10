@@ -208,6 +208,10 @@ func (t *Test) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDur
 	utils.LogInfof("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v\n", len(activities), jobName, activities)
 	Expect(activities).Should(HaveLen(1), fmt.Sprintf("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v", len(activities), jobName, activities))
 	activity, ok := activities[fmt.Sprintf("%s #%d", jobName, 1)]
+	if !ok {
+		// TODO lets see if the build is number 2 instead which it is for tekton currently
+		activity, ok = activities[fmt.Sprintf("%s #%d", jobName, 2)]
+	}
 	Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #%d", jobName, 1))
 
 	utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-1", activity.Status)

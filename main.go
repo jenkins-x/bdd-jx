@@ -95,7 +95,12 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 		r := runner.New(t.WorkDir, nil, 0)
 		out := r.RunWithOutput("get", "applications", "-e", key)
 		applications, err := parsers.ParseJxGetApplications(out)
-		utils.ExpectNoError(err)
+		if err != nil {
+			utils.LogInfof("failed to parse applications: %s\n", err.Error())
+			return err
+		}
+		// TODO this seems to barf - we need to wait for the application to appear with --tekton...
+		// utils.ExpectNoError(err)
 		applicationName := t.GetApplicationName()
 		if len(applications) == 0 {
 			return fmt.Errorf("No applications found")

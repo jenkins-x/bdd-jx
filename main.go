@@ -121,7 +121,7 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 			for k := range applications {
 				keys = append(keys, k)
 			}
-			return fmt.Errorf("No URL found for environment %s with app name: %s or %s. app names: %s", key, applicationName, applicationName2, strings.Join(keys, ", "))
+			return fmt.Errorf("No URL found for environment %s has app: %#v", key, applicationEnvInfo)
 			utils.LogInfof("still looking for application %s in env %s\n", applicationName, key)
 		}
 		return nil

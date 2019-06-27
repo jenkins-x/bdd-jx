@@ -107,16 +107,21 @@ func (t *Test) TheApplicationIsRunningInStaging(statusCode int) {
 		}
 		utils.LogInfof("application name %s; application mP %#v\n", applicationName, applications)
 
+		applicationName2 := "jx-" + applicationName
+
 		applicationEnvInfo, ok := applications[applicationName]
 		if !ok {
-			applicationName = "jx-" + applicationName
-			applicationEnvInfo, ok = applications[applicationName]
+			applicationEnvInfo, ok = applications[applicationName2]
 		}
 
 		Expect(applicationEnvInfo).ShouldNot(BeNil(), "no application found for % in environment %s", applicationName, key)
 		u = applicationEnvInfo.Url
 		if u == "" {
-			return fmt.Errorf("No URL found for environment %s", key)
+			keys := []string{}
+			for k := range applications {
+				keys = append(keys, k)
+			}
+			return fmt.Errorf("No URL found for environment %s with app name: %s or %s. app names: %s", key, applicationName, applicationName2, strings.Join(keys, ", "))
 			utils.LogInfof("still looking for application %s in env %s\n", applicationName, key)
 		}
 		return nil

@@ -68,23 +68,31 @@ func (r *JxRunner) run(out io.Writer, errOut io.Writer, args ...string) error {
 }
 
 // Run runs a jx command
-func (r *JxRunner) RunWithOutput(args ...string) string {
+func (r *JxRunner) RunWithOutput(args ...string) (string, error) {
 	rOut, out, err := os.Pipe()
-	utils.ExpectNoError(err)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
 
 	// combine out and errOut
 	rErr := r.run(out, out, args...)
 	err = out.Close()
-	utils.ExpectNoError(err)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
 	outBytes, err := ioutil.ReadAll(rOut)
-	utils.ExpectNoError(err)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
 	err = rOut.Close()
-	utils.ExpectNoError(err)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
 	answer := string(outBytes)
 	if rErr != nil {
-		utils.ExpectNoError(errors.Wrapf(err, "output %s", answer))
+		return "", errors.Wrapf(err, "running jx %s output %s", strings.Join(args, " "), answer)
 	}
-	return strings.TrimSpace(RemoveCoverageText(answer, args...))
+	return strings.TrimSpace(RemoveCoverageText(answer, args...)), nil
 }
 
 func RemoveCoverageText(s string, args ...string) string {
@@ -92,5 +100,6 @@ func RemoveCoverageText(s string, args ...string) string {
 	if len(coverageOutput) == 3 {
 		utils.LogInfof("when running %s %s coverage was %s\n", jx, strings.Join(args, " "), coverageOutput[2])
 	}
-	return coverageOutputRegex.ReplaceAllString(s, "")
+	answer := coverageOutputRegex.ReplaceAllString(s, "")
+	return strings.TrimSpace(answer)
 }

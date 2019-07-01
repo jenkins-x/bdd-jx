@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("verify pods\n", func() {
+var _ = Describe("verify pods", func() {
 
 	utils.LogInfof("About to verify pods")
 	var T StepTestOptions
@@ -24,7 +24,6 @@ var _ = Describe("verify pods\n", func() {
 				WorkDir:         helpers.WorkDir,
 			},
 		}
-		T.GitProviderURL()
 	})
 
 	Describe("Verify there are no failed pods", func() {
@@ -36,7 +35,9 @@ var _ = Describe("verify pods\n", func() {
 				var out string
 				By(fmt.Sprintf("calling jx %s", argsStr), func() {
 					r := runner.New(T.WorkDir, &helpers.TimeoutCmdLine, 0)
-					out = r.RunWithOutput(args...)
+					var err error
+					out, err = r.RunWithOutput(args...)
+					utils.ExpectNoError(err)
 				})
 				Expect(out).ShouldNot(ContainSubstring("Failed"), "There are failed pods")
 			})

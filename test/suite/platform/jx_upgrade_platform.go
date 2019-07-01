@@ -52,7 +52,7 @@ func (t *testCaseUpgradePlatform) CheckJenkins() {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-var _ = Describe("upgrade platfrom\n", func() {
+var _ = Describe("upgrade platform", func() {
 	var test *testCaseUpgradePlatform
 	skipJenkinsCheck := false
 
@@ -69,7 +69,7 @@ var _ = Describe("upgrade platfrom\n", func() {
 
 	Describe("Given valid parameters", func() {
 		Context("when running upgrade platform", func() {
-			It("updates the platfrom to the given vresion\n", func() {
+			It("updates the platform to the given version", func() {
 				test.Upgrade()
 				if !skipJenkinsCheck {
 					test.CheckJenkins()
@@ -80,7 +80,7 @@ var _ = Describe("upgrade platfrom\n", func() {
 
 	Describe("Given valid parameters", func() {
 		Context("when running upgrade platform in force mode", func() {
-			It("updates always the platfrom to the given vresion\n", func() {
+			It("updates always the platform to the given version", func() {
 				test.Upgrade("--always-upgrade=true")
 				if !skipJenkinsCheck {
 					test.CheckJenkins()

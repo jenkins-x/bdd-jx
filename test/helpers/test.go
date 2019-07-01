@@ -61,9 +61,6 @@ type TestOptions struct {
 // GetGitOrganisation Gets the current git organisation/user
 func (t *TestOptions) GetGitOrganisation() string {
 	org := os.Getenv("GIT_ORGANISATION")
-	if org == "" {
-		org = "jenkins-x-tests"
-	}
 	return org
 }
 
@@ -77,8 +74,9 @@ func (t *TestOptions) GitProviderURL() (string, error) {
 	By("running jx get gitserver", func() {
 
 		r := runner.New(t.WorkDir, nil, 0)
-		out = r.RunWithOutput("get", "gitserver")
-
+		var err error
+		out, err = r.RunWithOutput("get", "gitserver")
+		utils.ExpectNoError(err)
 	})
 	var gitServers []parsers.GitServer
 	var err error
@@ -114,7 +112,8 @@ func (t *TestOptions) TheApplicationIsRunning(statusCode int, environment string
 		var err error
 		var out string
 		By(fmt.Sprintf("running jx %s", argsStr), func() {
-			out = r.RunWithOutput(args...)
+			out, err = r.RunWithOutput(args...)
+			utils.ExpectNoError(err)
 		})
 		var applications map[string]parsers.Application
 		By(fmt.Sprintf("parsing the output of jx %s", argsStr), func() {
@@ -221,7 +220,9 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 	argsStr := strings.Join(args, " ")
 	var out string
 	By(fmt.Sprintf("creating a pull request by running jx %s", argsStr), func() {
-		out = r.RunWithOutput(args...)
+		var err error
+		out, err = r.RunWithOutput(args...)
+		utils.ExpectNoError(err)
 	})
 
 	var pr *parsers.CreatePullRequest
@@ -247,6 +248,11 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 
 	args = []string{"get", "previews"}
 	argsStr = strings.Join(args, " ")
+	By(fmt.Sprintf("verifying there is a preview environment by running jx %s", argsStr), func() {
+		var err error
+		out, err = r.RunWithOutput(args...)
+		utils.ExpectNoError(err)
+	})
 
 	logError := func(err error) error {
 		utils.LogInfof("WARNING: %s\n", err.Error())
@@ -258,7 +264,10 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		var previews map[string]parsers.Preview
 
 		utils.LogInfof("parsing the output of jx %s", argsStr)
-		out = r.RunWithOutput(args...)
+		out, err = r.RunWithOutput(args...)
+		if err != nil {
+			return logError(err)
+		}
 		previews, err = parsers.ParseJxGetPreviews(out)
 		if err != nil {
 			return logError(err)
@@ -300,14 +309,17 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 	//out := r.RunWithOutput("get", "activities", "--filter", jobName, "--build", "1")
 	args = []string{"get", "activities", "--filter", jobName}
 	argsStr = strings.Join(args, " ")
-
 	var activities map[string]*parsers.Activity
 	f := func() error {
 		var err error
 		var out string
 		By(fmt.Sprintf("calling jx %s", argsStr), func() {
-			out = r.RunWithOutput(args...)
+			out, err = r.RunWithOutput(args...)
 		})
+		out, err = r.RunWithOutput(args...)
+		if err != nil {
+			return err
+		}
 		activities, err = parsers.ParseJxGetActivities(out)
 		// TODO fails on --ng for now...
 		//utils.ExpectNoError(err)
@@ -388,7 +400,7 @@ func (t *TestOptions) ExpectCommandExecution(dir string, commandTimeout time.Dur
 		return err
 	}
 	err := RetryExponentialBackoff((TimeoutCmdLine), f)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).ShouldNot(HaveOccurred())
 }
 
 func (t *TestOptions) ExpectJxExecution(dir string, commandTimeout time.Duration, exitCode int, args ...string) {

@@ -3,9 +3,14 @@ package quickstart
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+
+	"github.com/jenkins-x/bdd-jx/test/utils/parsers"
 
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 
@@ -18,41 +23,38 @@ import (
 
 var _ = AllQuickstartsTest()
 
-var (
-	IncludeQuickstarts = os.Getenv("JX_BDD_QUICKSTARTS")
-)
-
-//CreateQuickstartTest creates a quickstart test for the given quickstart
-func CreateQuickstartTest(quickstartName string) bool {
-	return createQuickstartTests(quickstartName, false)
-}
-
-// AddAppTests Creates a jx add app test
+// AllQuickstartsTest is responsible for running `jx get quickstarts, and creating a test for each quickstart currnetly
+// available
+// Individual tests can be run with `go test test/quickstart -ginkgo.focus <quickstart name>`
 func AllQuickstartsTest() []bool {
-	if IncludeQuickstarts != "" {
-		includedQuickstartList := strings.Split(strings.TrimSpace(IncludeQuickstarts), ",")
-		tests := make([]bool, len(includedQuickstartList))
-		for _, testQuickstartName := range includedQuickstartList {
-			tests = append(tests, CreateBatchQuickstartsTests(testQuickstartName))
-		}
-		return tests
-	} else {
-		return make([]bool, 0)
+	cmd := exec.Command("jx", "get", "quickstarts")
+	bytes, err := cmd.CombinedOutput()
+	if err != nil {
+		panic(errors.Wrapf(err, "running jx get quickstarts, output was %s", string(bytes)))
 	}
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+	out := string(bytes)
+	quickstarts, err := parsers.ParseJxGetQuickstarts(out)
+	if err != nil {
+		panic(errors.Wrapf(err, "parsing jx get quickstarts output %s", out))
+	}
+	tests := make([]bool, 0)
+	for testQuickstartName := range quickstarts {
+		tests = append(tests, CreateQuickstartsTests(testQuickstartName))
+	}
+	return tests
 }
 
-//CreateBatchQuickstartsTests creates a batch quickstart test for the given quickstart
-func CreateBatchQuickstartsTests(quickstartName string) bool {
-	return createQuickstartTests(quickstartName, true)
+//CreateQuickstartsTests creates a batch quickstart test for the given quickstart
+func CreateQuickstartsTests(quickstartName string) bool {
+	return createQuickstartTests(quickstartName)
 }
 
-// CreateQuickstartTest Creates quickstart tests.  If batch == true, add 'batch' to the test spec
-func createQuickstartTests(quickstartName string, batch bool) bool {
-	description := ""
-	if batch {
-		description = "[batch] "
-	}
-	return Describe(description+"quickstart "+quickstartName+"\n", func() {
+// CreateQuickstartTest Creates quickstart tests.
+func createQuickstartTests(quickstartName string) bool {
+	return Describe("quickstart "+quickstartName+"\n", func() {
 		var T helpers.TestOptions
 
 		BeforeEach(func() {

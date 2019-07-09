@@ -69,7 +69,7 @@ BDD_TIMEOUT_SESSION_WAIT ?= 60
 BDD_TIMEOUT_JX_RUNNER_SESSION ?= 5
 
 info:
-	@echo "JX VERISON INFORMATION"
+	@echo "JX VERSION INFORMATION"
 	@echo
 	@echo "$(JX_VERSION)"
 	@echo
@@ -186,7 +186,7 @@ test-quickstart-golang-http: info
 	JX_BDD_QUICKSTARTS=golang-http $(GINKGO) test/quickstart --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
 
 test-quickstart-node-http: info
-	JX_BDD_ALL_QUICKSTARTS=node-http $(GINKGO) test/quickstart --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
+	JX_BDD_QUICKSTARTS=node-http $(GINKGO) test/quickstart --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
 
 test-quickstart-open-liberty: info
 	JX_BDD_QUICKSTARTS=open-liberty $(GINKGO) test/quickstart --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch

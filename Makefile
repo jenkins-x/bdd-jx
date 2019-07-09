@@ -136,7 +136,7 @@ test-parallel: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -p --nodes 8
 
 test-import: info
-	$(GINKGO) test/ --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
+	$(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
 
 test-app-lifecycle: info
 	JX_BDD_INCLUDE_APPS="$(JX_BDD_INCLUDE_APPS)" $(GINKGO) test/apps --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)

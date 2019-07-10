@@ -24,7 +24,7 @@ const (
 var (
 	// jxRunner session timeout
 	TimeoutJxRunner     = utils.GetTimeoutFromEnv("BDD_TIMEOUT_JX_RUNNER", 5)
-	coverageOutputRegex = regexp.MustCompile(`(?m:(PASS|FAIL)\n\s*coverage: ([\d\.]*%) of statements in [\w\.\/]*)`)
+	coverageOutputRegex = regexp.MustCompile(`(?m:(PASS|FAIL)\n\s*coverage: ([\d\.]*%) of statements in [\w\.\/]*\n)`)
 )
 
 // Runner runs a jx command
@@ -84,10 +84,13 @@ func (r *JxRunner) RunWithOutput(args ...string) string {
 	if rErr != nil {
 		utils.ExpectNoError(errors.Wrapf(err, "output %s", answer))
 	}
-	coverageOutput := coverageOutputRegex.FindStringSubmatch(answer)
+	return strings.TrimSpace(RemoveCoverageText(answer, args...))
+}
+
+func RemoveCoverageText(s string, args ...string) string {
+	coverageOutput := coverageOutputRegex.FindStringSubmatch(s)
 	if len(coverageOutput) == 3 {
 		utils.LogInfof("when running %s %s coverage was %s\n", jx, strings.Join(args, " "), coverageOutput[2])
 	}
-	answer = coverageOutputRegex.ReplaceAllString(answer, "")
-	return strings.TrimSpace(answer)
+	return coverageOutputRegex.ReplaceAllString(s, "")
 }

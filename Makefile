@@ -136,7 +136,7 @@ test-parallel: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -p --nodes 8
 
 test-import: info
-	$(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
+	JX_BDD_IMPORTS=node-http-watch-pipeline-activity,spring-boot-rest-prometheus,spring-boot-http-gradle,golang-http $(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
 
 test-app-lifecycle: info
 	JX_BDD_INCLUDE_APPS="$(JX_BDD_INCLUDE_APPS)" $(GINKGO) test/apps --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
@@ -217,6 +217,18 @@ test-quickstart-spring-boot-web: info
 
 test-quickstart-vertx-rest-prometheus: info
 	JX_BDD_QUICKSTARTS=vertx-rest-prometheus $(GINKGO) test/quickstart --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
+
+test-import-node-http-watch-pipeline-activity: info
+	JX_BDD_IMPORTS=node-http-watch-pipeline-activity $(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
+
+test-import-spring-boot-rest-prometheus: info
+	JX_BDD_IMPORTS=spring-boot-rest-prometheus $(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
+
+test-import-spring-boot-http-gradle: info
+	JX_BDD_IMPORTS=spring-boot-http-gradle $(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
+
+test-import-golang-http: info
+	JX_BDD_IMPORTS=golang-http $(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
 
 fmt:
 	@FORMATTED=`$(GO) fmt $(PACKAGE_DIRS)`

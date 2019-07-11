@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jenkins-x/bdd-jx/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -85,6 +86,8 @@ func createTest(quickstartName string, repoToImport string) bool {
 				})
 
 				T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
+
+				time.Sleep(30 * time.Minute)
 
 				if T.DeleteApplications() {
 					args = []string{"delete", "application", "-b", T.ApplicationName}

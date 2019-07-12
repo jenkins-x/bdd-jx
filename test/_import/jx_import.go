@@ -3,16 +3,14 @@ package _import
 import (
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/test/helpers"
+	"github.com/jenkins-x/bdd-jx/test/utils"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"gopkg.in/src-d/go-git.v4"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/jenkins-x/bdd-jx/test/utils"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var _ = AllImportsTest()
@@ -86,8 +84,6 @@ func createTest(quickstartName string, repoToImport string) bool {
 				})
 
 				T.TheApplicationShouldBeBuiltAndPromotedViaCICD(200)
-
-				time.Sleep(30 * time.Minute)
 
 				if T.DeleteApplications() {
 					args = []string{"delete", "application", "-b", T.ApplicationName}

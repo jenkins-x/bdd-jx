@@ -72,7 +72,10 @@ func createTest(quickstartName string, repoToImport string) bool {
 				})
 
 				By("updating the pom.xml (if exists) to have the correct application name", func() {
-					_ = utils.ReplaceElement(filepath.Join(destDir, "pom.xml"), "artifactId", T.ApplicationName, 1)
+					err := utils.ReplaceElement(filepath.Join(destDir, "pom.xml"), "artifactId", T.ApplicationName, 1)
+					if err, ok := err.(*os.PathError); !ok {
+						Expect(err).NotTo(HaveOccurred())
+					}
 				})
 
 				gitProviderUrl, err := T.GitProviderURL()

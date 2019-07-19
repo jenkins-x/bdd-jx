@@ -53,6 +53,12 @@ var _ = Describe("create spring\n", func() {
 					})
 				}
 
+				args = []string{"promote", "--env", "production", "--version", "0.0.1", T.ApplicationName}
+				By("manually promoting app to production environment", func() {
+					T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
+					T.TheApplicationIsRunningInProduction(404)
+				})
+
 				if T.DeleteApplications() {
 					args = []string{"delete", "application", "-b", T.ApplicationName}
 					argsStr := strings.Join(args, " ")

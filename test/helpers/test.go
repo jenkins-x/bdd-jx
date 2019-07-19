@@ -141,7 +141,8 @@ func (t *TestOptions) TheApplicationIsRunningInStaging(statusCode int) {
 
 	By(fmt.Sprintf("getting %s", u), func() {
 		Expect(u).ShouldNot(BeEmpty(), "no URL for environment %s", key)
-		t.ExpectUrlReturns(u, statusCode, TimeoutUrlReturns)
+		err := t.ExpectUrlReturns(u, statusCode, TimeoutUrlReturns)
+		Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("request application URL should return %d", statusCode))
 	})
 
 }

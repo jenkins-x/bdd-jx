@@ -91,11 +91,19 @@ func (t *TestOptions) GitProviderURL() (string, error) {
 	return gitServers[0].Url, nil
 }
 
+func (t *TestOptions) TheApplicationIsRunningInProduction(statusCode int) {
+	t.TheApplicationIsRunning(statusCode, "production")
+}
+
 // TheApplicationIsRunningInStaging lets assert that the application is deployed into the first automatic staging environment
 func (t *TestOptions) TheApplicationIsRunningInStaging(statusCode int) {
+	t.TheApplicationIsRunning(statusCode, "staging")
+}
+
+// TheApplicationIsRunning lets assert that the application is deployed into the passed environment
+func (t *TestOptions) TheApplicationIsRunning(statusCode int, environment string) {
 	u := ""
-	key := "staging"
-	args := []string{"get", "applications", "-e", key}
+	args := []string{"get", "applications", "-e", environment}
 	r := runner.New(t.WorkDir, nil, 0)
 	argsStr := strings.Join(args, " ")
 	f := func() error {
@@ -123,14 +131,14 @@ func (t *TestOptions) TheApplicationIsRunningInStaging(statusCode int) {
 			utils.LogInfof("failed to get application: %s. Output of jx %s was %s. Parsed applications map is %v`\n", err.Error(), argsStr, out, applications)
 			return err
 		}
-		Expect(application).ShouldNot(BeNil(), "no application found for % in environment %s", applicationName, key)
+		Expect(application).ShouldNot(BeNil(), "no application found for % in environment %s", applicationName, environment)
 		By(fmt.Sprintf("getting url for application %s", application.Name), func() {
 			u = application.Url
 		})
 		if u == "" {
-			return fmt.Errorf("no URL found for environment %s has app: %#v", key, applications)
+			return fmt.Errorf("no URL found for environment %s has app: %#v", environment, applications)
 		}
-		utils.LogInfof("still looking for application %s in env %s\n", applicationName, key)
+		utils.LogInfof("still looking for application %s in env %s\n", applicationName, environment)
 		return nil
 	}
 
@@ -140,10 +148,10 @@ func (t *TestOptions) TheApplicationIsRunningInStaging(statusCode int) {
 	})
 
 	By(fmt.Sprintf("getting %s", u), func() {
-		Expect(u).ShouldNot(BeEmpty(), "no URL for environment %s", key)
-		t.ExpectUrlReturns(u, statusCode, TimeoutUrlReturns)
+		Expect(u).ShouldNot(BeEmpty(), "no URL for environment %s", environment)
+		err := t.ExpectUrlReturns(u, statusCode, TimeoutUrlReturns)
+		Expect(err).ShouldNot(HaveOccurred(), "send request to deployed application")
 	})
-
 }
 
 func getApplication(applicationName string, runningApplications map[string]parsers.Application) (*parsers.Application, error) {

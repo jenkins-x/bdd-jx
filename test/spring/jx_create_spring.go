@@ -2,6 +2,7 @@ package spring
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -10,6 +11,10 @@ import (
 	"github.com/jenkins-x/bdd-jx/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+)
+
+var (
+	SkipManualPromotion = os.Getenv("JX_BDD_SKIP_MANUAL_PROMOTION")
 )
 
 var _ = Describe("create spring\n", func() {
@@ -53,12 +58,14 @@ var _ = Describe("create spring\n", func() {
 					})
 				}
 
-				args = []string{"promote", "--env", "production", "--version", "0.0.1", T.ApplicationName}
-				By("manually promoting app to production environment", func() {
-					T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
-					T.TheApplicationIsRunningInProduction(404)
-				})
-
+				if SkipManualPromotion == "" {
+					args = []string{"promote", "--env", "production", "--version", "0.0.1", T.ApplicationName}
+					By("manually promoting app to production environment", func() {
+						T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
+						T.TheApplicationIsRunningInProduction(404)
+					})
+				}
+				
 				if T.DeleteApplications() {
 					args = []string{"delete", "application", "-b", T.ApplicationName}
 					argsStr := strings.Join(args, " ")

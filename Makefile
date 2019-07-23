@@ -157,7 +157,7 @@ test-all-quickstarts: info
 	JX_BDD_QUICKSTARTS=$(JX_BDD_ALL_QUICKSTARTS) $(GINKGO) test/quickstart --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
 
 test-supported-quickstarts: info
-    JX_BDD_QUICKSTARTS=golang-http,node-http,spring-boot-http-gradle $(GINKGO) test/quickstart --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
+	JX_BDD_QUICKSTARTS=node-http,spring-boot-http-gradle,golang-http $(GINKGO) test/quickstart --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
 
 #targets for individual quickstarts
 

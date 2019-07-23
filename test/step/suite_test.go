@@ -9,7 +9,7 @@ import (
 )
 
 func TestSuite(t *testing.T) {
-	helpers.RunWithReporters(t, "step")
+	helpers.RunWithReporters(t, "verify_pods")
 }
 
 var _ = BeforeSuite(helpers.BeforeSuiteCallback)

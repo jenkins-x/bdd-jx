@@ -9,7 +9,7 @@ import (
 )
 
 func TestSuite(t *testing.T) {
-	helpers.RunWithReporters(t, "import")
+	helpers.RunWithReporters(t, "import_applications")
 }
 
 var _ = BeforeSuite(helpers.BeforeSuiteCallback)

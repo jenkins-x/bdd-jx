@@ -9,7 +9,7 @@ import (
 )
 
 func TestSuite(t *testing.T) {
-	helpers.RunWithReporters(t, "quickstart")
+	helpers.RunWithReporters(t, "create_quickstarts")
 }
 
 var _ = BeforeSuite(helpers.BeforeSuiteCallback)

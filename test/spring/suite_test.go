@@ -9,7 +9,7 @@ import (
 )
 
 func TestSuite(t *testing.T) {
-	helpers.RunWithReporters(t, "spring")
+	helpers.RunWithReporters(t, "create_spring")
 }
 
 var _ = BeforeSuite(helpers.BeforeSuiteCallback)

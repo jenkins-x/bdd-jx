@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-var createPullRequestOutputRegex = regexp.MustCompile(`^https:\/\/([^\/]*)\/([^\/]*)\/([^\/]*)\/pull\/([0-9]*)$`)
+var createPullRequestOutputRegex = regexp.MustCompile(`^https:\/\/([^\/]*)\/(?:projects\/)?([^\/]*)\/(?:repos\/)?([^\/]*)\/(?:pull|pull-requests)\/([0-9]*)$`)
 
 type CreatePullRequest struct {
-	Provider string
-	Owner string
-	Repository string
+	Provider          string
+	Owner             string
+	Repository        string
 	PullRequestNumber int
-	Url string
+	Url               string
 }
 
 func ParseJxCreatePullRequest(s string) (*CreatePullRequest, error) {
@@ -28,10 +28,10 @@ func ParseJxCreatePullRequest(s string) (*CreatePullRequest, error) {
 		return nil, errors.Wrapf(err, "converting pull request number %s to int, entire output was %s", parts[4], s)
 	}
 	return &CreatePullRequest{
-		Provider: parts[1],
-		Owner: parts[2],
-		Repository: parts[3],
+		Provider:          parts[1],
+		Owner:             strings.ToLower(parts[2]),
+		Repository:        parts[3],
 		PullRequestNumber: prn,
-		Url: s,
+		Url:               s,
 	}, nil
 }

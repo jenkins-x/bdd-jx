@@ -67,6 +67,8 @@ BDD_TIMEOUT_APP_TESTS ?= 60
 BDD_TIMEOUT_SESSION_WAIT ?= 60
 # jx runner session timeout
 BDD_TIMEOUT_JX_RUNNER_SESSION ?= 5
+# devpod timeout
+BDD_TIMEOUT_DEVPOD ?= 15
 
 info:
 	@echo "JX VERSION INFORMATION"
@@ -110,6 +112,7 @@ endif
 	@echo "BDD_TIMEOUT_APP_TESTS timeout value is $(BDD_TIMEOUT_APP_TESTS)"
 	@echo "BDD_TIMEOUT_SESSION_WAIT timeout value is $(BDD_TIMEOUT_SESSION_WAIT)"
 	@echo "BDD_TIMEOUT_JX_RUNNER timeout value is $(BDD_TIMEOUT_JX_RUNNER)"
+	@echo "BDD_TIMEOUT_DEVPOD timeout value is $(BDD_TIMEOUT_DEVPOD)"
 ifdef JX_BDD_INCLUDE_APPS
 	@echo "JX_BDD_INCLUDE_APPS is set to $(JX_BDD_INCLUDE_APPS)"
 else
@@ -235,6 +238,9 @@ test-import-golang-http: info
 
 test-import-golang-http-from-jenkins-x-yml: info
 	JX_BDD_IMPORTS=golang-http-from-jenkins-x-yml $(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -focus=batch
+
+test-devpod: info
+	$(GINKGO) test/devpods --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
 
 fmt:
 	@FORMATTED=`$(GO) fmt $(PACKAGE_DIRS)`

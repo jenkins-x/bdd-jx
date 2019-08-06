@@ -95,6 +95,13 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 					Status:     fields[4],
 				}
 				currentStage.Steps = append(currentStage.Steps, step)
+			} else if fields[2] == "Pending" {
+				// This means that the step hasn't started yet.
+				step := &Step{
+					Name: fields[1],
+					Status: fields[2],
+				}
+				currentStage.Steps = append(currentStage.Steps, step)
 			} else {
 				return  nil, errors.Errorf("Unable to parse %s as step, entire output was %s", line, s)
 			}

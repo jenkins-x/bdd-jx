@@ -298,12 +298,14 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 		}
 	})
 
+	var activity *parsers.Activity
+	var ok bool
 	activityKey := fmt.Sprintf("%s #%d", jobName, 1)
 	By(fmt.Sprintf("finding the activity for %s in %v", activityKey, activities), func() {
 		// TODO disabling this for now as we get a failure on ng
 		if activities != nil {
 			Expect(activities).Should(HaveLen(1), fmt.Sprintf("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v", len(activities), jobName, activities))
-			activity, ok := activities[fmt.Sprintf("%s #%d", jobName, 1)]
+			activity, ok = activities[fmt.Sprintf("%s #%d", jobName, 1)]
 			if !ok {
 				// TODO lets see if the build is number 2 instead which it is for tekton currently
 				activity, ok = activities[fmt.Sprintf("%s #%d", jobName, 2)]
@@ -315,12 +317,7 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 	})
 
 	By(fmt.Sprintf("checking that the activity %s has succeeded", activityKey), func() {
-		// TODO lets temporarily disable this assertion as we have an issue on our production cluster with build statuses not being set correctly
-		// TODO lets put this back ASAP once we're on tekton!
-		/*
-			Expect(activity.Spec.Status.IsTerminated()).To(BeTrue())
-			Expect(activity.Spec.Status.String()).Should(Equal("Succeeded"))
-		*/
+		Expect(activity.Status).Should(Equal("Succeeded"))
 	})
 }
 

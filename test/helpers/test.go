@@ -284,14 +284,14 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 	//out := r.RunWithOutput("get", "activities", "--filter", jobName, "--build", "1")
 	args = []string{"get", "activities", "--filter", jobName}
 	argsStr = strings.Join(args, " ")
-	var out string
-	By(fmt.Sprintf("calling jx %s", argsStr), func() {
-		out = r.RunWithOutput(args...)
-	})
 
 	var activities map[string]*parsers.Activity
 	f := func() error {
 		var err error
+		var out string
+		By(fmt.Sprintf("calling jx %s", argsStr), func() {
+			out = r.RunWithOutput(args...)
+		})
 		activities, err = parsers.ParseJxGetActivities(out)
 		// TODO fails on --ng for now...
 		//utils.ExpectNoError(err)

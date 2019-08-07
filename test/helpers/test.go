@@ -36,15 +36,17 @@ var (
 	// all timeout values are in minutes
 	// timeout for a build to complete successfully
 	TimeoutBuildCompletes = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_COMPLETES", 20)
-	// Timeout for promoting an application to staging environment
+	// TimeoutBuildIsRunningInStaging Timeout for promoting an application to staging environment
 	TimeoutBuildIsRunningInStaging = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", 10)
-	// Timeout for promoting an application to staging environment
+	// TimeoutPipelineActivityComplete for promoting an application to staging environment
 	TimeoutPipelineActivityComplete = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PIPELINE_ACTIVITY_COMPLETE", 10)
-	// Timeout for a given URL to return an expected status code
+	// TimeoutUrlReturns Timeout for a given URL to return an expected status code
 	TimeoutUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_URL_RETURNS", 5)
-	// Timeout to wait for a command line execution to complete
+	// TimeoutPreviewUrlReturns Timeout for a preview URL to be available
+	TimeoutPreviewUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PREVIEW_URL_RETURNS", 10)
+	// TimeoutCmdLine Timeout to wait for a command line execution to complete
 	TimeoutCmdLine = utils.GetTimeoutFromEnv("BDD_TIMEOUT_CMD_LINE", 1)
-	// Session wait timeout
+	// TimeoutSessionWait Session wait timeout
 	TimeoutSessionWait = utils.GetTimeoutFromEnv("BDD_TIMEOUT_SESSION_WAIT", 60)
 )
 
@@ -249,22 +251,30 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		out = r.RunWithOutput(args...)
 	})
 
-	var previews map[string]parsers.Preview
-	By(fmt.Sprintf("parsing the output of jx %s", argsStr), func() {
-		previews, err = parsers.ParseJxGetPreviews(out)
-		utils.ExpectNoError(err)
-	})
+	f := func() error {
+		var err error
+		var previews map[string]parsers.Preview
+		By(fmt.Sprintf("parsing the output of jx %s", argsStr), func() {
+			previews, err = parsers.ParseJxGetPreviews(out)
+			utils.ExpectNoError(err)
+		})
 
-	By(fmt.Sprintf("checking that a preview environment exists for %s", pr.Url), func() {
-		previewEnv := previews[pr.Url]
-		Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment for application name %s", applicationName)
-		applicationUrl := previewEnv.Url
-		Expect(applicationUrl).ShouldNot(Equal(""), "No Preview Application URL found")
+		By(fmt.Sprintf("checking that a preview environment exists for %s", pr.Url), func() {
+			previewEnv := previews[pr.Url]
+			Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment for application name %s", applicationName)
+			applicationUrl := previewEnv.Url
+			Expect(applicationUrl).ShouldNot(Equal(""), "No Preview Application URL found")
 
-		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
+			utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
 
-		err = t.ExpectUrlReturns(applicationUrl, statusCode, TimeoutUrlReturns)
-		utils.ExpectNoError(err)
+			err = t.ExpectUrlReturns(applicationUrl, statusCode, TimeoutUrlReturns)
+			utils.ExpectNoError(err)
+		})
+		return err
+	}
+	By(fmt.Sprintf("retrying waiting for Preview URL to be working with exponential backoff to ensure it completes", argsStr), func() {
+		err := RetryExponentialBackoff(TimeoutPreviewUrlReturns, f)
+		Expect(err).ShouldNot(HaveOccurred(), "preview environment visible at a URL")
 	})
 	return nil
 

@@ -273,7 +273,7 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		return err
 	}
 	By(fmt.Sprintf("retrying waiting for Preview URL to be working with exponential backoff to ensure it completes", argsStr), func() {
-		err := RetryExponentialBackoff(TimeoutPreviewUrlReturns, f)
+		err := Retry(TimeoutPreviewUrlReturns, f)
 		Expect(err).ShouldNot(HaveOccurred(), "preview environment visible at a URL")
 	})
 	return nil
@@ -340,6 +340,17 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 			Expect(activity.Spec.Status.String()).Should(Equal("Succeeded"))
 		*/
 	})
+}
+
+// RetryExponentialBackoff retries the given function up to the maximum duration
+func Retry(maxDuration time.Duration, f func() error) error {
+	exponentialBackOff := backoff.NewExponentialBackOff()
+	exponentialBackOff.MaxElapsedTime = maxDuration
+	exponentialBackOff.MaxInterval = 20 * time.Second
+	exponentialBackOff.Reset()
+	utils.LogInfof("retrying for duration %#v with max interval %#v\n", maxDuration, exponentialBackOff.MaxInterval)
+	err := backoff.Retry(f, exponentialBackOff)
+	return err
 }
 
 // RetryExponentialBackoff retries the given function up to the maximum duration

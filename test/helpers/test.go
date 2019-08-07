@@ -38,6 +38,8 @@ var (
 	TimeoutBuildCompletes = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_COMPLETES", 20)
 	// Timeout for promoting an application to staging environment
 	TimeoutBuildIsRunningInStaging = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", 10)
+	// Timeout for promoting an application to staging environment
+	TimeoutPipelineActivityComplete = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PIPELINE_ACTIVITY_COMPLETE", 10)
 	// Timeout for a given URL to return an expected status code
 	TimeoutUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_URL_RETURNS", 5)
 	// Timeout to wait for a command line execution to complete
@@ -288,14 +290,20 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 	})
 
 	var activities map[string]*parsers.Activity
-	var err error
-	By(fmt.Sprintf("parsing the output of jx %s", argsStr), func() {
+	f := func() error {
+		var err error
 		activities, err = parsers.ParseJxGetActivities(out)
 		// TODO fails on --ng for now...
 		//utils.ExpectNoError(err)
 		if err != nil {
 			utils.LogInfof("got error parsing activities: %s\n", err.Error())
 		}
+		return err
+	}
+
+	By(fmt.Sprintf("retrying jx %s with exponential backoff to ensure it completes", argsStr), func() {
+		err := RetryExponentialBackoff(TimeoutPipelineActivityComplete, f)
+		Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
 	})
 
 	activityKey := fmt.Sprintf("%s #%d", jobName, 1)

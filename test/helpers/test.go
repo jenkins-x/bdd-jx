@@ -247,14 +247,15 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 
 	args = []string{"get", "previews"}
 	argsStr = strings.Join(args, " ")
-	By(fmt.Sprintf("verifying there is a preview environment by running jx %s", argsStr), func() {
-		out = r.RunWithOutput(args...)
-	})
 
 	f := func() error {
 		var err error
 		var previews map[string]parsers.Preview
 		By(fmt.Sprintf("parsing the output of jx %s", argsStr), func() {
+			By(fmt.Sprintf("verifying there is a preview environment by running jx %s", argsStr), func() {
+				out = r.RunWithOutput(args...)
+			})
+
 			previews, err = parsers.ParseJxGetPreviews(out)
 			utils.ExpectNoError(err)
 		})

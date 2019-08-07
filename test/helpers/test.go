@@ -39,11 +39,11 @@ var (
 	// TimeoutBuildIsRunningInStaging Timeout for promoting an application to staging environment
 	TimeoutBuildIsRunningInStaging = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", 10)
 	// TimeoutPipelineActivityComplete for promoting an application to staging environment
-	TimeoutPipelineActivityComplete = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PIPELINE_ACTIVITY_COMPLETE", 10)
+	TimeoutPipelineActivityComplete = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PIPELINE_ACTIVITY_COMPLETE", 100)
 	// TimeoutUrlReturns Timeout for a given URL to return an expected status code
 	TimeoutUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_URL_RETURNS", 5)
 	// TimeoutPreviewUrlReturns Timeout for a preview URL to be available
-	TimeoutPreviewUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PREVIEW_URL_RETURNS", 10)
+	TimeoutPreviewUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PREVIEW_URL_RETURNS", 500)
 	// TimeoutCmdLine Timeout to wait for a command line execution to complete
 	TimeoutCmdLine = utils.GetTimeoutFromEnv("BDD_TIMEOUT_CMD_LINE", 1)
 	// TimeoutSessionWait Session wait timeout

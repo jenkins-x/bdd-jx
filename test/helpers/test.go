@@ -248,31 +248,39 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 	args = []string{"get", "previews"}
 	argsStr = strings.Join(args, " ")
 
+	logError := func(err error) error {
+		utils.LogInfof("WARNING: %s\n", err.Error())
+		return err
+	}
+
 	f := func() error {
 		var err error
 		var previews map[string]parsers.Preview
-		By(fmt.Sprintf("parsing the output of jx %s", argsStr), func() {
-			By(fmt.Sprintf("verifying there is a preview environment by running jx %s", argsStr), func() {
-				out = r.RunWithOutput(args...)
-			})
 
-			previews, err = parsers.ParseJxGetPreviews(out)
-			utils.ExpectNoError(err)
-		})
+		utils.LogInfof("parsing the output of jx %s", argsStr)
+		out = r.RunWithOutput(args...)
+		previews, err = parsers.ParseJxGetPreviews(out)
+		if err != nil {
+			return logError(err)
+		}
+		previewEnv, ok := previews[pr.Url]
+		if !ok {
+			return logError(fmt.Errorf("Could not find Preview Environment for application name %s", applicationName))
+		}
+		applicationUrl := previewEnv.Url
+		if applicationUrl == "" {
+			return logError(fmt.Errorf("No Preview Application URL found"))
+		}
 
-		By(fmt.Sprintf("checking that a preview environment exists for %s", pr.Url), func() {
-			previewEnv := previews[pr.Url]
-			Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment for application name %s", applicationName)
-			applicationUrl := previewEnv.Url
-			Expect(applicationUrl).ShouldNot(Equal(""), "No Preview Application URL found")
+		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
 
-			utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
-
-			err = t.ExpectUrlReturns(applicationUrl, statusCode, TimeoutUrlReturns)
-			utils.ExpectNoError(err)
-		})
-		return err
+		err = t.ExpectUrlReturns(applicationUrl, statusCode, TimeoutUrlReturns)
+		if err != nil {
+			return logError(fmt.Errorf("Preview URL at %s not working: %s", applicationUrl, err.Error()))
+		}
+		return nil
 	}
+
 	By(fmt.Sprintf("retrying waiting for Preview URL to be working with exponential backoff to ensure it completes", argsStr), func() {
 		err := Retry(TimeoutPreviewUrlReturns, f)
 		Expect(err).ShouldNot(HaveOccurred(), "preview environment visible at a URL")

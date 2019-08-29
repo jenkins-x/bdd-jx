@@ -139,7 +139,7 @@ test-parallel: info
 	$(GINKGO) --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD) -p --nodes 8
 
 test-import: info
-	JX_BDD_IMPORTS=node-http,spring-boot-rest-prometheus,spring-boot-http-gradle,golang-http,golang-http-from-jenkins-x-yml $(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
+	JX_BDD_IMPORTS=node-http,spring-boot-rest-prometheus,spring-boot-http-gradle,golang-http-from-jenkins-x-yml $(GINKGO) test/_import --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)
 
 test-app-lifecycle: info
 	JX_BDD_INCLUDE_APPS="$(JX_BDD_INCLUDE_APPS)" $(GINKGO) test/apps --slowSpecThreshold=$(SLOW_SPEC_THRESHOLD)

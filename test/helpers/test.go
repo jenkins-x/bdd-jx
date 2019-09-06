@@ -266,7 +266,7 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		previewEnv := previews[pr.Url]
 		applicationUrl := previewEnv.Url
 		if applicationUrl == "" {
-			return logError(fmt.Errorf("No Preview Application URL found"))
+			return logError(fmt.Errorf("No Preview Application URL found for PR %s", pr.Url))
 		}
 
 		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))

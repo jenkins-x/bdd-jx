@@ -266,9 +266,18 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		previewEnv := previews[pr.Url]
 		applicationUrl := previewEnv.Url
 		if applicationUrl == "" {
+			idx := strings.LastIndex(pr.Url, "/")
 			for k, v := range previews {
 				utils.LogInfof("found Preview URL %s with preview %s", k, v.Url)
+				if idx > 0 {
+					if strings.HasSuffix(v.Url, pr.Url[idx:]) {
+						applicationUrl = v.Url
+						utils.LogInfof("for PR %s using preview %s", k, applicationUrl)
+					}
+				}
 			}
+		}
+		if applicationUrl == "" {
 			return logError(fmt.Errorf("No Preview Application URL found for PR %s", pr.Url))
 		}
 

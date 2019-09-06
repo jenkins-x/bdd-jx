@@ -270,7 +270,7 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 			for k, v := range previews {
 				utils.LogInfof("found Preview URL %s with preview %s", k, v.Url)
 				if idx > 0 {
-					if strings.HasSuffix(v.Url, pr.Url[idx:]) {
+					if strings.HasSuffix(k, pr.Url[idx:]) {
 						applicationUrl = v.Url
 						utils.LogInfof("for PR %s using preview %s", k, applicationUrl)
 					}

@@ -7,8 +7,8 @@ import (
 
 type Preview struct {
 	PullRequest string
-	Namespace string
-	Url string
+	Namespace   string
+	Url         string
 }
 
 func ParseJxGetPreviews(s string) (map[string]Preview, error) {
@@ -26,14 +26,17 @@ func ParseJxGetPreviews(s string) (map[string]Preview, error) {
 			continue
 		}
 		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
 		fields := strings.Fields(line)
-		if len(fields) !=3 {
+		if len(fields) != 3 {
 			return nil, errors.Errorf("must be three fields in %s, entire output was %s", line, s)
 		}
-		answer[fields[0]] =  Preview{
+		answer[fields[0]] = Preview{
 			PullRequest: fields[0],
-			Namespace: fields[1],
-			Url: fields[2],
+			Namespace:   fields[1],
+			Url:         fields[2],
 		}
 	}
 	return answer, nil

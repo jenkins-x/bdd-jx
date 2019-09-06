@@ -55,6 +55,7 @@ func (r *JxRunner) Run(args ...string) {
 func (r *JxRunner) run(out io.Writer, errOut io.Writer, args ...string) error {
 	command := exec.Command(jx, args...)
 	command.Dir = r.cwd
+	command.Env = append(command.Env, "TERM=dumb")
 	session, err := gexec.Start(command, out, errOut)
 	if err != nil {
 		return errors.WithStack(err)

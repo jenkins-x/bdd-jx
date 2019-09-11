@@ -58,3 +58,16 @@ test-devpod:
 #targets for individual quickstarts
 test-quickstart-golang-http:
 	$(GO) test $(TESTFLAGS) ./test/suite/quickstart -ginkgo.focus=golang-http
+
+bdd-init:
+	echo "About to run the BDD tests on the current cluster"
+	git config --global credential.helper store
+	git config --global --add user.name jenkins-x-bot
+	git config --global --add user.email jenkins-x@googlegroups.com
+	jx step git validate
+	jx step git credentials
+	ls -al ~
+	cat ~/.gitconfig
+
+bdd: bdd-init test-create-spring
+

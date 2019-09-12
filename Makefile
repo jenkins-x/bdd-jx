@@ -5,6 +5,8 @@ PACKAGE_DIRS = $(shell $(GO) list ./test/...)
 
 BUILDFLAGS :=
 
+TESTFLAGS ?= -v -ginkgo.v
+
 ifdef DEBUG
 BUILDFLAGS += -gcflags "all=-N -l" $(BUILDFLAGS)
 endif

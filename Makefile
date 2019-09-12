@@ -7,6 +7,8 @@ BUILDFLAGS :=
 
 TESTFLAGS ?= -v
 
+TESTFLAGS += -timeout 2h
+
 ifdef DEBUG
 BUILDFLAGS += -gcflags "all=-N -l" $(BUILDFLAGS)
 endif

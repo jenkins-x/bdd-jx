@@ -55,7 +55,7 @@ func (r *JxRunner) Run(args ...string) {
 
 func (r *JxRunner) run(out io.Writer, errOut io.Writer, args ...string) error {
 	if testing.Verbose() {
-		utils.LogInfof("\033[1mRUNNER:\033[0m About to execute jx %s in %s with timeout %v expecting exit code %d ", strings.Join(args, " "), r.cwd, r.timeout, r.exitCode)
+		utils.LogInfof("\033[1mRUNNER:\033[0mAbout to execute jx %s in %s with timeout %v expecting exit code %d\n", strings.Join(args, " "), r.cwd, r.timeout, r.exitCode)
 	}
 	command := exec.Command(jx, args...)
 	command.Dir = r.cwd
@@ -66,7 +66,7 @@ func (r *JxRunner) run(out io.Writer, errOut io.Writer, args ...string) error {
 	session.Wait(r.timeout)
 	Eventually(session).Should(gexec.Exit())
 	if testing.Verbose() {
-		utils.LogInfof("Execution completed with exit code %d", session.ExitCode())
+		utils.LogInfof("\033[1mRUNNER:\033[0mExecution completed with exit code %d\n", session.ExitCode())
 	}
 	if session.ExitCode() != r.exitCode {
 		return errors.Errorf("expected exit code %d but got %d whilst running command %s %s", r.exitCode, session.ExitCode(), jx, strings.Join(args, " "))

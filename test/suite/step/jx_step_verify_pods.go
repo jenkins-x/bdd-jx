@@ -14,7 +14,6 @@ import (
 
 var _ = Describe("verify pods", func() {
 
-	utils.LogInfof("About to verify pods")
 	var T StepTestOptions
 
 	BeforeEach(func() {

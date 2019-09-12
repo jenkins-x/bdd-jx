@@ -13,8 +13,6 @@ import (
 	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters/stenographer"
-	"github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/jenkins-x/bdd-jx/test/utils"
@@ -48,16 +46,9 @@ func RunWithReporters(t *testing.T, suiteId string) {
 	if err != nil {
 		panic(err.Error())
 	}
-	verbose := true
-	if os.Getenv("QUIET") != "" {
-		verbose = false
-	}
-	defaultReporterConfig := config.DefaultReporterConfigType{
-		SlowSpecThreshold: slowSpecThreshold,
-		Verbose:           verbose,
-	}
+	config.DefaultReporterConfig.SlowSpecThreshold = slowSpecThreshold
+	config.DefaultReporterConfig.Verbose = testing.Verbose()
 	reporters = append(reporters, gr.NewJUnitReporter(filepath.Join(reportsDir, fmt.Sprintf("%s.junit.xml", suiteId))))
-	reporters = append(reporters, gr.NewDefaultReporter(defaultReporterConfig, stenographer.New(!config.DefaultReporterConfig.NoColor, config.GinkgoConfig.FlakeAttempts > 1, colorable.NewColorableStdout())))
 	RegisterFailHandler(Fail)
 	RunSpecsWithCustomReporters(t, fmt.Sprintf("Jenkins X E2E tests: %s", suiteId), reporters)
 }
@@ -156,12 +147,6 @@ func ensureConfiguration() error {
 	if includeAppsStr != "" {
 		includeApps = fmt.Sprintf("is set to %s", includeAppsStr)
 	}
-	quiet := os.Getenv("QUIET")
-	if quiet == "" {
-		quiet = "false"
-	} else {
-		quiet = "true"
-	}
 	bddTimeoutBuildCompletes := os.Getenv("BDD_TIMEOUT_BUILD_COMPLETES")
 	if bddTimeoutBuildCompletes == "" {
 		os.Setenv("BDD_TIMEOUT_BUILD_COMPLETES", "60")
@@ -203,7 +188,6 @@ func ensureConfiguration() error {
 	}
 
 	utils.LogInfof("jx version:                                         %s\n", version)
-	utils.LogInfof("QUIET logging mode:                                 %s\n", quiet)
 	utils.LogInfof("GIT_ORGANISATION:                                   %s\n", gitOrganisation)
 	utils.LogInfof("GIT_PROVIDER_URL:                                   %s\n", gitProviderUrl)
 	utils.LogInfof("JX_DISABLE_DELETE_APP:                              %s\n", disableDeleteApp)

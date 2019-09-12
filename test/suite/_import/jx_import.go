@@ -2,35 +2,31 @@ package _import
 
 import (
 	"fmt"
-	"github.com/jenkins-x/bdd-jx/test/helpers"
-	"github.com/jenkins-x/bdd-jx/test/utils"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"gopkg.in/src-d/go-git.v4"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/jenkins-x/bdd-jx/test/helpers"
+	"github.com/jenkins-x/bdd-jx/test/utils"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	git "gopkg.in/src-d/go-git.v4"
 )
 
 var _ = AllImportsTest()
 
 var (
-	IncludedImports = os.Getenv("JX_BDD_IMPORTS")
+	IncludedImports = []string{"node-http", "spring-boot-rest-prometheus", "spring-boot-http-gradle", "golang-http-from-jenkins-x-yml"}
 )
 
 // AllImportsTest creates all the tests for all the quickstarts that we want to import
 func AllImportsTest() []bool {
-	if IncludedImports != "" {
-		scenarios := strings.Split(strings.TrimSpace(IncludedImports), ",")
-		tests := make([]bool, len(scenarios))
-		for _, scenarioName := range scenarios {
-			tests = append(tests, createTest(scenarioName, fmt.Sprintf("https://github.com/jenkins-x-quickstarts/%s", scenarioName)))
-		}
-		return tests
-	} else {
-		return make([]bool, 0)
+	tests := make([]bool, len(IncludedImports))
+	for _, scenarioName := range IncludedImports {
+		tests = append(tests, createTest(scenarioName, fmt.Sprintf("https://github.com/jenkins-x-quickstarts/%s", scenarioName)))
 	}
+	return tests
 }
 
 // createTest creates each test for every scenario we want to test

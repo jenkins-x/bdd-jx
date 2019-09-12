@@ -5,3 +5,4 @@ vendor/
 reports/
 junit*.xml
 debug.test
+test/suite/*/bdd-*/

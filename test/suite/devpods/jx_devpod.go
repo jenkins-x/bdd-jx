@@ -1,6 +1,9 @@
 package devpods
 
 import (
+	"strings"
+	"time"
+
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	"github.com/jenkins-x/bdd-jx/test/utils"
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
@@ -9,8 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"strings"
-	"time"
 )
 
 type TestDevPods struct {
@@ -101,7 +102,8 @@ func (test *TestDevPods) checkDevPodExists(label string) {
 	name := label + "-devpod"
 	utils.LogInfof("Creating dev pod %s", label)
 	args := []string{"get", "devpod"}
-	devPods := test.RunWithOutput(args...)
+	devPods, err := test.RunWithOutput(args...)
+	utils.ExpectNoError(err)
 
 	Expect(devPods).Should(ContainSubstring(name))
 }
@@ -115,7 +117,8 @@ func (test *TestDevPods) checkDevPodTerminating() {
 
 	//wait up to two mintutes to terminate
 	for b == false && i < 120 {
-		devPods := test.RunWithOutput(args...)
+		devPods, err := test.RunWithOutput(args...)
+		utils.ExpectNoError(err)
 		b = !strings.Contains(devPods, "Terminating")
 		time.Sleep(1 * time.Second)
 		i++
@@ -127,8 +130,8 @@ func (test *TestDevPods) checkDevPodNoLongerExists(label string) {
 	//jx get devpod
 	utils.LogInfof("checking pod no longer exists %s", label)
 	args := []string{"get", "devpod"}
-	devPods := test.RunWithOutput(args...)
-
+	devPods, err := test.RunWithOutput(args...)
+	utils.ExpectNoError(err)
 	Expect(devPods).ShouldNot(ContainSubstring(name))
 }
 

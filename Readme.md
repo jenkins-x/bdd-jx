@@ -4,65 +4,45 @@
 
 - __golang__ https://golang.org/doc/install#install
 - a Jenkins X installation
-
-## Setup
-
-    make bootstrap
-
-will install ginkgo gomega and dep
-
-To enable the `report` goal you will also need to install [xunit-viewer](https://github.com/lukejpreston/xunit-viewer) via:
-
-    make bootstrap-report
     
 ## Running the BDD tests
 
-If you are running the tests locally you probably want to set:
-
-    export GIT_ORGANISATION="my_cool_github_username"
-    
-Then to run all the tests in parallel:
-
-    make test-parallel
-
-If you want the sequential version (You may be some time):
-
-    make test
-
-Or you can run an individual spec like this:
-
-    make test-quickstart-golang-http
-
-To add the HTML report generation add the goal `html-report` like this:
-
-    make test html-report
-
-To enable verbose logging do this before running `make`
-
-    export GINKGO_ARGS=-v
-
-## Running the Apps BDD tests
   
-To run a test suite against the jacoco app you can run: 
-   
-    make test-app-lifecycle 
-    
-This will test `jx add app` and `jx delete app` against a known stable version of jx-app-jacoco
-   
-To run the same tests as above against multiple apps and versions you can use the following syntax: 
+Then to run all the test suites
 
-    JX_BDD_INCLUDE_APPS=jx-app-jacoco:0.0.100,my-app:0.0.1 make test-app        
+    go test -timeout 2h ./test/suite/...
+    
+Note that as some of the tests take quite a long time it's important to override the default go test timeout of `10m` 
+
+Or you can run a specific suite, for example
+
+    go test -timeout 1h ./test/suite/spring
+
+To enable verbose logging, add `-v`, for example
+
+    go test -timeout 1h -v ./test/suite/spring 
+
 
 ## Environment variables
 
-* `GINKGO_ARGS` to pass in any [ginkgo command line arguments](http://onsi.github.io/ginkgo/#the-ginkgo-cli), like `-v` for verbose logging
-* `GIT_PROVIDER_URL` the git provider URL to test against. e.g. your GitHub Enterprise or BitBucket URL
-* `JX_DISABLE_CLEAN_DIR` set to `true` to disable cleaning up of the temporary work directories 
-* `JX_DISABLE_DELETE_APP` set to `true` to disable deleting of the app from Jenkins X after a test
-* `JX_DISABLE_DELETE_REPO` set to `true` to disable deleting of the repo from Jenkins X after a test
-* `JX_DISABLE_TEST_PULL_REQUEST` set to `true` to disable testing the PR workflow
-* `JX_DISABLE_WAIT_FOR_FIRST_RELEASE` set to `true` to disable waiting for the first release pipeline to complete. Handy if you are testing/debugging the Pull Request flow as it speeds up the test
+There are lots that can be set (see `test/helpers/suite.go`), but the important ones are:
+
+* `GIT_ORGANISATION` to override the git organisation - by default the username of the pipeline user in the connected cluster
 
 ## Debugging tests in your IDE
 
-See [Debugging](Debugging.md) for guidance on how to debug these tests in various IDEs.
+### Goland
+
+Find the right `_test.go` file for the suite you want to run, and right-click `Run ..._test.go`, or choose `Debug ..._test.go` to debug it.
+
+If it's a long running test, you may need to add the `-timeout 1h` argument, you can do that by editing the `Run` configuration and adding `-timeout 1h` to the `Go Tool Arguments`.
+
+To enable verbose logging edit the `Run` configuration and adding `-v` to the `Go Tool Arguments`. 
+
+### Visual Studio Code
+Microsoft already has [excellent general guidance](https://github.com/Microsoft/vscode-go/wiki/Debugging-Go-code-using-VS-Code) for debugging Go in VS Code. Below is an example 
+of how to set this up specifically for these BDD tests.
+
+1. From the drop-down menus, select _Debug_ --> _Open Configurations_. This should create a `launch.json` file for you, if there wasn't one already set up.
+
+2. Some of the default settings for this file will be fine, but others need to be changed e.g. to set the timeut.. VS Code's Intellisense feature will let you hover over these settings and see possibilities. 

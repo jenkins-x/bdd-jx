@@ -164,11 +164,11 @@ func ensureConfiguration() error {
 	}
 	bddTimeoutBuildCompletes := os.Getenv("BDD_TIMEOUT_BUILD_COMPLETES")
 	if bddTimeoutBuildCompletes == "" {
-		os.Setenv("BDD_TIMEOUT_BUILD_COMPLETES", "20")
+		os.Setenv("BDD_TIMEOUT_BUILD_COMPLETES", "60")
 	}
 	bddTimeoutBuildRunningInStaging := os.Getenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING")
 	if bddTimeoutBuildRunningInStaging == "" {
-		os.Setenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", "10")
+		os.Setenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", "60")
 	}
 	bddTimeoutURLReturns := os.Getenv("BDD_TIMEOUT_URL_RETURNS")
 	if bddTimeoutURLReturns == "" {
@@ -228,7 +228,6 @@ func findDefaultOrganisation(kubeClient kubernetes.Interface, jxClient versioned
 	// lets see if we have defined a team environment
 	devEnv, err := kube.GetDevEnvironment(jxClient, ns)
 	if err != nil {
-		fmt.Printf("failed to find the dev environment in namespace %s due to %s\n", ns, err.Error())
 		utils.LogInfof("failed to find the dev environment in namespace %s due to %s", ns, err.Error())
 	}
 	answer := ""
@@ -241,7 +240,6 @@ func findDefaultOrganisation(kubeClient kubernetes.Interface, jxClient versioned
 			return answer, nil
 		}
 	}
-	fmt.Printf("found organisation in namespace %s due to %s\n", ns, answer)
 	utils.LogInfof("found organisation in namespace %s due to %s\n", ns, answer)
 
 	// TODO load the user from the git secrets?

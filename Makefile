@@ -5,7 +5,7 @@ PACKAGE_DIRS = $(shell $(GO) list ./test/...)
 
 BUILDFLAGS :=
 
-TESTFLAGS ?= -v
+TESTFLAGS ?= -v -ginkgo.v
 
 TESTFLAGS += -timeout 2h
 

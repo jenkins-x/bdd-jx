@@ -54,7 +54,7 @@ test-upgrade-platform:
 	$(GO) test $(TESTFLAGS) ./test/suite/platform
 
 test-supported-quickstarts:
-	JX_BDD_QUICKSTARTS= $(GO) test $(TESTFLAGS) ./test/suite/quickstart -ginkgo.focus=(node-http|spring-boot-http-gradle|golang-http)
+	JX_BDD_QUICKSTARTS= $(GO) test $(TESTFLAGS) ./test/suite/quickstart -ginkgo.focus='(node-http|spring-boot-http-gradle|golang-http)'
 
 test-devpod:
 	$(GO) test $(TESTFLAGS) ./test/suite/devpods

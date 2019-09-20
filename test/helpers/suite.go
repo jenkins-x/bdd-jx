@@ -50,7 +50,7 @@ func RunWithReporters(t *testing.T, suiteId string) {
 	config.DefaultReporterConfig.Verbose = testing.Verbose()
 	reporters = append(reporters, gr.NewJUnitReporter(filepath.Join(reportsDir, fmt.Sprintf("%s.junit.xml", suiteId))))
 	RegisterFailHandler(Fail)
-	RunSpecsWithCustomReporters(t, fmt.Sprintf("Jenkins X E2E tests: %s", suiteId), reporters)
+	RunSpecsWithDefaultAndCustomReporters(t, fmt.Sprintf("Jenkins X E2E tests: %s", suiteId), reporters)
 }
 
 var BeforeSuiteCallback = func() {
@@ -61,6 +61,7 @@ var BeforeSuiteCallback = func() {
 	err = os.MkdirAll(WorkDir, 0760)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(WorkDir).To(BeADirectory())
+	AssignWorkDirValue(WorkDir)
 }
 
 var SynchronizedAfterSuiteCallback = func() {

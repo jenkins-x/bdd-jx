@@ -10,8 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/jenkins-x/bdd-jx/test/utils/parsers"
-
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 
 	"github.com/jenkins-x/bdd-jx/test/utils"
@@ -21,7 +19,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = AllQuickstartsTest()
+var (
+	IncludedQuickstarts = []string{"node-http", "spring-boot-http-gradle", "golang-http"}
+	_                   = AllQuickstartsTest()
+)
 
 // AllQuickstartsTest is responsible for running `jx get quickstarts, and creating a test for each quickstart currnetly
 // available
@@ -35,13 +36,8 @@ func AllQuickstartsTest() []bool {
 	if err != nil {
 		panic(errors.WithStack(err))
 	}
-	out := string(bytes)
-	quickstarts, err := parsers.ParseJxGetQuickstarts(out)
-	if err != nil {
-		panic(errors.Wrapf(err, "parsing jx get quickstarts output %s", out))
-	}
 	tests := make([]bool, 0)
-	for testQuickstartName := range quickstarts {
+	for _, testQuickstartName := range IncludedQuickstarts {
 		tests = append(tests, CreateQuickstartsTests(testQuickstartName))
 	}
 	return tests

@@ -58,6 +58,10 @@ type TestOptions struct {
 	Organisation    string
 }
 
+func AssignWorkDirValue(generatedWorkDir string) {
+	WorkDir = generatedWorkDir
+}
+
 // GetGitOrganisation Gets the current git organisation/user
 func (t *TestOptions) GetGitOrganisation() string {
 	org := os.Getenv("GIT_ORGANISATION")

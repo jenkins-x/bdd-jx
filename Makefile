@@ -61,7 +61,7 @@ test-devpod:
 
 #targets for individual quickstarts
 test-quickstart-golang-http:
-	$(GO) test $(TESTFLAGS) ./test/suite/quickstart -ginkgo.focus=golang-http
+	$(GO) test $(TESTFLAGS) ./test/suite/quickstart -ginkgo.focus='golang-http$'
 
 test-import-golang-http-from-jenkins-x-yml:
 	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=golang-http-from-jenkins-x-yml

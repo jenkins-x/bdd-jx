@@ -1,7 +1,15 @@
 package helpers
 
 import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"github.com/google/go-github/v28/github"
+	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	"github.com/jenkins-x/jx/pkg/gits"
+	"golang.org/x/oauth2"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,18 +44,27 @@ var (
 	// all timeout values are in minutes
 	// timeout for a build to complete successfully
 	TimeoutBuildCompletes = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_COMPLETES", 40)
+
 	// TimeoutBuildIsRunningInStaging Timeout for promoting an application to staging environment
 	TimeoutBuildIsRunningInStaging = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", 20)
+
 	// TimeoutPipelineActivityComplete for promoting an application to staging environment
 	TimeoutPipelineActivityComplete = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PIPELINE_ACTIVITY_COMPLETE", 15)
+
 	// TimeoutUrlReturns Timeout for a given URL to return an expected status code
 	TimeoutUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_URL_RETURNS", 5)
+
 	// TimeoutPreviewUrlReturns Timeout for a preview URL to be available
 	TimeoutPreviewUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PREVIEW_URL_RETURNS", 10)
+
 	// TimeoutCmdLine Timeout to wait for a command line execution to complete
 	TimeoutCmdLine = utils.GetTimeoutFromEnv("BDD_TIMEOUT_CMD_LINE", 1)
+
 	// TimeoutSessionWait Session wait timeout
 	TimeoutSessionWait = utils.GetTimeoutFromEnv("BDD_TIMEOUT_SESSION_WAIT", 60)
+
+	// TimeoutDeploymentRollout defines the timeout waiting for a deployment rollout
+	TimeoutDeploymentRollout = utils.GetTimeoutFromEnv("", 3)
 )
 
 // TestOptions is the base testing object
@@ -60,6 +77,23 @@ type TestOptions struct {
 
 func AssignWorkDirValue(generatedWorkDir string) {
 	WorkDir = generatedWorkDir
+}
+
+// GetFreePort asks the kernel for a free open port that is ready to use.
+func (t *TestOptions) GetFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		_ = l.Close()
+	}()
+	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
 // GetGitOrganisation Gets the current git organisation/user
@@ -95,6 +129,94 @@ func (t *TestOptions) GitProviderURL() (string, error) {
 	}
 
 	return gitServers[0].Url, nil
+}
+
+func (t *TestOptions) GitHubClient() *github.Client {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: t.GitHubToken()},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+
+	client := github.NewClient(tc)
+	Expect(client).ShouldNot(BeNil())
+	return client
+}
+
+// GitHubToken returns the GitHub token for the pipeline user.
+func (t *TestOptions) GitHubToken() string {
+	args := []string{"get", "secrets", "jx-pipeline-git-github-github", "-o", "json"}
+	command := exec.Command("kubectl", args...)
+	session, err := gexec.Start(command, nil, nil)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutCmdLine)
+	Eventually(session).Should(gexec.Exit(0))
+
+	out := string(session.Out.Contents())
+	var secret map[string]interface{}
+	err = json.Unmarshal([]byte(out), &secret)
+	Expect(err).Should(BeNil())
+
+	encoded := secret["data"].(map[string]interface{})["password"].(string)
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	Expect(err).Should(BeNil())
+
+	return string(decoded)
+}
+
+// GitOpsDevRepo returns repository URL for the gitops environment repo.
+// The empty string is returned in case there is no gitops repo.
+func (t *TestOptions) GitOpsDevRepo() string {
+	args := []string{"get", "environment", "dev", "-o=jsonpath='{.spec.source.url}'"}
+	command := exec.Command("kubectl", args...)
+	session, err := gexec.Start(command, nil, nil)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutCmdLine)
+	Eventually(session).Should(gexec.Exit(0))
+
+	url := strings.Trim(string(session.Out.Contents()), "'")
+	return url
+}
+
+// GitOpsEnabled returns true if the current cluster is GitOps enabled, false otherwise.
+func (t *TestOptions) GitOpsEnabled() bool {
+	url := t.GitOpsDevRepo()
+	if url == "" {
+		return false
+	} else {
+		return true
+	}
+}
+
+// NextBuildNumber returns the next build number for a given repo by looking at the SourceRepository CRD.
+func (t *TestOptions) NextBuildNumber(repo *gits.GitRepository) string {
+	crd := fmt.Sprintf("%s-%s", repo.Organisation, repo.Name)
+
+	args := []string{"get", "sourcerepository", crd, "-o", "json"}
+	command := exec.Command("kubectl", args...)
+	session, err := gexec.Start(command, nil, nil)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutCmdLine)
+	Eventually(session).Should(gexec.Exit(0))
+
+	out := string(session.Out.Contents())
+	sourceRepository := v1.SourceRepository{}
+	err = json.Unmarshal([]byte(out), &sourceRepository)
+	Expect(err).Should(BeNil())
+
+	latestBuild := sourceRepository.Annotations["jenkins.io/last-build-number-for-master"]
+	if latestBuild == "" {
+		latestBuild = "0"
+	}
+	latestBuildInt, err := strconv.Atoi(latestBuild)
+	Expect(err).Should(BeNil())
+
+	nextBuildInt := latestBuildInt + 1
+
+	return strconv.Itoa(nextBuildInt)
 }
 
 func (t *TestOptions) TheApplicationIsRunningInProduction(statusCode int) {
@@ -161,9 +283,20 @@ func (t *TestOptions) TheApplicationIsRunning(statusCode int, environment string
 	})
 }
 
+// WaitForDeployment waits for the specified deployment to rollout. Wait timeout can be set via BDD_DEPLOYMENT_ROLLOUT_WAIT.
+func (t *TestOptions) WaitForDeploymentRollout(deployment string) {
+	args := []string{"rollout", "status", "-w", fmt.Sprintf("deployment/%s", deployment)}
+	command := exec.Command("kubectl", args...)
+	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutDeploymentRollout)
+	Eventually(session).Should(gexec.Exit())
+}
+
 func getApplication(applicationName string, runningApplications map[string]parsers.Application) (*parsers.Application, error) {
 	if len(runningApplications) == 0 {
-		return nil, fmt.Errorf("No applications found")
+		return nil, fmt.Errorf("no applications found")
 	}
 
 	applicationEnvInfo, ok := runningApplications[applicationName]
@@ -204,7 +337,7 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		t.ExpectCommandExecution(workDir, TimeoutCmdLine, 0, "git", "checkout", "-b", "changes")
 	})
 
-	By("making a code change, commiting and pushing it", func() {
+	By("making a code change, committing and pushing it", func() {
 		// now lets make a code change
 		fileName := "README.md"
 		readme := filepath.Join(workDir, fileName)
@@ -291,19 +424,19 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 			}
 		}
 		if applicationUrl == "" {
-			return logError(fmt.Errorf("No Preview Application URL found for PR %s", pr.Url))
+			return logError(fmt.Errorf("no Preview Application URL found for PR %s", pr.Url))
 		}
 
 		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
 
 		err = t.ExpectUrlReturns(applicationUrl, statusCode, TimeoutUrlReturns)
 		if err != nil {
-			return logError(fmt.Errorf("Preview URL at %s not working: %s", applicationUrl, err.Error()))
+			return logError(fmt.Errorf("preview URL at %s not working: %s", applicationUrl, err.Error()))
 		}
 		return nil
 	}
 
-	By(fmt.Sprintf("retrying waiting for Preview URL to be working with exponential backoff to ensure it completes", argsStr), func() {
+	By(fmt.Sprint("retrying waiting for Preview URL to be working with exponential backoff to ensure it completes"), func() {
 		err := Retry(TimeoutPreviewUrlReturns, f)
 		Expect(err).ShouldNot(HaveOccurred(), "preview environment visible at a URL")
 	})
@@ -311,20 +444,24 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 
 }
 
-// ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
-func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) {
-	// NOTE Need to retry here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
+// TailBuildLog tails the logs of the specified job
+func (t *TestOptions) TailBuildLog(jobName string, maxDuration time.Duration) {
 	args := []string{"get", "build", "logs", "--wait", jobName}
 	argsStr := strings.Join(args, " ")
 	By(fmt.Sprintf("checking that there is a job built successfully by calling jx %s", argsStr), func() {
 		t.ExpectJxExecution(t.WorkDir, maxDuration, 0, args...)
 	})
+}
+
+// ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
+func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) {
+	t.TailBuildLog(jobName, maxDuration)
 
 	r := runner.New(t.WorkDir, nil, 0)
 	// TODO the current --build 1 breaks as it can be number 2 these days!
 	//out := r.RunWithOutput("get", "activities", "--filter", jobName, "--build", "1")
-	args = []string{"get", "activities", "--filter", jobName}
-	argsStr = strings.Join(args, " ")
+	args := []string{"get", "activities", "--filter", jobName}
+	argsStr := strings.Join(args, " ")
 	var activities map[string]*parsers.Activity
 	f := func() error {
 		var err error
@@ -415,7 +552,7 @@ func (t *TestOptions) ExpectCommandExecution(dir string, commandTimeout time.Dur
 		Eventually(session).Should(gexec.Exit(exitCode))
 		return err
 	}
-	err := RetryExponentialBackoff((TimeoutCmdLine), f)
+	err := RetryExponentialBackoff(TimeoutCmdLine, f)
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
@@ -467,7 +604,7 @@ func (t *TestOptions) ExpectUrlReturns(url string, expectedStatusCode int, maxDu
 		if actualStatusCode == expectedStatusCode {
 			return nil
 		}
-		return fmt.Errorf("Invalid HTTP status code for %s expected %d but got %d", url, expectedStatusCode, actualStatusCode)
+		return fmt.Errorf("invalid HTTP status code for %s expected %d but got %d", url, expectedStatusCode, actualStatusCode)
 	}
 	return RetryExponentialBackoff(maxDuration, f)
 }

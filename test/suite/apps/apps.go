@@ -2,6 +2,7 @@ package apps
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -13,21 +14,25 @@ import (
 var _ = AppTests()
 
 func AppTests() []bool {
-	if IncludeApps != "" {
-		includedAppList := strings.Split(strings.TrimSpace(IncludeApps), ",")
-		tests := make([]bool, len(includedAppList))
-		for _, testAppName := range includedAppList {
-			nameAndVersion := strings.Split(testAppName, ":")
-			if len(nameAndVersion) == 2 {
-				tests = append(tests, AddAppTest(nameAndVersion[0], nameAndVersion[1]))
-			} else {
-				tests = append(tests, AddAppTest(testAppName, ""))
-			}
-		}
-		return tests
+	var appsUnderTest string
+	apps, set := os.LookupEnv("JX_BDD_INCLUDE_APPS")
+	if set {
+		appsUnderTest = apps
 	} else {
-		return nil
+		appsUnderTest = IncludeApps
 	}
+
+	includedAppList := strings.Split(strings.TrimSpace(appsUnderTest), ",")
+	tests := make([]bool, len(includedAppList))
+	for _, testAppName := range includedAppList {
+		nameAndVersion := strings.Split(testAppName, ":")
+		if len(nameAndVersion) == 2 {
+			tests = append(tests, AddAppTest(nameAndVersion[0], nameAndVersion[1]))
+		} else {
+			tests = append(tests, AddAppTest(testAppName, ""))
+		}
+	}
+	return tests
 }
 
 type AppTestOptions struct {

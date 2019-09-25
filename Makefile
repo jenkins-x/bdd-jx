@@ -65,6 +65,10 @@ test-quickstart-golang-http:
 
 test-import-golang-http-from-jenkins-x-yml:
 	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=golang-http-from-jenkins-x-yml
+
+test-single-import:
+	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=${BDD_TEST_SINGLE_IMPORT}
+
 bdd-init:
 	echo "About to run the BDD tests on the current cluster"
 	git config --global credential.helper store

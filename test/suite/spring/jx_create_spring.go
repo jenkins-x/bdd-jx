@@ -65,7 +65,7 @@ var _ = Describe("create spring\n", func() {
 						T.TheApplicationIsRunningInProduction(404)
 					})
 				}
-				
+
 				if T.DeleteApplications() {
 					args = []string{"delete", "application", "-b", T.ApplicationName}
 					argsStr := strings.Join(args, " ")

@@ -39,7 +39,7 @@ func RunWithReporters(t *testing.T, suiteId string) {
 	slowSpecThresholdStr := os.Getenv("SLOW_SPEC_THRESHOLD")
 	if slowSpecThresholdStr == "" {
 		slowSpecThresholdStr = "50000"
-		os.Setenv("SLOW_SPEC_THRESHOLD", slowSpecThresholdStr)
+		_ = os.Setenv("SLOW_SPEC_THRESHOLD", slowSpecThresholdStr)
 
 	}
 	slowSpecThreshold, err := strconv.ParseFloat(slowSpecThresholdStr, 64)
@@ -73,30 +73,17 @@ var SynchronizedAfterSuiteCallback = func() {
 	}
 }
 
-func configureGHE() error {
-	if os.Getenv("GHE_TOKEN") != "" {
-		utils.LogInfof("Setting up GitHub Enterprise support for user %s", os.Getenv("GHE_USER"))
-		cwd, err := os.Getwd()
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		r := runner.New(cwd, &TimeoutSessionWait, 0)
-		r.Run("create", "git", "server", "github,", os.Getenv("GHE_PROVIDER_URL"), "-n", "GHE")
-		out, err := r.RunWithOutput("get", "git", "server")
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		utils.LogInfo(out)
-		r.Run("create", "git", "token", "-n", "GHE", os.Getenv("GHE_USER"), "-t", os.Getenv("GHE_TOKEN"))
-	}
-	return nil
-}
-
 func ensureConfiguration() error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	_, found := os.LookupEnv("BDD_JX")
+	if !found {
+		_ = os.Setenv("BDD_JX", runner.Jx)
+	}
+
 	r := runner.New(cwd, &TimeoutSessionWait, 0)
 	version, err := r.RunWithOutput("--version")
 	if err != nil {
@@ -121,12 +108,12 @@ func ensureConfiguration() error {
 		if gitOrganisation == "" {
 			gitOrganisation = "jenkins-x-tests"
 		}
-		os.Setenv("GIT_ORGANISATION", gitOrganisation)
+		_ = os.Setenv("GIT_ORGANISATION", gitOrganisation)
 	}
 	gitProviderUrl := os.Getenv("GIT_PROVIDER_URL")
 	if gitProviderUrl == "" {
 		gitProviderUrl = "https://github.com"
-		os.Setenv("GIT_PROVIDER_URL", gitProviderUrl)
+		_ = os.Setenv("GIT_PROVIDER_URL", gitProviderUrl)
 	}
 	disableDeleteAppStr := os.Getenv("JX_DISABLE_DELETE_APP")
 	disableDeleteApp := "is set. Apps created in the test run will NOT be deleted"
@@ -150,44 +137,45 @@ func ensureConfiguration() error {
 	}
 	bddTimeoutBuildCompletes := os.Getenv("BDD_TIMEOUT_BUILD_COMPLETES")
 	if bddTimeoutBuildCompletes == "" {
-		os.Setenv("BDD_TIMEOUT_BUILD_COMPLETES", "60")
+		_ = os.Setenv("BDD_TIMEOUT_BUILD_COMPLETES", "60")
 	}
 	bddTimeoutBuildRunningInStaging := os.Getenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING")
 	if bddTimeoutBuildRunningInStaging == "" {
-		os.Setenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", "60")
+		_ = os.Setenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", "60")
 	}
 	bddTimeoutURLReturns := os.Getenv("BDD_TIMEOUT_URL_RETURNS")
 	if bddTimeoutURLReturns == "" {
-		os.Setenv("BDD_TIMEOUT_URL_RETURNS", "5")
+		_ = os.Setenv("BDD_TIMEOUT_URL_RETURNS", "5")
 	}
 	bddTimeoutCmdLine := os.Getenv("BDD_TIMEOUT_CMD_LINE")
 	if bddTimeoutCmdLine == "" {
-		os.Setenv("BDD_TIMEOUT_CMD_LINE", "1")
+		_ = os.Setenv("BDD_TIMEOUT_CMD_LINE", "1")
 	}
 	bddTimeoutAppTests := os.Getenv("BDD_TIMEOUT_APP_TESTS")
 	if bddTimeoutAppTests == "" {
-		os.Setenv("BDD_TIMEOUT_APP_TESTS", "60")
+		_ = os.Setenv("BDD_TIMEOUT_APP_TESTS", "60")
 	}
 	bddTimeoutSessionWait := os.Getenv("BDD_TIMEOUT_SESSION_WAIT")
 	if bddTimeoutSessionWait == "" {
-		os.Setenv("BDD_TIMEOUT_SESSION_WAIT", "60")
+		_ = os.Setenv("BDD_TIMEOUT_SESSION_WAIT", "60")
 	}
 	bddTimeoutDevpod := os.Getenv("BDD_TIMEOUT_DEVPOD")
 	if bddTimeoutDevpod == "" {
-		os.Setenv("BDD_TIMEOUT_DEVPOD", "15")
+		_ = os.Setenv("BDD_TIMEOUT_DEVPOD", "15")
 	}
 
 	gheUser := os.Getenv("GHE_USER")
 	if gheUser == "" {
 		gheUser = "dev1"
-		os.Setenv("GHE_USER", gheUser)
+		_ = os.Setenv("GHE_USER", gheUser)
 	}
 	gheProviderUrl := os.Getenv("GHE_PROVIDER_URL")
 	if gheProviderUrl == "" {
 		gheProviderUrl = "https://github.beescloud.com"
-		os.Setenv("GHE_PROVIDER_URL", gheProviderUrl)
+		_ = os.Setenv("GHE_PROVIDER_URL", gheProviderUrl)
 	}
 
+	utils.LogInfof("BDD_JX:                                             %s\n", os.Getenv("BDD_JX"))
 	utils.LogInfof("jx version:                                         %s\n", version)
 	utils.LogInfof("GIT_ORGANISATION:                                   %s\n", gitOrganisation)
 	utils.LogInfof("GIT_PROVIDER_URL:                                   %s\n", gitProviderUrl)

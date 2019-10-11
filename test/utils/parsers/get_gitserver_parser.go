@@ -8,7 +8,7 @@ import (
 type GitServer struct {
 	Name string
 	Kind string
-	Url string
+	Url  string
 }
 
 func ParseJxGetGitServer(s string) ([]GitServer, error) {
@@ -27,13 +27,13 @@ func ParseJxGetGitServer(s string) ([]GitServer, error) {
 		}
 		line = strings.TrimSpace(line)
 		fields := strings.Fields(line)
-		if len(fields) !=3 {
+		if len(fields) != 3 {
 			return nil, errors.Errorf("must be three fields in %s, entire output was %s", line, s)
 		}
 		answer = append(answer, GitServer{
 			Name: fields[0],
 			Kind: fields[1],
-			Url: fields[2],
+			Url:  fields[2],
 		})
 	}
 	return answer, nil

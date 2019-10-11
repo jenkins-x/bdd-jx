@@ -2,6 +2,7 @@ package apps
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -13,28 +14,34 @@ import (
 var _ = AppTests()
 
 func AppTests() []bool {
-	if IncludeApps != "" {
-		includedAppList := strings.Split(strings.TrimSpace(IncludeApps), ",")
-		tests := make([]bool, len(includedAppList))
-		for _, testAppName := range includedAppList {
-			nameAndVersion := strings.Split(testAppName, ":")
-			if len(nameAndVersion) == 2 {
-				tests = append(tests, AddAppTest(nameAndVersion[0], nameAndVersion[1]))
-			} else {
-				tests = append(tests, AddAppTest(testAppName, ""))
-			}
-		}
-		return tests
+	var appsUnderTest string
+	apps, set := os.LookupEnv("JX_BDD_INCLUDE_APPS")
+	if set {
+		appsUnderTest = apps
 	} else {
-		return nil
+		appsUnderTest = includeApps
 	}
+
+	includedAppList := strings.Split(strings.TrimSpace(appsUnderTest), ",")
+	tests := make([]bool, len(includedAppList))
+	for _, testAppName := range includedAppList {
+		nameAndVersion := strings.Split(testAppName, ":")
+		if len(nameAndVersion) == 2 {
+			tests = append(tests, AppTest(nameAndVersion[0], nameAndVersion[1]))
+		} else {
+			tests = append(tests, AppTest(testAppName, ""))
+		}
+	}
+	return tests
 }
 
 type AppTestOptions struct {
 	helpers.TestOptions
 }
 
-func AddAppTest(testAppName string, version string) bool {
+// AppTest builds a Ginkgo test testing the app workflow - create, get, upgrade, delete - for the specified app in
+// the given version.
+func AppTest(testAppName string, version string) bool {
 	return Describe("Apps Framework", func() {
 		var T AppTestOptions
 
@@ -45,14 +52,15 @@ func AddAppTest(testAppName string, version string) bool {
 					WorkDir:         helpers.WorkDir,
 				},
 			}
-			T.GitProviderURL()
+			if T.GitOpsEnabled() {
+				Skip(fmt.Sprintf("Skipping apps tests for %s since they require a non gitops setup", testAppName))
+			}
 		})
 
 		_ = T.AddAppTests(testAppName, version)
 		_ = T.GetAppsTests(testAppName)
 		_ = T.UpgradeAppTests(testAppName)
 		_ = T.DeleteAppTests(testAppName)
-
 	})
 }
 
@@ -64,7 +72,7 @@ func (t *AppTestOptions) AddAppTests(testAppName string, version string) bool {
 				args := []string{"get", "app", testAppName}
 				argsStr := strings.Join(args, " ")
 				By(fmt.Sprintf("calling jx %s to check that the app does not exist before creation", argsStr), func() {
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 1, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 1, args...)
 				})
 
 				args = []string{"add", "app", testAppName, "--repository", helpers.DefaultRepositoryURL}
@@ -73,13 +81,13 @@ func (t *AppTestOptions) AddAppTests(testAppName string, version string) bool {
 				}
 				argsStr = strings.Join(args, " ")
 				By(fmt.Sprintf("checking that jx %s exits with signal 0", argsStr), func() {
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 				})
 
 				args = []string{"get", "app", testAppName}
 				argsStr = strings.Join(args, " ")
 				By(fmt.Sprintf("calling jx %s to check that the app exists", args), func() {
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 				})
 			})
 		})
@@ -93,19 +101,19 @@ func (t *AppTestOptions) GetAppsTests(testAppName string) bool {
 				args := []string{"get", "app", testAppName}
 				argsStr := strings.Join(args, " ")
 				By(fmt.Sprintf("checking jx %s exits with signal 0", argsStr), func() {
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 				})
 
 				args = []string{"get", "app", testAppName, "-o", "yaml"}
 				argsStr = strings.Join(args, " ")
 				By(fmt.Sprintf("checking jx %s exits with signal 0", argsStr), func() {
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 				})
 
 				args = []string{"get", "app", testAppName, "-o", "json"}
 				argsStr = strings.Join(args, " ")
 				By(fmt.Sprintf("checking jx %s exits with signal 0", argsStr), func() {
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 				})
 			})
 		})
@@ -119,12 +127,12 @@ func (t *AppTestOptions) UpgradeAppTests(testAppName string) bool {
 				args := []string{"get", "app", testAppName}
 				argsStr := strings.Join(args, " ")
 				By(fmt.Sprintf("checking jx %s exits with signal 0", argsStr), func() {
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 				})
 				args = []string{"upgrade", "app", testAppName}
 				argsStr = strings.Join(args, " ")
 				By(fmt.Sprintf("checking jx %s exits with signal 0", argsStr), func() {
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 				})
 			})
 		})
@@ -139,20 +147,20 @@ func (t *AppTestOptions) DeleteAppTests(testAppName string) bool {
 				args := []string{"get", "app", testAppName}
 				argsStr := strings.Join(args, " ")
 				By(fmt.Sprintf("checking jx %s exits with signal 0", argsStr), func() {
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 				})
 				args = []string{"delete", "app", testAppName}
 				argsStr = strings.Join(args, " ")
 				By(fmt.Sprintf("checking jx %s exits with signal 0", argsStr), func() {
 
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 0, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 				})
 
 				args = []string{"get", "app", testAppName}
 				argsStr = strings.Join(args, " ")
 				By(fmt.Sprintf("checking jx %s exits with signal 0", argsStr), func() {
 
-					t.ExpectJxExecution(t.WorkDir, TimeoutAppTests, 1, args...)
+					t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 1, args...)
 				})
 			})
 		})

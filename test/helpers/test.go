@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -590,8 +591,14 @@ func (t *TestOptions) WaitForFirstRelease() bool {
 func (t *TestOptions) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration time.Duration) error {
 	lastLoggedStatus := -1
 	f := func() error {
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
 		var httpClient = &http.Client{
 			Timeout: time.Second * 30,
+			Transport: transport,
 		}
 		response, err := httpClient.Get(url)
 		if err != nil {

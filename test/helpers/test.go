@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -66,6 +67,9 @@ var (
 
 	// TimeoutDeploymentRollout defines the timeout waiting for a deployment rollout
 	TimeoutDeploymentRollout = utils.GetTimeoutFromEnv("", 3)
+
+	// InsecureURLSkipVerify skips the TLS verify when checking URLs of deployed applications
+	InsecureURLSkipVerify = utils.GetEnv("BDD_URL_INSECURE_SKIP_VERIFY","false")
 )
 
 // TestOptions is the base testing object
@@ -590,8 +594,18 @@ func (t *TestOptions) WaitForFirstRelease() bool {
 func (t *TestOptions) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration time.Duration) error {
 	lastLoggedStatus := -1
 	f := func() error {
+		skipVerify := false
+		if strings.ToLower(InsecureURLSkipVerify) == "true" {
+			skipVerify = true
+		}
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: skipVerify,
+			},
+		}
 		var httpClient = &http.Client{
-			Timeout: time.Second * 30,
+			Timeout:   time.Second * 30,
+			Transport: transport,
 		}
 		response, err := httpClient.Get(url)
 		if err != nil {

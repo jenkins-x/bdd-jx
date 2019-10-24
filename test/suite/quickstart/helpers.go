@@ -105,7 +105,7 @@ func createQuickstartTests(quickstartName string) bool {
 							})
 						}
 
-						if T.TestChatOpsCommands() {
+						if T.WeShouldTestChatOpsCommands() {
 							By("creating an issue and assigning it to a valid user", func() {
 								issue := &gits.GitIssue{
 									Owner: owner,

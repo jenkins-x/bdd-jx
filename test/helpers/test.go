@@ -615,8 +615,8 @@ func (t *TestOptions) WaitForFirstRelease() bool {
 	return strings.ToLower(text) != "true"
 }
 
-// TestChatOpsCommands should we test prow ChatOps commands
-func (t *TestOptions) TestChatOpsCommands() bool {
+// WeShouldTestChatOpsCommands should we test prow ChatOps commands
+func (t *TestOptions) WeShouldTestChatOpsCommands() bool {
 	text := os.Getenv("JX_DISABLE_TEST_CHATOPS_COMMANDS")
 	return strings.ToLower(text) != "true"
 }

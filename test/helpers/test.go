@@ -67,6 +67,9 @@ var (
 
 	// TimeoutDeploymentRollout defines the timeout waiting for a deployment rollout
 	TimeoutDeploymentRollout = utils.GetTimeoutFromEnv("", 3)
+
+	// TimeoutProwActionWait defines the timeout for waiting for a prow action to complete
+	TimeoutProwActionWait = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PROW_ACTION_WAIT", 5)
 )
 
 // TestOptions is the base testing object
@@ -104,13 +107,19 @@ func (t *TestOptions) GetGitOrganisation() string {
 	return org
 }
 
+// GetGitProvider returns a git provider that uses default credentials stored in ~/.jx/gitAuth.yaml
 func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
-	authConfigService, err := auth.NewFileAuthConfigService(fmt.Sprintf("%s/.jx/gitAuth.yaml", os.Getenv("HOME")))
+	homeDir := os.Getenv("JX_HOME")
+	if homeDir == "" {
+		homeDir = os.Getenv("HOME")
+		if homeDir == "" {
+			return nil, fmt.Errorf("no jx home directory found to pull git creds from")
+		}
+	}
+	authConfigService, err := auth.NewFileAuthConfigService(fmt.Sprintf("%s/.jx/gitAuth.yaml", homeDir))
 	if err != nil {
 		return nil, err
 	}
-
-	utils.LogInfof("HOME dir: %s\n", os.Getenv("HOME"))
 
 	config, err := authConfigService.LoadConfig()
 	if err != nil {
@@ -686,22 +695,25 @@ func (t *TestOptions) CreateIssueAndAssignToUserWithChatOpsCommand(issue *gits.G
 
 // ExpectThatIssueIsAssignedToUser returns an error if
 func (t *TestOptions) ExpectThatIssueIsAssignedToUser(provider gits.GitProvider, issue *gits.GitIssue, username string) error {
-	fetchedIssue, err := provider.GetIssue(issue.Owner, issue.Repo, *issue.Number)
-	if err != nil {
-		return err
-	}
-
-	if fetchedIssue == nil {
-		return fmt.Errorf("fetched issue is nil but did not throw an error")
-	}
-
-	for _, assignee := range fetchedIssue.Assignees {
-		if assignee.Login == username {
-			return nil
+	f := func() error {
+		fetchedIssue, err := provider.GetIssue(issue.Owner, issue.Repo, *issue.Number)
+		if err != nil {
+			return err
 		}
-	}
 
-	return fmt.Errorf("user was not found in issue assignees")
+		if fetchedIssue == nil {
+			return fmt.Errorf("fetched issue is nil but did not throw an error")
+		}
+
+		for _, assignee := range fetchedIssue.Assignees {
+			if assignee.Login == username {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("user was not found in issue assignees")
+	}
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
 }
 
 // AddAppTests Creates a jx add app test

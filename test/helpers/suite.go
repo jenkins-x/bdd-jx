@@ -115,11 +115,6 @@ func ensureConfiguration() error {
 		gitProviderUrl = "https://github.com"
 		_ = os.Setenv("GIT_PROVIDER_URL", gitProviderUrl)
 	}
-	gitKind := os.Getenv("GIT_KIND")
-	if gitKind == "" {
-		gitKind = "github"
-		os.Setenv("GIT_KIND", gitKind)
-	}
 	disableDeleteAppStr := os.Getenv("JX_DISABLE_DELETE_APP")
 	disableDeleteApp := "is set. Apps created in the test run will NOT be deleted"
 	if disableDeleteAppStr == "true" || disableDeleteAppStr == "1" || disableDeleteAppStr == "on" {
@@ -184,7 +179,6 @@ func ensureConfiguration() error {
 	utils.LogInfof("jx version:                                         %s\n", version)
 	utils.LogInfof("GIT_ORGANISATION:                                   %s\n", gitOrganisation)
 	utils.LogInfof("GIT_PROVIDER_URL:                                   %s\n", gitProviderUrl)
-	utils.LogInfof("GIT_KIND:                                           %s\n", gitKind)
 	utils.LogInfof("JX_DISABLE_DELETE_APP:                              %s\n", disableDeleteApp)
 	utils.LogInfof("JX_DISABLE_DELETE_REPO:                             %s\n", disableDeleteRepo)
 	utils.LogInfof("JX_DISABLE_WAIT_FOR_FIRST_RELEASE:                  %s\n", disableWaitForFirstRelease)

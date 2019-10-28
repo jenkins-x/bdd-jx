@@ -25,6 +25,13 @@ func GetTimeoutFromEnv(key string, fallback int) time.Duration {
 	return time.Duration(fallback) * time.Minute
 }
 
+func GetEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
 func GetJenkinsClient() (gojenkins.JenkinsClient, error) {
 	url := os.Getenv("BDD_JENKINS_URL")
 	if url == "" {

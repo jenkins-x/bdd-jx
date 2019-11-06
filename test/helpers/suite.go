@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/jenkins-x/jx/pkg/client/clientset/versioned"
-	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
+	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/onsi/ginkgo/config"
 	"k8s.io/client-go/kubernetes"
@@ -89,7 +89,7 @@ func ensureConfiguration() error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	factory := clients.NewFactory()
+	factory := cmd.NewFactory()
 	kubeClient, ns, err := factory.CreateKubeClient()
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "failed to create kubeClient")
@@ -114,6 +114,11 @@ func ensureConfiguration() error {
 	if gitProviderUrl == "" {
 		gitProviderUrl = "https://github.com"
 		_ = os.Setenv("GIT_PROVIDER_URL", gitProviderUrl)
+	}
+	gitKind := os.Getenv("GIT_KIND")
+	if gitKind == "" {
+		gitKind = "github"
+		os.Setenv("GIT_KIND", gitKind)
 	}
 	disableDeleteAppStr := os.Getenv("JX_DISABLE_DELETE_APP")
 	disableDeleteApp := "is set. Apps created in the test run will NOT be deleted"
@@ -179,6 +184,7 @@ func ensureConfiguration() error {
 	utils.LogInfof("jx version:                                         %s\n", version)
 	utils.LogInfof("GIT_ORGANISATION:                                   %s\n", gitOrganisation)
 	utils.LogInfof("GIT_PROVIDER_URL:                                   %s\n", gitProviderUrl)
+	utils.LogInfof("GIT_KIND:                                           %s\n", gitKind)
 	utils.LogInfof("JX_DISABLE_DELETE_APP:                              %s\n", disableDeleteApp)
 	utils.LogInfof("JX_DISABLE_DELETE_REPO:                             %s\n", disableDeleteRepo)
 	utils.LogInfof("JX_DISABLE_WAIT_FOR_FIRST_RELEASE:                  %s\n", disableWaitForFirstRelease)

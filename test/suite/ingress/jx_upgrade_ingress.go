@@ -8,7 +8,7 @@ import (
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
-	cmd "github.com/jenkins-x/jx/pkg/jx/cmd/clients"
+	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/jenkins-x/jx/pkg/util"
 	. "github.com/onsi/ginkgo"

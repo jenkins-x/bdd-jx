@@ -10,12 +10,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v28/github"
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	"github.com/jenkins-x/jx/pkg/auth"
 	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/gits"
 	"golang.org/x/oauth2"
@@ -135,6 +137,15 @@ func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error loading auth config: %s", err)
 	}
+
+	if config == nil {
+		return nil, fmt.Errorf("auth config is nil but no error was returned by LoadConfig")
+	}
+
+	if reflect.DeepEqual(*config, auth.AuthConfig{}) {
+		return nil, fmt.Errorf("auth config struct is empty")
+	}
+
 	authServer := config.CurrentAuthServer()
 	if authServer == nil {
 		return nil, fmt.Errorf("no config for git auth server found")

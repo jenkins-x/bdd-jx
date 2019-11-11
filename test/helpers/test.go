@@ -363,7 +363,7 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 	var out string
 	By(fmt.Sprintf("creating a pull request by running jx %s", argsStr), func() {
 		var err error
-		out, err = r.RunWithOutput(args...)
+		out, err = r.RunWithOutputNoTimeout(args...)
 		out = strings.TrimSpace(out)
 		if err != nil {
 			utils.LogInfof("ERROR: %s\n", err.Error())

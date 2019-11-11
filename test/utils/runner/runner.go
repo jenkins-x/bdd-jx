@@ -103,6 +103,31 @@ func (r *JxRunner) RunWithOutput(args ...string) (string, error) {
 	return strings.TrimSpace(RemoveCoverageText(answer, args...)), nil
 }
 
+// Run runs a jx command
+func (r *JxRunner) RunWithOutputNoTimeout(args ...string) (string, error) {
+	argsStr := strings.Join(args, " ")
+	if testing.Verbose() {
+		utils.LogInfof("\033[1mRUNNER:\033[0mAbout to execute jx %s in %s\n", argsStr, r.cwd)
+	}
+	command := exec.Command(JxBin(), args...)
+	command.Dir = r.cwd
+
+	outBytes, err := command.CombinedOutput()
+	answer := strings.TrimSpace(string(outBytes))
+
+	if err != nil {
+		utils.LogInfof("ERROR: running jx %s and got result: %s and error: %s\n", argsStr, answer, err.Error())
+	} else {
+		utils.LogInfof("running jx %s and got result: %s\n", argsStr, answer)
+	}
+
+	answer = strings.TrimSpace(RemoveCoverageText(answer, args...))
+	if err != nil {
+		return answer, errors.WithStack(err)
+	}
+	return answer, nil
+}
+
 func JxBin() string {
 	jxBin, set := os.LookupEnv("BDD_JX")
 	if !set {

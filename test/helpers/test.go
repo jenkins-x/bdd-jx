@@ -69,7 +69,7 @@ var (
 	TimeoutDeploymentRollout = utils.GetTimeoutFromEnv("", 3)
 
 	// InsecureURLSkipVerify skips the TLS verify when checking URLs of deployed applications
-	InsecureURLSkipVerify = utils.GetEnv("BDD_URL_INSECURE_SKIP_VERIFY","false")
+	InsecureURLSkipVerify = utils.GetEnv("BDD_URL_INSECURE_SKIP_VERIFY", "false")
 )
 
 // TestOptions is the base testing object
@@ -364,8 +364,16 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 	By(fmt.Sprintf("creating a pull request by running jx %s", argsStr), func() {
 		var err error
 		out, err = r.RunWithOutput(args...)
+		out = strings.TrimSpace(out)
+		if err != nil {
+			utils.LogInfof("ERROR: %s\n", err.Error())
+		} else {
+			Expect(out).ShouldNot(BeEmpty(), "no output returned from command: jx "+argsStr)
+		}
 		utils.ExpectNoError(err)
 	})
+
+	utils.LogInfof("running jx %s and got result: %s\n", argsStr, out)
 
 	var pr *parsers.CreatePullRequest
 	var err error

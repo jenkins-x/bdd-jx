@@ -1,0 +1,14 @@
+{
+  "name": "ui-smoke-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A set of smoke test for JX UI",
+  "scripts": {
+    "cypress:open": "cypress open",
+    "test": "cypress run"
+  },
+  "devDependencies": {
+    "cypress": "^3.6.0",
+    "expect": "^24.9.0"
+  }
+}

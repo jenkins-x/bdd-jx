@@ -809,4 +809,74 @@ func (t *TestOptions) ExpectThatPRHasCommentWithText(provider gits.GitProvider, 
 	return RetryExponentialBackoff(TimeoutProwActionWait, f)
 }
 
+// AddHoldLabelToPRWithChatOpsCommand returns an error of the command fails to add the do-not-merge/hold label
+func (t *TestOptions) AddHoldLabelToPRWithChatOpsCommand(provider gits.GitProvider, owner, repo string) error {
+	pullRequests, err := provider.ListOpenPullRequests(owner, repo)
+	if err != nil {
+		return err
+	}
+	if len(pullRequests) < 1 {
+		return fmt.Errorf("no open pull requests found for %s/%s", owner, repo)
+	}
+
+	err = provider.AddPRComment(pullRequests[0], "/hold")
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPRHasLabel(provider, *pullRequests[0].Number, owner, repo, "do-not-merge/hold")
+}
+
+// AddWIPLabelToPRByUpdatingTitle adds the WIP label by adding WIP to a pull request's title
+func (t *TestOptions) AddWIPLabelToPRByUpdatingTitle(provider gits.GitProvider, owner, repo string) error {
+	pullRequests, err := provider.ListOpenPullRequests(owner, repo)
+	if err != nil {
+		return err
+	}
+	if len(pullRequests) < 1 {
+		return fmt.Errorf("no open pull requests found for %s/%s", owner, repo)
+	}
+
+	pullRequest := pullRequests[0]
+
+	pullRequestArgs := &gits.GitPullRequestArguments{
+		Title: fmt.Sprintf("WIP %s", pullRequest.Title),
+		GitRepository: &gits.GitRepository{
+			Organisation: pullRequest.Owner,
+			Name:         pullRequest.Repo,
+		},
+	}
+	updatedPullRequest, err := provider.UpdatePullRequest(pullRequestArgs, *pullRequest.Number)
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPRHasLabel(provider, *updatedPullRequest.Number, owner, repo, "do-not-merge/work-in-progress")
+}
+
+// ExpectThatPRHasLabel returns an error if the PR does not have the specified label
+func (t *TestOptions) ExpectThatPRHasLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
+	f := func() error {
+		repoStruct := &gits.GitRepository{
+			Name:         repo,
+			Organisation: owner,
+		}
+		pullRequest, err := provider.GetPullRequest(owner, repoStruct, pullRequestNumber)
+		if err != nil {
+			return err
+		}
+		if len(pullRequest.Labels) < 1 {
+			return fmt.Errorf("the pull request has no labels")
+		}
+		for _, l := range pullRequest.Labels {
+			if *l.Name == label {
+				return nil
+			}
+		}
+		return fmt.Errorf("the pull request does not have the specified label: %s", label)
+	}
+
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
+}
+
 // AddAppTests Creates a jx add app test

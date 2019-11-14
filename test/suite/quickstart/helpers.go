@@ -106,6 +106,8 @@ func createQuickstartTests(quickstartName string) bool {
 						}
 
 						if T.WeShouldTestChatOpsCommands() {
+							gitProvider, err := T.GetGitProvider()
+							Expect(err).NotTo(HaveOccurred())
 							By("creating an issue and assigning it to a valid user", func() {
 								issue := &gits.GitIssue{
 									Owner: owner,
@@ -113,9 +115,12 @@ func createQuickstartTests(quickstartName string) bool {
 									Title: "Test the /assign command",
 									Body:  "This tests assigning a user using a ChatOps command",
 								}
-								gitProvider, err := T.GetGitProvider()
-								Expect(err).NotTo(HaveOccurred())
 								err = T.CreateIssueAndAssignToUserWithChatOpsCommand(issue, gitProvider)
+								Expect(err).NotTo(HaveOccurred())
+							})
+
+							By("attempting to LGTM our own PR", func() {
+								err = T.AttemptToLGTMOwnPR(gitProvider, owner, applicationName)
 								Expect(err).NotTo(HaveOccurred())
 							})
 						}

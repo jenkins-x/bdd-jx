@@ -37,6 +37,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	scm "github.com/jenkins-x/go-scm/scm"
+	scmFactory "github.com/jenkins-x/go-scm/scm/factory"
 )
 
 var (
@@ -752,6 +755,57 @@ func (t *TestOptions) ExpectThatIssueIsAssignedToUser(provider gits.GitProvider,
 
 		return fmt.Errorf("user was not found in issue assignees")
 	}
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
+}
+
+// AttemptToLGTMOwnPR return an error if the /lgtm fails to add the lgtm label to PR
+func (t *TestOptions) AttemptToLGTMOwnPR(provider gits.GitProvider, owner string, repo string) error {
+	pullRequests, err := provider.ListOpenPullRequests(owner, repo)
+	if err != nil {
+		return err
+	}
+	if len(pullRequests) < 1 {
+		return fmt.Errorf("no open pull requests found for %s/%s", owner, repo)
+	}
+
+	err = provider.AddPRComment(pullRequests[0], "/lgtm")
+	if err != nil {
+		return err
+	}
+
+	repoStruct := &gits.GitRepository{
+		Name:         repo,
+		Organisation: owner,
+	}
+	pullRequest, err := provider.GetPullRequest(owner, repoStruct, *pullRequests[0].Number)
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPRHasCommentWithText(provider, pullRequest, "you cannot LGTM your own PR.")
+}
+
+// ExpectThatPRHasCommentWithText returns an error if the PR does not have a comment with the specified text
+func (t *TestOptions) ExpectThatPRHasCommentWithText(provider gits.GitProvider, pullRequest *gits.GitPullRequest, commentText string) error {
+	f := func() error {
+		userAuth := provider.UserAuth()
+
+		scmClient, err := scmFactory.NewClient(provider.Kind(), provider.ServerURL(), userAuth.ApiToken)
+		if err != nil {
+			return err
+		}
+
+		repoString := fmt.Sprintf("%s/%s", pullRequest.Owner, pullRequest.Repo)
+		comments, _, err := scmClient.PullRequests.ListComments(context.Background(), repoString, *pullRequest.Number, scm.ListOptions{})
+
+		for _, comment := range comments {
+			if strings.Contains(comment.Body, commentText) {
+				return nil
+			}
+		}
+		return fmt.Errorf("comment text not found in PR")
+	}
+
 	return RetryExponentialBackoff(TimeoutProwActionWait, f)
 }
 

@@ -9,10 +9,25 @@ pipelineConfig:
         stages:
           - name: bdd-stage
             steps:
-              - name: bdd
-                command: make bdd
+              - name: build
+                command: make build
                 env:
                 - name: GIT_AUTHOR_NAME
                   value: jenkins-x-bot
                 - name: GIT_AUTHOR_EMAIL
                   value: jenkins-x@googlegroups.com
+
+    pullRequest:
+      pipeline:
+        agent:
+          image: gcr.io/jenkinsxio/builder-go-maven
+        stages:
+          - name: bdd-stage
+            steps:
+              - name: build
+                command: make build
+                env:
+                  - name: GIT_AUTHOR_NAME
+                    value: jenkins-x-bot
+                  - name: GIT_AUTHOR_EMAIL
+                    value: jenkins-x@googlegroups.com

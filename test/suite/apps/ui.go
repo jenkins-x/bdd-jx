@@ -76,6 +76,7 @@ func (t *AppTestOptions) UITest() bool {
 	})
 
 	return Context("UI", func() {
+		var uiURL = ""
 		It("ensure UI is not installed", func() {
 			pr, err := getPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
 			Expect(err).ShouldNot(HaveOccurred())
@@ -127,7 +128,7 @@ func (t *AppTestOptions) UITest() bool {
 			}()
 
 			testUI := func() error {
-				uiURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+				uiURL = fmt.Sprintf("http://127.0.0.1:%d", port)
 				By(fmt.Sprintf("accessing ui on %s", uiURL))
 				resp, err := http.Get(uiURL)
 				if err != nil {
@@ -146,6 +147,34 @@ func (t *AppTestOptions) UITest() bool {
 
 			err = helpers.RetryExponentialBackoff(helpers.TimeoutUrlReturns, testUI)
 			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("Runs smoke tests", func() {
+			By("Running smoke tests", func() {
+				dir, err := os.Getwd()
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				nodePath, err := exec.LookPath("node")
+				if err != nil {
+					fmt.Println("Can't find node in your PATH")
+				}
+				Expect(err).ShouldNot(HaveOccurred())
+
+				command := exec.Command("/bin/sh", "run.sh")
+				command.Dir = fmt.Sprintf("%s/ui-smoke", dir)
+				command.Env = append(command.Env, fmt.Sprintf("CYPRESS_BASE_URL=%s", uiURL))
+				command.Env = append(command.Env, fmt.Sprintf("REPORTS_DIR=%s", os.Getenv("REPORTS_DIR")))
+				command.Env = append(command.Env, fmt.Sprintf("PATH=%s:%s", nodePath, os.Getenv("PATH")))
+				command.Stderr = GinkgoWriter
+				command.Stdout = GinkgoWriter
+				err = command.Run()
+				if err != nil {
+					fmt.Println("Smoke tests failed")
+				}
+				Expect(err).ShouldNot(HaveOccurred())
+			})
 		})
 
 		It("uninstall UI", func() {

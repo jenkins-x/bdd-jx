@@ -10,7 +10,7 @@ pipelineConfig:
           - name: bdd-stage
             steps:
               - name: build
-                command: make build
+                command: make bdd
                 env:
                 - name: GIT_AUTHOR_NAME
                   value: jenkins-x-bot

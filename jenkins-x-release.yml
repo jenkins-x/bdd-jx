@@ -1,0 +1,18 @@
+buildPack: none
+noReleasePrepare: true
+pipelineConfig:
+  pipelines:
+    release:
+      pipeline:
+        agent:
+          image: gcr.io/jenkinsxio/builder-go-maven
+        stages:
+          - name: bdd-stage
+            steps:
+              - name: build
+                command: make build
+                env:
+                - name: GIT_AUTHOR_NAME
+                  value: jenkins-x-bot
+                - name: GIT_AUTHOR_EMAIL
+                  value: jenkins-x@googlegroups.com

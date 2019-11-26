@@ -45,7 +45,7 @@ require (
 	github.com/jenkins-x/draft-repo v0.0.0-20180417100212-2f66cc518135
 	github.com/jenkins-x/go-scm v1.5.60
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20191105231630-4b3a26fb65d8
+	github.com/jenkins-x/jx v0.0.0-20191126155014-7937dd063b04
 	github.com/jetstack/cert-manager v0.5.2
 	github.com/knative/build v0.5.0
 	github.com/knative/build-pipeline v0.1.0
@@ -60,12 +60,12 @@ require (
 	github.com/pkg/browser v0.0.0-20170505125900-c90ca0c84f15
 	github.com/pkg/errors v0.8.1
 	github.com/rodaine/hclencoder v0.0.0-20180926060551-0680c4321930
-	github.com/russross/blackfriday v1.5.1
+	github.com/russross/blackfriday v1.5.2
 	github.com/satori/go.uuid v1.2.1-0.20180103174451-36e9d2ebbde5
 	github.com/sethvargo/go-password v0.1.2
 	github.com/shirou/gopsutil v0.0.0-20180901134234-eb1f1ab16f2e
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.3
+	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
 	github.com/stoewer/go-strcase v1.0.1
 	github.com/stretchr/testify v1.3.0

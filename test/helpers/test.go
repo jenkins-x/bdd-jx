@@ -20,6 +20,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/auth"
 	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/gits"
+	"github.com/jenkins-x/jx/pkg/kube"
 	"golang.org/x/oauth2"
 
 	"github.com/cenkalti/backoff"
@@ -131,7 +132,7 @@ func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
 		return nil, err
 	}
 
-	authConfigService, err := factory.CreateAuthConfigService(fmt.Sprintf("%s/.jx/gitAuth.yaml", homeDir), ns)
+	authConfigService, err := factory.CreateAuthConfigService(fmt.Sprintf("%s/.jx/gitAuth.yaml", homeDir), ns, kube.ValueKindGit, "")
 	if err != nil {
 		return nil, err
 	}

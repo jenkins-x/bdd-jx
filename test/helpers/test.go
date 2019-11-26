@@ -10,13 +10,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v28/github"
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	"github.com/jenkins-x/jx/pkg/auth"
+	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/gits"
+	"github.com/jenkins-x/jx/pkg/kube"
 	"golang.org/x/oauth2"
 
 	"github.com/cenkalti/backoff"
@@ -34,6 +38,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	scm "github.com/jenkins-x/go-scm/scm"
+	scmFactory "github.com/jenkins-x/go-scm/scm/factory"
 )
 
 var (
@@ -70,6 +77,8 @@ var (
 
 	// InsecureURLSkipVerify skips the TLS verify when checking URLs of deployed applications
 	InsecureURLSkipVerify = utils.GetEnv("BDD_URL_INSECURE_SKIP_VERIFY", "false")
+	// TimeoutProwActionWait defines the timeout for waiting for a prow action to complete
+	TimeoutProwActionWait = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PROW_ACTION_WAIT", 5)
 )
 
 // TestOptions is the base testing object
@@ -105,6 +114,56 @@ func (t *TestOptions) GetFreePort() (int, error) {
 func (t *TestOptions) GetGitOrganisation() string {
 	org := os.Getenv("GIT_ORGANISATION")
 	return org
+}
+
+// GetGitProvider returns a git provider that uses default credentials stored in ~/.jx/gitAuth.yaml
+func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
+	homeDir := os.Getenv("JX_HOME")
+	if homeDir == "" {
+		homeDir = os.Getenv("HOME")
+		if homeDir == "" {
+			return nil, fmt.Errorf("no jx home directory found to pull git creds from")
+		}
+	}
+
+	factory := cmd.NewFactory()
+	_, ns, err := factory.CreateKubeClient()
+	if err != nil {
+		return nil, err
+	}
+
+	authConfigService, err := factory.CreateAuthConfigService(fmt.Sprintf("%s/.jx/gitAuth.yaml", homeDir), ns, kube.ValueKindGit, "")
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := authConfigService.LoadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error loading auth config: %s", err)
+	}
+
+	if config == nil {
+		return nil, fmt.Errorf("auth config is nil but no error was returned by LoadConfig")
+	}
+
+	if reflect.DeepEqual(*config, auth.AuthConfig{}) {
+		return nil, fmt.Errorf("auth config struct is empty")
+	}
+
+	authServer := config.CurrentAuthServer()
+	if authServer == nil {
+		return nil, fmt.Errorf("no config for git auth server found")
+	}
+	userAuth := config.CurrentUser(authServer, false)
+	if userAuth == nil {
+		return nil, fmt.Errorf("no config for git user auth found")
+	}
+
+	gitProvider, err := gits.CreateProvider(authServer, userAuth, nil)
+	if err != nil {
+		return nil, err
+	}
+	return gitProvider, nil
 }
 
 // GitProviderURL Gets the current git provider URL
@@ -598,6 +657,12 @@ func (t *TestOptions) WaitForFirstRelease() bool {
 	return strings.ToLower(text) != "true"
 }
 
+// WeShouldTestChatOpsCommands should we test prow ChatOps commands
+func (t *TestOptions) WeShouldTestChatOpsCommands() bool {
+	text := os.Getenv("JX_DISABLE_TEST_CHATOPS_COMMANDS")
+	return strings.ToLower(text) != "true"
+}
+
 // ExpectUrlReturns expects that the given URL returns the given status code within the given time period
 func (t *TestOptions) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration time.Duration) error {
 	lastLoggedStatus := -1
@@ -630,6 +695,189 @@ func (t *TestOptions) ExpectUrlReturns(url string, expectedStatusCode int, maxDu
 		return fmt.Errorf("invalid HTTP status code for %s expected %d but got %d", url, expectedStatusCode, actualStatusCode)
 	}
 	return RetryExponentialBackoff(maxDuration, f)
+}
+
+func (t *TestOptions) CreateChatOpsCommands(commands []string) error {
+	gitProvider, err := t.GetGitProvider()
+	if err != nil {
+		return err
+	}
+
+	utils.LogInfof("successfully create git provider of kind %s", gitProvider.Kind())
+
+	return nil
+}
+
+// CreateIssueAndAssignToUser creates an issue on the configure git provider and assigns it to a user.
+func (t *TestOptions) CreateIssueAndAssignToUserWithChatOpsCommand(issue *gits.GitIssue, provider gits.GitProvider) error {
+
+	createdIssue, err := provider.CreateIssue(issue.Owner, issue.Repo, issue)
+	if err != nil {
+		return err
+	}
+
+	utils.LogInfof("created issue with number %d\n", *createdIssue.Number)
+
+	err = provider.CreateIssueComment(
+		issue.Owner,
+		issue.Repo,
+		*createdIssue.Number,
+		fmt.Sprintf("/assign %s", provider.CurrentUsername()),
+	)
+	if err != nil {
+		return err
+	}
+	utils.LogInfof("create issue comment on issue %d\n", *createdIssue.Number)
+
+	createdIssue.Owner = issue.Owner
+	createdIssue.Repo = issue.Repo
+
+	return t.ExpectThatIssueIsAssignedToUser(provider, createdIssue, provider.CurrentUsername())
+
+}
+
+// ExpectThatIssueIsAssignedToUser returns an error if
+func (t *TestOptions) ExpectThatIssueIsAssignedToUser(provider gits.GitProvider, issue *gits.GitIssue, username string) error {
+	f := func() error {
+		fetchedIssue, err := provider.GetIssue(issue.Owner, issue.Repo, *issue.Number)
+		if err != nil {
+			return err
+		}
+
+		if fetchedIssue == nil {
+			return fmt.Errorf("fetched issue is nil but did not throw an error")
+		}
+
+		for _, assignee := range fetchedIssue.Assignees {
+			if assignee.Login == username {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("user was not found in issue assignees")
+	}
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
+}
+
+// AttemptToLGTMOwnPR return an error if the /lgtm fails to add the lgtm label to PR
+func (t *TestOptions) AttemptToLGTMOwnPR(provider gits.GitProvider, owner string, repo string) error {
+	pullRequests, err := provider.ListOpenPullRequests(owner, repo)
+	if err != nil {
+		return err
+	}
+	if len(pullRequests) < 1 {
+		return fmt.Errorf("no open pull requests found for %s/%s", owner, repo)
+	}
+
+	err = provider.AddPRComment(pullRequests[0], "/lgtm")
+	if err != nil {
+		return err
+	}
+
+	repoStruct := &gits.GitRepository{
+		Name:         repo,
+		Organisation: owner,
+	}
+	pullRequest, err := provider.GetPullRequest(owner, repoStruct, *pullRequests[0].Number)
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPRHasCommentWithText(provider, pullRequest, "you cannot LGTM your own PR.")
+}
+
+// ExpectThatPRHasCommentWithText returns an error if the PR does not have a comment with the specified text
+func (t *TestOptions) ExpectThatPRHasCommentWithText(provider gits.GitProvider, pullRequest *gits.GitPullRequest, commentText string) error {
+	f := func() error {
+		userAuth := provider.UserAuth()
+
+		scmClient, err := scmFactory.NewClient(provider.Kind(), provider.ServerURL(), userAuth.ApiToken)
+		if err != nil {
+			return err
+		}
+
+		repoString := fmt.Sprintf("%s/%s", pullRequest.Owner, pullRequest.Repo)
+		comments, _, err := scmClient.PullRequests.ListComments(context.Background(), repoString, *pullRequest.Number, scm.ListOptions{})
+
+		for _, comment := range comments {
+			if strings.Contains(comment.Body, commentText) {
+				return nil
+			}
+		}
+		return fmt.Errorf("comment text not found in PR")
+	}
+
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
+}
+
+// AddHoldLabelToPRWithChatOpsCommand returns an error of the command fails to add the do-not-merge/hold label
+func (t *TestOptions) AddHoldLabelToPRWithChatOpsCommand(provider gits.GitProvider, owner, repo string) error {
+	pullRequests, err := provider.ListOpenPullRequests(owner, repo)
+	if err != nil {
+		return err
+	}
+	if len(pullRequests) < 1 {
+		return fmt.Errorf("no open pull requests found for %s/%s", owner, repo)
+	}
+
+	err = provider.AddPRComment(pullRequests[0], "/hold")
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPRHasLabel(provider, *pullRequests[0].Number, owner, repo, "do-not-merge/hold")
+}
+
+// AddWIPLabelToPRByUpdatingTitle adds the WIP label by adding WIP to a pull request's title
+func (t *TestOptions) AddWIPLabelToPRByUpdatingTitle(provider gits.GitProvider, owner, repo string) error {
+	pullRequests, err := provider.ListOpenPullRequests(owner, repo)
+	if err != nil {
+		return err
+	}
+	if len(pullRequests) < 1 {
+		return fmt.Errorf("no open pull requests found for %s/%s", owner, repo)
+	}
+
+	pullRequest := pullRequests[0]
+
+	pullRequestArgs := &gits.GitPullRequestArguments{
+		Title: fmt.Sprintf("WIP %s", pullRequest.Title),
+		GitRepository: &gits.GitRepository{
+			Organisation: pullRequest.Owner,
+			Name:         pullRequest.Repo,
+		},
+	}
+	updatedPullRequest, err := provider.UpdatePullRequest(pullRequestArgs, *pullRequest.Number)
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPRHasLabel(provider, *updatedPullRequest.Number, owner, repo, "do-not-merge/work-in-progress")
+}
+
+// ExpectThatPRHasLabel returns an error if the PR does not have the specified label
+func (t *TestOptions) ExpectThatPRHasLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
+	f := func() error {
+		repoStruct := &gits.GitRepository{
+			Name:         repo,
+			Organisation: owner,
+		}
+		pullRequest, err := provider.GetPullRequest(owner, repoStruct, pullRequestNumber)
+		if err != nil {
+			return err
+		}
+		if len(pullRequest.Labels) < 1 {
+			return fmt.Errorf("the pull request has no labels")
+		}
+		for _, l := range pullRequest.Labels {
+			if *l.Name == label {
+				return nil
+			}
+		}
+		return fmt.Errorf("the pull request does not have the specified label: %s", label)
+	}
+
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
 }
 
 // AddAppTests Creates a jx add app test

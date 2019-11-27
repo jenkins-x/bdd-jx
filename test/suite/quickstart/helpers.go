@@ -131,6 +131,7 @@ func createQuickstartTests(quickstartName string) bool {
 
 							By("adding a WIP label", func() {
 								err = T.AddWIPLabelToPRByUpdatingTitle(gitProvider, owner, applicationName)
+								Expect(err).NotTo(HaveOccurred())
 							})
 						}
 					} else {

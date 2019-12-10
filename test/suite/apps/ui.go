@@ -49,14 +49,13 @@ func (t *AppTestOptions) UITest() bool {
 		By("setting a temporary JX_HOME directory")
 		jxHome, err = ioutil.TempDir("", helpers.TempDirPrefix+"ui-jx-home-")
 		Expect(err).ShouldNot(HaveOccurred())
-
 		_ = os.Setenv("JX_HOME", jxHome)
 		utils.LogInfo(fmt.Sprintf("Using '%s' as JX_HOME", jxHome))
 	})
 
 	BeforeEach(func() {
 		By("setting the GitHub token")
-		setGitHubToken()
+		t.SetGitHubToken()
 	})
 
 	BeforeEach(func() {
@@ -78,7 +77,7 @@ func (t *AppTestOptions) UITest() bool {
 	return Context("UI", func() {
 		var uiURL = ""
 		It("ensure UI is not installed", func() {
-			pr, err := getPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
+			pr, err := t.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pr).Should(BeNil())
 		})
@@ -88,7 +87,7 @@ func (t *AppTestOptions) UITest() bool {
 			args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees"}
 			t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 
-			pr, err := getPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
+			pr, err := t.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pr).ShouldNot(BeNil())
 			Expect(*pr.State).Should(Equal("open"))
@@ -181,7 +180,7 @@ func (t *AppTestOptions) UITest() bool {
 			args := []string{"delete", "app", uiAppName}
 			t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 
-			pr, err := getPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Delete %s", uiAppName))
+			pr, err := t.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Delete %s", uiAppName))
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pr).ShouldNot(BeNil())
 

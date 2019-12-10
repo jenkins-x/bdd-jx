@@ -50,6 +50,9 @@ test-create-spring:
 test-upgrade-ingress:
 	$(GO) test $(TESTFLAGS) ./test/suite/ingress
 
+test-upgrade-boot:
+	$(GO) test $(TESTFLAGS) ./test/suite/upgrade
+
 test-upgrade-platform:
 	$(GO) test $(TESTFLAGS) ./test/suite/platform
 

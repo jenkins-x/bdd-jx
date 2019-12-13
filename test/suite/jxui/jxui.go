@@ -1,4 +1,4 @@
-package apps
+package jxui
 
 import (
 	"context"
@@ -16,7 +16,13 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
+	"time"
 )
+
+type AppTestOptions struct {
+	helpers.TestOptions
+}
 
 var _ = Describe("Jenkins X UI tests", func() {
 	var appTestOptions AppTestOptions
@@ -49,13 +55,14 @@ func (t *AppTestOptions) UITest() bool {
 		By("setting a temporary JX_HOME directory")
 		jxHome, err = ioutil.TempDir("", helpers.TempDirPrefix+"ui-jx-home-")
 		Expect(err).ShouldNot(HaveOccurred())
+
 		_ = os.Setenv("JX_HOME", jxHome)
 		utils.LogInfo(fmt.Sprintf("Using '%s' as JX_HOME", jxHome))
 	})
 
 	BeforeEach(func() {
 		By("setting the GitHub token")
-		t.SetGitHubToken()
+		helpers.SetGitHubToken()
 	})
 
 	BeforeEach(func() {
@@ -77,7 +84,7 @@ func (t *AppTestOptions) UITest() bool {
 	return Context("UI", func() {
 		var uiURL = ""
 		It("ensure UI is not installed", func() {
-			pr, err := t.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
+			pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pr).Should(BeNil())
 		})
@@ -87,10 +94,14 @@ func (t *AppTestOptions) UITest() bool {
 			args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees"}
 			t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 
-			pr, err := t.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
+			pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pr).ShouldNot(BeNil())
 			Expect(*pr.State).Should(Equal("open"))
+
+			// Wait for the pipeline to be started before merging to avoid pipelinerun non unique name bug
+			// TODO: can be removed when builder includes https://github.com/jenkins-x/jx/pull/6322
+			time.Sleep(30 * time.Second)
 
 			By("merging the install app PR")
 			results, _, err := gitHubClient.PullRequests.Merge(ctx, gitInfo.Organisation, gitInfo.Name, *pr.Number, "PR merge", nil)
@@ -148,11 +159,49 @@ func (t *AppTestOptions) UITest() bool {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		applicationName := ""
+		It("Runs smoke tests", func() {
+			By("Creating a new project from quickstart", func() {
+				applicationName = createQuickstart("node-http")
+			})
+
+			By("Running smoke tests", func() {
+				dir, err := os.Getwd()
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				nodePath, err := exec.LookPath("node")
+				if err != nil {
+					fmt.Println("Can't find node in your PATH")
+				}
+				Expect(err).ShouldNot(HaveOccurred())
+
+				command := exec.Command("/bin/sh", "run.sh")
+				command.Dir = fmt.Sprintf("%s/ui-smoke", dir)
+				command.Env = append(command.Env, fmt.Sprintf("CYPRESS_BASE_URL=%s", uiURL))
+				command.Env = append(command.Env, fmt.Sprintf("REPORTS_DIR=%s", os.Getenv("REPORTS_DIR")))
+				command.Env = append(command.Env, fmt.Sprintf("PATH=%s:%s", nodePath, os.Getenv("PATH")))
+				command.Env = append(command.Env, fmt.Sprintf("APPLICATION_NAME=%s", applicationName))
+				command.Stderr = GinkgoWriter
+				command.Stdout = GinkgoWriter
+				err = command.Run()
+				if err != nil {
+					fmt.Println("Smoke tests failed")
+				}
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+		})
+
+		It("Cleans up quickstart", func() {
+			cleanupQuickstart(applicationName)
+		})
+
 		It("uninstall UI", func() {
 			args := []string{"delete", "app", uiAppName}
 			t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 
-			pr, err := t.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Delete %s", uiAppName))
+			pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Delete %s", uiAppName))
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pr).ShouldNot(BeNil())
 
@@ -166,4 +215,64 @@ func (t *AppTestOptions) UITest() bool {
 			t.TailBuildLog(jobName, helpers.TimeoutBuildCompletes)
 		})
 	})
+}
+
+func createQuickstart(quickstartName string) string {
+	qsNameParts := strings.Split(quickstartName, "-")
+	qsAbbr := ""
+	for s := range qsNameParts {
+		qsAbbr = qsAbbr + qsNameParts[s][:1]
+
+	}
+	applicationName := helpers.TempDirPrefix + qsAbbr + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
+	T := helpers.TestOptions{
+		ApplicationName: applicationName,
+		WorkDir:         helpers.WorkDir,
+	}
+
+	args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", applicationName, "-f", quickstartName, "--git-username", os.Getenv("GH_USERNAME")}
+
+	gitProviderUrl, err := T.GitProviderURL()
+	Expect(err).NotTo(HaveOccurred())
+	if gitProviderUrl != "" {
+		utils.LogInfof("Using Git provider URL %s\n", gitProviderUrl)
+		args = append(args, "--git-provider-url", gitProviderUrl)
+	}
+	argsStr := strings.Join(args, " ")
+	By(fmt.Sprintf("calling jx %s", argsStr), func() {
+		T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
+	})
+
+	owner := T.GetGitOrganisation()
+	jobName := owner + "/" + applicationName + "/master"
+
+	//FIXME Need to wait a little here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
+	time.Sleep(30 * time.Second)
+	By(fmt.Sprintf("waiting for the first release of %s", applicationName), func() {
+		T.ThereShouldBeAJobThatCompletesSuccessfully(jobName, helpers.TimeoutBuildCompletes)
+		T.TheApplicationIsRunningInStaging(200)
+	})
+
+	return applicationName
+}
+
+func cleanupQuickstart(applicationName string) {
+	var T helpers.TestOptions
+
+	if T.DeleteApplications() {
+		args := []string{"delete", "application", "-b", applicationName}
+		argsStr := strings.Join(args, " ")
+		By(fmt.Sprintf("calling %s to delete the application", argsStr), func() {
+			T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
+		})
+	}
+
+	if T.DeleteRepos() {
+		args := []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", applicationName}
+		argsStr := strings.Join(args, " ")
+
+		By(fmt.Sprintf("calling %s to delete the repository", argsStr), func() {
+			T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
+		})
+	}
 }

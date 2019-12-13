@@ -11,7 +11,8 @@ else
 fi
 
 npm install
-npm test
+echo "Running cypress tests with APPLICATION_NAME=$APPLICATION_NAME"
+CYPRESS_APPLICATION_NAME=$APPLICATION_NAME npm test
 TEST_EXIT_CODE=$?
 
 echo "Moving test report to ${TEST_REPORTS_DIR}"

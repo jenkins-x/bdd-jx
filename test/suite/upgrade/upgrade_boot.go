@@ -37,9 +37,13 @@ func newTestCaseUpgradeBoot(cwd string, factory cmd.Factory) (*testCaseUpgradeBo
 	}, nil
 }
 
-func (t *testCaseUpgradeBoot) upgrade(args ...string) {
+func (t *testCaseUpgradeBoot) upgrade() {
 	allargs := []string{"upgrade", "boot", "-b"}
-	allargs = append(allargs, args...)
+	upgradeVersionRef := os.Getenv("JX_UPGRADE_VERSION_REF")
+	if upgradeVersionRef != "" {
+		utils.LogInfo(fmt.Sprintf("Using upgrade ref: %s", upgradeVersionRef))
+		allargs = append(allargs, fmt.Sprintf("--upgrade-version-stream-ref=%s", upgradeVersionRef))
+	}
 	t.Run(allargs...)
 }
 func (t *testCaseUpgradeBoot) overwriteJxBinary() {
@@ -100,7 +104,11 @@ var _ = Describe("upgrade boot", func() {
 	Describe("Given valid parameters", func() {
 		Context("when running upgrade platform", func() {
 			It("updates the platform to the given version", func() {
-				test.overwriteJxBinary()
+				if os.Getenv("JX_UPGRADE_BIN_DIR") != "" {
+					test.overwriteJxBinary()
+				} else {
+					utils.LogInfo("JX_UPGRADE_BIN_DIR was not set so not upgrading using existing jx binary")
+				}
 				test.upgrade()
 				pr, err := test.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, "feat(config): upgrade configuration")
 				Expect(err).ShouldNot(HaveOccurred())

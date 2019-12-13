@@ -62,6 +62,9 @@ test-supported-quickstarts:
 test-devpod:
 	$(GO) test $(TESTFLAGS) ./test/suite/devpods
 
+test-jxui:
+	$(GO) test $(TESTFLAGS) ./test/suite/jxui
+
 #targets for individual quickstarts
 test-quickstart-golang-http:
 	$(GO) test $(TESTFLAGS) ./test/suite/quickstart -ginkgo.focus=golang-http

@@ -136,6 +136,14 @@ func JxBin() string {
 	return jxBin
 }
 
+func JxUiUrl() string {
+	jxUiUrl, set := os.LookupEnv("JXUI_URL")
+	if !set {
+		jxUiUrl = ""
+	}
+	return jxUiUrl
+}
+
 func RemoveCoverageText(s string, args ...string) string {
 	coverageOutput := coverageOutputRegex.FindStringSubmatch(s)
 	if len(coverageOutput) == 3 {

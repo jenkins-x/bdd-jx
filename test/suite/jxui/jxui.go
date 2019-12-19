@@ -52,6 +52,9 @@ func (t *AppTestOptions) UITest() bool {
 	)
 
 	BeforeEach(func() {
+		if runner.JxUiUrl() == "" {
+			return
+		}
 		By("setting a temporary JX_HOME directory")
 		jxHome, err = ioutil.TempDir("", helpers.TempDirPrefix+"ui-jx-home-")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -61,104 +64,119 @@ func (t *AppTestOptions) UITest() bool {
 	})
 
 	BeforeEach(func() {
+		if runner.JxUiUrl() == "" {
+			return
+		}
 		By("setting the GitHub token")
 		helpers.SetGitHubToken()
 	})
 
 	BeforeEach(func() {
+		if runner.JxUiUrl() == "" {
+			return
+		}
 		By("setting up a GitHub client")
 		ctx = context.Background()
 		gitHubClient = t.GitHubClient()
 	})
 
 	BeforeEach(func() {
+		if runner.JxUiUrl() == "" {
+			return
+		}
 		By("parsing the gitops dev repo information")
 		gitInfo, err = gits.ParseGitURL(t.GitOpsDevRepo())
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
+		if runner.JxUiUrl() == "" {
+			return
+		}
 		_ = os.RemoveAll(jxHome)
 	})
 
 	return Context("UI", func() {
 		var uiURL = ""
-		It("ensure UI is not installed", func() {
-			pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(pr).Should(BeNil())
-		})
-
-		It("install UI via 'jx add app'", func() {
-			By("installing the app")
-			args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees"}
-			t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
-
-			pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(pr).ShouldNot(BeNil())
-			Expect(*pr.State).Should(Equal("open"))
-
-			// Wait for the pipeline to be started before merging to avoid pipelinerun non unique name bug
-			// TODO: can be removed when builder includes https://github.com/jenkins-x/jx/pull/6322
-			time.Sleep(30 * time.Second)
-
-			By("merging the install app PR")
-			results, _, err := gitHubClient.PullRequests.Merge(ctx, gitInfo.Organisation, gitInfo.Name, *pr.Number, "PR merge", nil)
-			Expect(pr).ShouldNot(BeNil())
-			Expect(*results.Merged).Should(BeTrue())
-
-			By("waiting for the build to complete")
-			jobName := fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
-			t.TailBuildLog(jobName, helpers.TimeoutBuildCompletes)
-		})
-
-		It("ensure UI is installed", func() {
-			args := []string{"get", "app", uiAppName}
-			t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
-		})
-
-		It("Accessing the UI", func() {
-			By("opening port forward")
-			port, err := t.GetFreePort()
-			Expect(err).ShouldNot(HaveOccurred())
-
-			// even though the app is installed, the deployment might not be ready yet. Let's wait for it.
-			t.WaitForDeploymentRollout("jenkins-x-jxui")
-
-			go func() {
-				defer GinkgoRecover()
-
-				args := []string{"ui", "-p", strconv.Itoa(port), "-u"}
-				command := exec.Command(runner.JxBin(), args...)
-				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+		if jxUiUrl := runner.JxUiUrl(); jxUiUrl != "" {
+			uiURL = jxUiUrl //"http://localhost:9000"
+		} else {
+			It("ensure UI is not installed", func() {
+				pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
 				Expect(err).ShouldNot(HaveOccurred())
-				session.Wait(timeoutAppTests)
-				Eventually(session).Should(gexec.Exit())
-			}()
+				Expect(pr).Should(BeNil())
+			})
 
-			testUI := func() error {
-				uiURL = fmt.Sprintf("http://127.0.0.1:%d", port)
-				By(fmt.Sprintf("accessing ui on %s", uiURL))
-				resp, err := http.Get(uiURL)
-				if err != nil {
-					return err
-				}
-				defer func() {
-					_ = resp.Body.Close()
+			It("install UI via 'jx add app'", func() {
+				By("installing the app")
+				args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees"}
+				t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
+
+				pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(pr).ShouldNot(BeNil())
+				Expect(*pr.State).Should(Equal("open"))
+
+				// Wait for the pipeline to be started before merging to avoid pipelinerun non unique name bug
+				// TODO: can be removed when builder includes https://github.com/jenkins-x/jx/pull/6322
+				time.Sleep(30 * time.Second)
+
+				By("merging the install app PR")
+				results, _, err := gitHubClient.PullRequests.Merge(ctx, gitInfo.Organisation, gitInfo.Name, *pr.Number, "PR merge", nil)
+				Expect(pr).ShouldNot(BeNil())
+				Expect(*results.Merged).Should(BeTrue())
+
+				By("waiting for the build to complete")
+				jobName := fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
+				t.TailBuildLog(jobName, helpers.TimeoutBuildCompletes)
+			})
+
+			It("ensure UI is installed", func() {
+				args := []string{"get", "app", uiAppName}
+				t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
+			})
+
+			It("Accessing the UI", func() {
+				By("opening port forward")
+				port, err := t.GetFreePort()
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// even though the app is installed, the deployment might not be ready yet. Let's wait for it.
+				t.WaitForDeploymentRollout("jenkins-x-jxui")
+
+				go func() {
+					defer GinkgoRecover()
+
+					args := []string{"ui", "-p", strconv.Itoa(port), "-u"}
+					command := exec.Command(runner.JxBin(), args...)
+					session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+					Expect(err).ShouldNot(HaveOccurred())
+					session.Wait(timeoutAppTests)
+					Eventually(session).Should(gexec.Exit())
 				}()
-				contents, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					return err
+
+				testUI := func() error {
+					uiURL = fmt.Sprintf("http://127.0.0.1:%d", port)
+					By(fmt.Sprintf("accessing ui on %s", uiURL))
+					resp, err := http.Get(uiURL)
+					if err != nil {
+						return err
+					}
+					defer func() {
+						_ = resp.Body.Close()
+					}()
+					contents, err := ioutil.ReadAll(resp.Body)
+					if err != nil {
+						return err
+					}
+					Expect(string(contents)).Should(ContainSubstring("<title>CJXD UI</title>"))
+					return nil
 				}
-				Expect(string(contents)).Should(ContainSubstring("<title>CJXD UI</title>"))
-				return nil
-			}
 
-			err = helpers.RetryExponentialBackoff(helpers.TimeoutUrlReturns, testUI)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-
+				err = helpers.RetryExponentialBackoff(helpers.TimeoutUrlReturns, testUI)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+		}
 		applicationName := ""
 		It("Runs smoke tests", func() {
 			By("Creating a new project from quickstart", func() {
@@ -198,6 +216,9 @@ func (t *AppTestOptions) UITest() bool {
 		})
 
 		It("uninstall UI", func() {
+			if runner.JxUiUrl() == "" {
+				return
+			}
 			args := []string{"delete", "app", uiAppName}
 			t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 

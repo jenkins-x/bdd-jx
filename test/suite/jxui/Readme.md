@@ -6,5 +6,5 @@
     * with a local `jxui-frontend` and `jxui-backend` running
 you can run JXUI BDD tests suite by pointing to your local JXUI
 ```
-GH_ACCESS_TOKEN=XXXX JXUI_URL=http://localhost:900 make test-jxui
+GH_ACCESS_TOKEN=XXXX JXUI_URL=http://localhost:9000 make test-jxui
 ```

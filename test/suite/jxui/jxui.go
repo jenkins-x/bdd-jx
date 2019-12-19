@@ -99,7 +99,7 @@ func (t *AppTestOptions) UITest() bool {
 	return Context("UI", func() {
 		var uiURL = ""
 		if jxUiUrl := runner.JxUiUrl(); jxUiUrl != "" {
-			uiURL = jxUiUrl //"http://localhost:9000"
+			uiURL = jxUiUrl
 		} else {
 			It("ensure UI is not installed", func() {
 				pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))

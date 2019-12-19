@@ -81,12 +81,12 @@ of how to set this up specifically for these BDD tests.
 2. Some of the default settings for this file will be fine, but others need to be changed e.g. to set the timeut.. VS Code's Intellisense feature will let you hover over these settings and see possibilities. 
 
 ### Running JXUI test locally
-* In CI mode, JXUI test will do all prerequisites for you: setup a cluster and install JXUI app in your cluster.
+* In CI mode, JXUI test suite will do all pre-requisites for you: setup a cluster and install JXUI app in your cluster.
 
-*  In dev mode, if you have as pre-requisite
+*  In DEV mode, if you have those pre-requisites setup:
     * [remote cluster installed](https://docs.cloudbees.com/docs/cloudbees-jenkins-x-distribution/latest/install-guide/cluster) 
-    * and with a local [jxui-frontend](https://github.com/cloudbees/jxui-frontend#local-development) and [jxui-backend](https://github.com/cloudbees/jxui-backend#running-locally) running
-you can test your JXUI BDD tests pointing you local JU
+    * with a local [jxui-frontend](https://github.com/cloudbees/jxui-frontend#local-development) and [jxui-backend](https://github.com/cloudbees/jxui-backend#running-locally) running
+you can run JXUI BDD tests suite by pointing to your local JXUI
 ```
 JXUI_URL=http://localhost:900 make test-jxui
 ```

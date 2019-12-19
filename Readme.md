@@ -47,8 +47,6 @@ Most of the settings are quite specific and need to be used explicitly in your t
 |JX_DISABLE_DELETE_REPO              | Whether repositories created via quickstart test should be deleted. |
 |JX_DISABLE_WAIT_FOR_FIRST_RELEASE   | ? |
 |SLOW_SPEC_THRESHOLD                 | Ginkgo threshold for marking a spec as slow. |
-|JXUI_URL                 | Provide an existing URL ex: http://localhost:9000 used in `test-jxui` test suite to run BDD test on on locally installed UI for dev mode |
-|GH_ACCESS_TOKEN                 | Provide a GH writable access toen, used in `test-jxui` test suite to install quickstart |
 
 ### Running tests locally
 
@@ -79,14 +77,3 @@ of how to set this up specifically for these BDD tests.
 1. From the drop-down menus, select _Debug_ --> _Open Configurations_. This should create a `launch.json` file for you, if there wasn't one already set up.
 
 2. Some of the default settings for this file will be fine, but others need to be changed e.g. to set the timeut.. VS Code's Intellisense feature will let you hover over these settings and see possibilities. 
-
-### Running JXUI test locally
-* In CI mode, JXUI test suite will do all pre-requisites for you: setup a cluster and install JXUI app in your cluster.
-
-*  In DEV mode, if you have those pre-requisites setup:
-    * [remote cluster installed](https://docs.cloudbees.com/docs/cloudbees-jenkins-x-distribution/latest/install-guide/cluster) 
-    * with a local [jxui-frontend](https://github.com/cloudbees/jxui-frontend#local-development) and [jxui-backend](https://github.com/cloudbees/jxui-backend#running-locally) running
-you can run JXUI BDD tests suite by pointing to your local JXUI
-```
-JXUI_URL=http://localhost:900 make test-jxui
-```

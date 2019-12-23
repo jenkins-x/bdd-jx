@@ -48,66 +48,39 @@ func (t *AppTestOptions) UITest() bool {
 		ctx          context.Context
 		gitHubClient *github.Client
 		gitInfo      *gits.GitRepository
+		uiURL        string
 		err          error
 	)
 
 	BeforeEach(func() {
-		if runner.JxUiUrl() == "" {
-			return
-		}
-		By("setting a temporary JX_HOME directory")
-		jxHome, err = ioutil.TempDir("", helpers.TempDirPrefix+"ui-jx-home-")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		_ = os.Setenv("JX_HOME", jxHome)
-		utils.LogInfo(fmt.Sprintf("Using '%s' as JX_HOME", jxHome))
-	})
-
-	BeforeEach(func() {
-		if runner.JxUiUrl() == "" {
-			return
-		}
-		By("setting the GitHub token")
-		helpers.SetGitHubToken()
-	})
-
-	BeforeEach(func() {
-		if runner.JxUiUrl() == "" {
-			return
-		}
-		By("setting up a GitHub client")
-		ctx = context.Background()
-		gitHubClient = t.GitHubClient()
-	})
-
-	BeforeEach(func() {
-		if runner.JxUiUrl() == "" {
-			return
-		}
-		By("parsing the gitops dev repo information")
-		gitInfo, err = gits.ParseGitURL(t.GitOpsDevRepo())
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		if runner.JxUiUrl() == "" {
-			return
-		}
-		_ = os.RemoveAll(jxHome)
-	})
-
-	return Context("UI", func() {
-		var uiURL = ""
 		if jxUiUrl := runner.JxUiUrl(); jxUiUrl != "" {
 			uiURL = jxUiUrl
 		} else {
-			It("ensure UI is not installed", func() {
+			By("setting a temporary JX_HOME directory")
+			jxHome, err = ioutil.TempDir("", helpers.TempDirPrefix+"ui-jx-home-")
+			Expect(err).ShouldNot(HaveOccurred())
+
+			_ = os.Setenv("JX_HOME", jxHome)
+			utils.LogInfo(fmt.Sprintf("Using '%s' as JX_HOME", jxHome))
+
+			By("setting the GitHub token")
+			helpers.SetGitHubToken()
+
+			By("setting up a GitHub client")
+			ctx = context.Background()
+			gitHubClient = t.GitHubClient()
+
+			By("parsing the gitops dev repo information")
+			gitInfo, err = gits.ParseGitURL(t.GitOpsDevRepo())
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("ensuring UI is not installed", func() {
 				pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(pr).Should(BeNil())
 			})
 
-			It("install UI via 'jx add app'", func() {
+			By("install UI via 'jx add app'", func() {
 				By("installing the app")
 				args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees"}
 				t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
@@ -131,12 +104,12 @@ func (t *AppTestOptions) UITest() bool {
 				t.TailBuildLog(jobName, helpers.TimeoutBuildCompletes)
 			})
 
-			It("ensure UI is installed", func() {
+			By("ensure UI is installed", func() {
 				args := []string{"get", "app", uiAppName}
 				t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
 			})
 
-			It("Accessing the UI", func() {
+			By("Accessing the UI", func() {
 				By("opening port forward")
 				port, err := t.GetFreePort()
 				Expect(err).ShouldNot(HaveOccurred())
@@ -177,45 +150,13 @@ func (t *AppTestOptions) UITest() bool {
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 		}
-		applicationName := ""
-		It("Runs smoke tests", func() {
-			By("Creating a new project from quickstart", func() {
-				applicationName = createQuickstart("node-http")
-			})
+	})
 
-			By("Running smoke tests", func() {
-				dir, err := os.Getwd()
-				if err != nil {
-					fmt.Println(err)
-				}
-
-				nodePath, err := exec.LookPath("node")
-				if err != nil {
-					fmt.Println("Can't find node in your PATH")
-				}
-				Expect(err).ShouldNot(HaveOccurred())
-
-				command := exec.Command("/bin/sh", "run.sh")
-				command.Dir = fmt.Sprintf("%s/ui-smoke", dir)
-				command.Env = append(command.Env, fmt.Sprintf("CYPRESS_BASE_URL=%s", uiURL))
-				command.Env = append(command.Env, fmt.Sprintf("REPORTS_DIR=%s", os.Getenv("REPORTS_DIR")))
-				command.Env = append(command.Env, fmt.Sprintf("PATH=%s:%s", nodePath, os.Getenv("PATH")))
-				command.Env = append(command.Env, fmt.Sprintf("APPLICATION_NAME=%s", applicationName))
-				command.Stderr = GinkgoWriter
-				command.Stdout = GinkgoWriter
-				err = command.Run()
-				if err != nil {
-					fmt.Println("Smoke tests failed")
-				}
-				Expect(err).ShouldNot(HaveOccurred())
-			})
-		})
-
-		It("Cleans up quickstart", func() {
-			cleanupQuickstart(applicationName)
-		})
-
-		It("uninstall UI", func() {
+	AfterEach(func() {
+		if runner.JxUiUrl() == "" {
+			return
+		}
+		By("uninstalling the UI app", func() {
 			if runner.JxUiUrl() == "" {
 				return
 			}
@@ -234,6 +175,50 @@ func (t *AppTestOptions) UITest() bool {
 			By("waiting for the build to complete")
 			jobName := fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
 			t.TailBuildLog(jobName, helpers.TimeoutBuildCompletes)
+		})
+
+		_ = os.RemoveAll(jxHome)
+	})
+
+	return Context("UI", func() {
+		applicationName := ""
+		JustBeforeEach(func() {
+			By("Creating a new project from quickstart", func() {
+				applicationName = createQuickstart("node-http")
+			})
+		})
+
+		JustAfterEach(func() {
+			By("Cleaning up quickstart", func() {
+				cleanupQuickstart(applicationName)
+			})
+		})
+
+		It("Runs smoke tests", func() {
+			dir, err := os.Getwd()
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			nodePath, err := exec.LookPath("node")
+			if err != nil {
+				fmt.Println("Can't find node in your PATH")
+			}
+			Expect(err).ShouldNot(HaveOccurred())
+
+			command := exec.Command("/bin/sh", "run.sh")
+			command.Dir = fmt.Sprintf("%s/ui-smoke", dir)
+			command.Env = append(command.Env, fmt.Sprintf("CYPRESS_BASE_URL=%s", uiURL))
+			command.Env = append(command.Env, fmt.Sprintf("REPORTS_DIR=%s", os.Getenv("REPORTS_DIR")))
+			command.Env = append(command.Env, fmt.Sprintf("PATH=%s:%s", nodePath, os.Getenv("PATH")))
+			command.Env = append(command.Env, fmt.Sprintf("APPLICATION_NAME=%s", applicationName))
+			command.Stderr = GinkgoWriter
+			command.Stdout = GinkgoWriter
+			err = command.Run()
+			if err != nil {
+				fmt.Println("Smoke tests failed")
+			}
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 }

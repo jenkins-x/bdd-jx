@@ -116,7 +116,7 @@ func (t *TestOptions) GetGitOrganisation() string {
 	return org
 }
 
-// GetGitProvider returns a git provider that uses default credentials stored in ~/.jx/gitAuth.yaml
+// GetGitProvider returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
 func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
 	homeDir := os.Getenv("JX_HOME")
 	if homeDir == "" {
@@ -132,7 +132,7 @@ func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
 		return nil, err
 	}
 
-	authConfigService, err := factory.CreateAuthConfigService(fmt.Sprintf("%s/.jx/gitAuth.yaml", homeDir), ns, kube.ValueKindGit, "")
+	authConfigService, err := factory.CreateAuthConfigService("gitAuth.yaml", ns, kube.ValueKindGit, "")
 	if err != nil {
 		return nil, err
 	}

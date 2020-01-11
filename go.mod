@@ -31,7 +31,7 @@ require (
 	github.com/go-openapi/spec v0.19.2
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	github.com/golang/protobuf v1.2.0
+	github.com/golang/protobuf v1.3.1
 	github.com/google/go-cmp v0.3.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v28 v28.1.1
@@ -45,11 +45,11 @@ require (
 	github.com/jenkins-x/draft-repo v0.0.0-20180417100212-2f66cc518135
 	github.com/jenkins-x/go-scm v1.5.60
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20191126155014-7937dd063b04
+	github.com/jenkins-x/jx v0.0.0-20200109001856-9433d1c29eca
 	github.com/jetstack/cert-manager v0.5.2
-	github.com/knative/build v0.5.0
+	github.com/knative/build v0.7.0
 	github.com/knative/build-pipeline v0.1.0
-	github.com/knative/pkg v0.0.0-20190402181056-ff46edef0ae5
+	github.com/knative/pkg v0.0.0-20190624141606-d82505e6c5b4
 	github.com/magiconair/properties v1.8.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/nlopes/slack v0.0.0-20180721202243-347a74b1ea30
@@ -68,21 +68,21 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
 	github.com/stoewer/go-strcase v1.0.1
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/wbrefvem/go-bitbucket v0.0.0-20190128183802-fc08fd046abb
-	github.com/xanzy/go-gitlab v0.0.0-20180814191223-f3bc634ab936
+	github.com/xanzy/go-gitlab v0.22.1
 	gocloud.dev v0.9.0
-	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 	gopkg.in/AlecAivazis/survey.v1 v1.8.3
 	gopkg.in/src-d/go-git.v4 v4.5.0
 	gopkg.in/yaml.v2 v2.2.2
-	k8s.io/api v0.0.0-20190126160303-ccdd560a045f
-	k8s.io/apiextensions-apiserver v0.0.0-20190308081736-3a66ae4d2f93
+	k8s.io/api v0.0.0-20190718183219-b59d8169aab5
+	k8s.io/apiextensions-apiserver v0.0.0-20190718185103-d1ef975d28ce
 	k8s.io/apimachinery v0.0.0-20190703205208-4cfb76a8bf76
-	k8s.io/client-go v10.0.0+incompatible
+	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.0.0-20190416052311-01a054e913a9
 	k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a
 	k8s.io/helm v2.7.2+incompatible

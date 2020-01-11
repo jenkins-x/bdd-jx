@@ -3,7 +3,6 @@ package helpers
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -116,7 +115,7 @@ func (t *TestOptions) GetGitOrganisation() string {
 	return org
 }
 
-// GetGitProvider returns a git provider that uses default credentials stored in ~/.jx/gitAuth.yaml
+// GetGitProvider returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
 func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
 	homeDir := os.Getenv("JX_HOME")
 	if homeDir == "" {
@@ -132,7 +131,7 @@ func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
 		return nil, err
 	}
 
-	authConfigService, err := factory.CreateAuthConfigService(fmt.Sprintf("%s/.jx/gitAuth.yaml", homeDir), ns, kube.ValueKindGit, "")
+	authConfigService, err := factory.CreateAuthConfigService("gitAuth.yaml", ns, kube.ValueKindGit, "")
 	if err != nil {
 		return nil, err
 	}
@@ -209,24 +208,10 @@ func (t *TestOptions) GitHubClient() *github.Client {
 
 // GitHubToken returns the GitHub token for the pipeline user.
 func (t *TestOptions) GitHubToken() string {
-	args := []string{"get", "secrets", "jx-pipeline-git-github-github", "-o", "json"}
-	command := exec.Command("kubectl", args...)
-	session, err := gexec.Start(command, nil, nil)
+	provider, err := t.GetGitProvider()
 	Expect(err).Should(BeNil())
 
-	session.Wait(TimeoutCmdLine)
-	Eventually(session).Should(gexec.Exit(0))
-
-	out := string(session.Out.Contents())
-	var secret map[string]interface{}
-	err = json.Unmarshal([]byte(out), &secret)
-	Expect(err).Should(BeNil())
-
-	encoded := secret["data"].(map[string]interface{})["password"].(string)
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	Expect(err).Should(BeNil())
-
-	return string(decoded)
+	return provider.UserAuth().ApiToken
 }
 
 // GitOpsDevRepo returns repository URL for the gitops environment repo.

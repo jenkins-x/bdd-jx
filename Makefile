@@ -13,6 +13,7 @@ ifdef DEBUG
 BUILDFLAGS += -gcflags "all=-N -l" $(BUILDFLAGS)
 endif
 
+export JX_DISABLE_TEST_CHATOPS_COMMANDS=true
 
 all: build
 

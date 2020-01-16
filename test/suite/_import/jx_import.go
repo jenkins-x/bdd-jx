@@ -23,8 +23,13 @@ var (
 // AllImportsTest creates all the tests for all the quickstarts that we want to import
 func AllImportsTest() []bool {
 	tests := make([]bool, len(IncludedImports))
+	_, eksBDDRun := os.LookupEnv("EKS_BDD_RUN")
 	for _, scenarioName := range IncludedImports {
-		tests = append(tests, createTest(scenarioName, fmt.Sprintf("https://github.com/jenkins-x-quickstarts/%s", scenarioName)))
+		if eksBDDRun && scenarioName == "golang-http-from-jenkins-x-yml" {
+			fmt.Printf("Skipping %s because it's not supported by EKS\n", scenarioName)
+		} else {
+			tests = append(tests, createTest(scenarioName, fmt.Sprintf("https://github.com/jenkins-x-quickstarts/%s", scenarioName)))
+		}
 	}
 	return tests
 }

@@ -43,13 +43,7 @@ describe('Smoke Tests', function() {
 
         it('displays the details of the build', () => {
             // Get the build card by checking the build id
-            cy.get('[data-test=buildlist-build-id]').contains('[data-test=buildlist-build-id]', testProjectName).parents('[data-test=buildlist-build]').within(() => {
-                cy.get('[data-test=buildlist-build-id]').and($div => {
-                    expect($div.text()).toContain(testProjectName);
-                    expect($div.text()).toContain('master');
-                    expect($div.text()).toContain('#1');
-                })
-    
+            cy.get('[data-test=buildlist-build-details]').contains('[data-test=buildlist-build-details]', testProjectName).parents('[data-test=buildlist-build]').within(() => {
                 cy.get('[data-test=buildlist-build-details]').and($div => {
                     expect($div.text()).toContain('Author:');
                     expect($div.text()).toContain('Build started');
@@ -62,8 +56,8 @@ describe('Smoke Tests', function() {
             cy.get('[data-test=buildlist-search]').within(() => {
                 cy.get('input').type(testProjectName);
             });
-            cy.get('[data-test=buildlist-build-id]').should('have.length', 1);
-            cy.get('[data-test=buildlist-build-id]').each(element => {
+            cy.get('[data-test=buildlist-build-details]').should('have.length', 1);
+            cy.get('[data-test=buildlist-build-details]').each(element => {
                 expect(element.text()).toContain(testProjectName);
             });
         });

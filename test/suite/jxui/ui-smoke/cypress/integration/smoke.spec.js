@@ -45,9 +45,8 @@ describe('Smoke Tests', function() {
             // Get the build card by checking the build id
             cy.get('[data-test=buildlist-build-details]').contains('[data-test=buildlist-build-details]', testProjectName).parents('[data-test=buildlist-build]').within(() => {
                 cy.get('[data-test=buildlist-build-details]').and($div => {
-                    expect($div.text()).toContain('Author:');
-                    expect($div.text()).toContain('Build started');
-                    expect($div.text()).toContain('Success');
+                    expect($div.text()).toContain('master');
+                    expect($div.text()).toContain('Unknown author');
                 })
             })
         });

@@ -5,7 +5,7 @@ describe('Smoke Tests', function() {
         let testProjectName = Cypress.env('APPLICATION_NAME')
         beforeEach(() => {
             cy.visit('/teams/jx/projects');
-
+            cy.wait(6000)
             // Wait for project list to be loaded
             cy.get('[data-test=projectlist-project]').should('have.length.greaterThan', 0);
         });
@@ -34,8 +34,9 @@ describe('Smoke Tests', function() {
 
     context('build list', () => {
         let testProjectName = Cypress.env('APPLICATION_NAME')
-        beforeEach(() => {
+        beforeEach( () => {
             cy.visit('/teams/jx/builds');
+            cy.wait(6000)
 
             // Wait for build list to be loaded
             cy.get('[data-test=buildlist-build]').should('have.length.greaterThan', 0);
@@ -43,18 +44,9 @@ describe('Smoke Tests', function() {
 
         it('displays the details of the build', () => {
             // Get the build card by checking the build id
-            cy.get('[data-test=buildlist-build-id]').contains('[data-test=buildlist-build-id]', testProjectName).parents('[data-test=buildlist-build]').within(() => {
-                cy.get('[data-test=buildlist-build-id]').and($div => {
-                    expect($div.text()).toContain(testProjectName);
-                    expect($div.text()).toContain('master');
-                    expect($div.text()).toContain('#1');
-                })
-    
-                cy.get('[data-test=buildlist-build-details]').and($div => {
-                    expect($div.text()).toContain('Author:');
-                    expect($div.text()).toContain('Build started');
-                    expect($div.text()).toContain('Success');
-                })
+            cy.get('[data-test=buildlist-build-details]').and($div => {
+               expect($div.text()).toContain('master');
+               expect($div.text()).toContain('Unknown author');
             })
         });
 
@@ -62,8 +54,8 @@ describe('Smoke Tests', function() {
             cy.get('[data-test=buildlist-search]').within(() => {
                 cy.get('input').type(testProjectName);
             });
-            cy.get('[data-test=buildlist-build-id]').should('have.length', 1);
-            cy.get('[data-test=buildlist-build-id]').each(element => {
+            cy.get('[data-test=buildlist-build-details]').should('have.length', 1);
+            cy.get('[data-test=buildlist-build-details]').each(element => {
                 expect(element.text()).toContain(testProjectName);
             });
         });

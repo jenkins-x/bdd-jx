@@ -135,6 +135,10 @@ func ensureConfiguration() error {
 	if disableWaitForFirstReleaseStr == "true" || disableWaitForFirstReleaseStr == "1" || disableWaitForFirstReleaseStr == "on" {
 		disableWaitForFirstRelease = "is not set. If you would like to disable waiting for the build to be promoted to staging set this variable to TRUE"
 	}
+	enableChatOpsTestLogStr := "is not set. ChatOps tests will not be run as part of quickstart tests. If you would like to run those tests, set this variable to TRUE"
+	if EnableChatOpsTests == "true" {
+		enableChatOpsTestLogStr = "is set. ChatOps tests will be run as part of quickstart tests"
+	}
 	includeAppsStr := os.Getenv("JX_BDD_INCLUDE_APPS")
 	includeApps := "is not set"
 	if includeAppsStr != "" {
@@ -188,6 +192,7 @@ func ensureConfiguration() error {
 	utils.LogInfof("JX_DISABLE_DELETE_APP:                              %s\n", disableDeleteApp)
 	utils.LogInfof("JX_DISABLE_DELETE_REPO:                             %s\n", disableDeleteRepo)
 	utils.LogInfof("JX_DISABLE_WAIT_FOR_FIRST_RELEASE:                  %s\n", disableWaitForFirstRelease)
+	utils.LogInfof("JX_ENABLE_TEST_CHATOPS_COMMANDS:                    %s\n", enableChatOpsTestLogStr)
 	utils.LogInfof("JX_BDD_INCLUDE_APPS:                                %s\n", includeApps)
 	utils.LogInfof("BDD_TIMEOUT_BUILD_COMPLETES timeout value:          %s\n", os.Getenv("BDD_TIMEOUT_BUILD_COMPLETES"))
 	utils.LogInfof("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING timeout value: %s\n", os.Getenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING"))

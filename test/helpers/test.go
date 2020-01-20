@@ -78,6 +78,9 @@ var (
 	InsecureURLSkipVerify = utils.GetEnv("BDD_URL_INSECURE_SKIP_VERIFY", "false")
 	// TimeoutProwActionWait defines the timeout for waiting for a prow action to complete
 	TimeoutProwActionWait = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PROW_ACTION_WAIT", 5)
+
+	// EnableChatOpsTests turns on the chatops tests when specified as true
+	EnableChatOpsTests = utils.GetEnv("JX_ENABLE_TEST_CHATOPS_COMMANDS", "false")
 )
 
 // TestOptions is the base testing object
@@ -683,8 +686,7 @@ func (t *TestOptions) WaitForFirstRelease() bool {
 
 // WeShouldTestChatOpsCommands should we test prow ChatOps commands
 func (t *TestOptions) WeShouldTestChatOpsCommands() bool {
-	text := os.Getenv("JX_DISABLE_TEST_CHATOPS_COMMANDS")
-	return strings.ToLower(text) != "true"
+	return strings.ToLower(EnableChatOpsTests) == "true"
 }
 
 // ExpectUrlReturns expects that the given URL returns the given status code within the given time period

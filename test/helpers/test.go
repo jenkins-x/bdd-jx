@@ -80,7 +80,7 @@ var (
 	TimeoutProwActionWait = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PROW_ACTION_WAIT", 5)
 
 	// EnableChatOpsTests turns on the chatops tests when specified as true
-	EnableChatOpsTests = utils.GetEnv("JX_ENABLE_TEST_CHATOPS_COMMANDS", "false")
+	EnableChatOpsTests = utils.GetEnv("BDD_ENABLE_TEST_CHATOPS_COMMANDS", "false")
 )
 
 // TestOptions is the base testing object

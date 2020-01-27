@@ -85,6 +85,7 @@ bdd-init:
 	jx step git credentials
 	ls -al ~
 	cat ~/.gitconfig
+	cat ~/.git-credentials
 
 bdd: bdd-init test-create-spring
 

@@ -19,10 +19,13 @@ func ParseJxGetApplications(s string) (map[string]Application, error) {
 	answer := make(map[string]Application, 0)
 	lines := strings.Split(strings.TrimSpace(s), "\n")
 	headerFound := false
+	fieldCount := 3
 	for _, line := range lines {
 		// Ignore any output before the header
 		if strings.HasPrefix(line, "APPLICATION") {
 			headerFound = true
+			headers := strings.Fields(strings.TrimSpace(line))
+			fieldCount = len(headers)
 			continue
 		}
 		if !headerFound {
@@ -30,8 +33,8 @@ func ParseJxGetApplications(s string) (map[string]Application, error) {
 		}
 		line = strings.TrimSpace(line)
 		fields := strings.Fields(line)
-		if len(fields) < 3 {
-			return nil, errors.Errorf("must be at least 3 fields in %s, entire output was %s", line, s)
+		if len(fields) < fieldCount {
+			return nil, errors.Errorf("must be at least %d fields in %s, entire output was %s", fieldCount, line, s)
 		}
 		var desiredPods, runningPods int
 		if len(fields) == 4 {

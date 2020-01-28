@@ -319,10 +319,6 @@ func (t *TestOptions) TheApplicationIsRunning(statusCode int, environment string
 		if u == "" {
 			return fmt.Errorf("no URL found for environment %s has app: %#v", environment, applications)
 		}
-		if u == "1/1" {
-			utils.LogInfof("failed to parse application URL: Output of jx %s was %s. Parsed applications map is %v`\n", argsStr, out, applications)
-			return fmt.Errorf("Application URL is 1/1 for %s in env %s", applicationName, environment)
-		}
 		utils.LogInfof("still looking for application %s in env %s\n", applicationName, environment)
 		return nil
 	}

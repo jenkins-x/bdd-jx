@@ -1,6 +1,7 @@
 package parsers
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -19,13 +20,10 @@ func ParseJxGetApplications(s string) (map[string]Application, error) {
 	answer := make(map[string]Application, 0)
 	lines := strings.Split(strings.TrimSpace(s), "\n")
 	headerFound := false
-	fieldCount := 3
 	for _, line := range lines {
 		// Ignore any output before the header
 		if strings.HasPrefix(line, "APPLICATION") {
 			headerFound = true
-			headers := strings.Fields(strings.TrimSpace(line))
-			fieldCount = len(headers)
 			continue
 		}
 		if !headerFound {
@@ -33,8 +31,8 @@ func ParseJxGetApplications(s string) (map[string]Application, error) {
 		}
 		line = strings.TrimSpace(line)
 		fields := strings.Fields(line)
-		if len(fields) < fieldCount {
-			return nil, errors.Errorf("must be at least %d fields in %s, entire output was %s", fieldCount, line, s)
+		if len(fields) < 3 {
+			return nil, errors.Errorf("must be at least %d fields in %s, entire output was %s", 3, line, s)
 		}
 		var desiredPods, runningPods int
 		if len(fields) == 4 {
@@ -52,13 +50,23 @@ func ParseJxGetApplications(s string) (map[string]Application, error) {
 				return nil, errors.Wrapf(err, "cannot convert %v to integer, entire output was %s", runningPods, s)
 			}
 		}
-		answer[fields[0]] = Application{
+		app := Application{
 			Name:        fields[0],
 			Version:     fields[1],
 			DesiredPods: desiredPods,
 			RunningPods: runningPods,
-			Url:         fields[len(fields)-1],
 		}
+		urlString := fields[len(fields)-1]
+		if urlString != "" {
+			u, err := url.Parse(urlString)
+			if err != nil {
+				return nil, errors.Wrapf(err, "parsing URL %s from full output %s", urlString, s)
+			}
+			if u != nil {
+				app.Url = urlString
+			}
+		}
+		answer[fields[0]] = app
 	}
 	return answer, nil
 }

@@ -58,11 +58,14 @@ func ParseJxGetApplications(s string) (map[string]Application, error) {
 		}
 		urlString := fields[len(fields)-1]
 		if urlString != "" {
+			// The last field can end up as "1/1" (or "0/1" etc) for a brief time before the ingress is created. We want
+			// to try again when that happens. The easiest way to do so is to parse it and make sure it has a non-empty
+			// scheme.
 			u, err := url.Parse(urlString)
 			if err != nil {
 				return nil, errors.Wrapf(err, "parsing URL %s from full output %s", urlString, s)
 			}
-			if u != nil {
+			if u != nil && u.Scheme != "" {
 				app.Url = urlString
 			}
 		}

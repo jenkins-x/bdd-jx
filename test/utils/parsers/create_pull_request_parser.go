@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var createPullRequestOutputRegex = regexp.MustCompile(`^https:\/\/([^\/]*)\/(?:projects\/)?([^\/]*)\/(?:repos\/)?([^\/]*)\/(?:pull|pull-requests|merge_requests)\/([0-9]*)$`)
+var createPullRequestOutputRegex = regexp.MustCompile(`^https:\/\/([^\/]*)\/(?:projects\/)?([^\/]*)\/(?:repos\/)?([^\/]*)\/(?:-\/)?(?:pull|pull-requests|merge_requests)\/([0-9]*)$`)
 
 type CreatePullRequest struct {
 	Provider          string

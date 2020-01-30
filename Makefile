@@ -9,6 +9,8 @@ TESTFLAGS ?= -v
 
 TESTFLAGS += -timeout 2h
 
+SUITE ?= test-create-spring
+
 ifdef DEBUG
 BUILDFLAGS += -gcflags "all=-N -l" $(BUILDFLAGS)
 endif
@@ -87,5 +89,5 @@ bdd-init:
 	cat ~/.gitconfig
 	cat ~/.git-credentials
 
-bdd: bdd-init test-create-spring
+bdd: bdd-init $(SUITE)
 

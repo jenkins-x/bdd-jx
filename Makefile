@@ -80,6 +80,8 @@ test-single-import:
 
 bdd-init:
 	echo "About to run the BDD tests on the current cluster"
+	export GIT_TRACE=true
+	export XDG_CONFIG_HOME=/builder/home
 	git config --global credential.helper store
 	git config --global --add user.name jenkins-x-bot
 	git config --global --add user.email jenkins-x@googlegroups.com

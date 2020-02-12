@@ -83,11 +83,14 @@ bdd-init:
 	git config --global credential.helper store
 	git config --global --add user.name jenkins-x-bot
 	git config --global --add user.email jenkins-x@googlegroups.com
+	git config -l
 	jx step git validate
 	jx step git credentials
 	ls -al ~
 	cat ~/.gitconfig
 	cat ~/.git-credentials
+	cat /builder/home/git/credentials 
+	git config -l
 
 bdd: bdd-init $(SUITE)
 

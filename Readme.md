@@ -21,7 +21,6 @@ To enable verbose logging, add `-v`, for example
 
     go test -timeout 1h -v ./test/suite/spring 
 
-
 ## Environment variables
 
 There are lots that can be set (see `test/helpers/suite.go`).

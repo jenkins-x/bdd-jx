@@ -89,7 +89,6 @@ bdd-init:
 	ls -al ~
 	cat ~/.gitconfig
 	cat ~/.git-credentials
-	cat /builder/home/git/credentials 
 	git config -l
 
 bdd: bdd-init $(SUITE)

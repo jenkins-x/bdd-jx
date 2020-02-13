@@ -271,6 +271,23 @@ func (t *TestOptions) NextBuildNumber(repo *gits.GitRepository) string {
 	return strconv.Itoa(nextBuildInt)
 }
 
+// GetPullTitleForBranch returns the PullTitle field from the PipelineActivity for the owner/repo/branch
+func (t *TestOptions) GetPullTitleFromActivity(owner string, repo string, branch string, buildNumber int) string {
+	activityName := fmt.Sprintf("%s-%s-%s-%s", owner, repo, branch, strconv.Itoa(buildNumber))
+	args := []string{"get", "pipelineactivity", activityName, "-o=jsonpath='{.spec.pullTitle}'"}
+
+	command := exec.Command("kubectl", args...)
+	session, err := gexec.Start(command, nil, nil)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutCmdLine)
+	Eventually(session).Should(gexec.Exit(0))
+	utils.LogInfof("bytes: %x", session.Out.Contents())
+	pullTitle := strings.Trim(string(session.Out.Contents()), "'")
+	utils.LogInfof("len of pulltitle: %d", len(pullTitle))
+	return pullTitle
+}
+
 func (t *TestOptions) TheApplicationIsRunningInProduction(statusCode int) {
 	t.TheApplicationIsRunning(statusCode, "production")
 }
@@ -405,7 +422,8 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "push", "--set-upstream", "origin", "changes")
 	})
 
-	args := []string{"create", "pullrequest", "-b", "--title", "My First PR commit", "--body", "PR comments"}
+	prTitle := "My First PR commit"
+	args := []string{"create", "pullrequest", "-b", "--title", prTitle, "--body", "PR comments"}
 	argsStr := strings.Join(args, " ")
 	var out string
 	By(fmt.Sprintf("creating a pull request by running jx %s", argsStr), func() {
@@ -437,11 +455,17 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 
 	})
 
+	buildNumber := 0
 	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(prNumber)
 	By(fmt.Sprintf("checking that job %s completes successfully", jobName), func() {
-		t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
+		buildNumber = t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
 		utils.ExpectNoError(err)
 	})
+	By("verifying that PipelineActivity has been updated to include the pull request title", func() {
+		pullTitle := t.GetPullTitleFromActivity(owner, applicationName, "pr-" + strconv.Itoa(prNumber), buildNumber)
+		Expect(pullTitle).Should(Equal(prTitle))
+	})
+
 
 	args = []string{"get", "previews"}
 	argsStr = strings.Join(args, " ")
@@ -553,7 +577,7 @@ func (t *TestOptions) TailBuildLog(jobName string, maxDuration time.Duration) {
 }
 
 // ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
-func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) {
+func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) int {
 	t.TailBuildLog(jobName, maxDuration)
 
 	r := runner.New(t.WorkDir, nil, 0)
@@ -586,19 +610,20 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 		Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
 	})
 
+	buildNumber := 1
 	activityKey := fmt.Sprintf("%s #%d", jobName, 1)
 	By(fmt.Sprintf("finding the activity for %s in %v", activityKey, activities), func() {
-		// TODO disabling this for now as we get a failure on ng
 		if activities != nil {
 			Expect(activities).Should(HaveLen(1), fmt.Sprintf("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v", len(activities), jobName, activities))
 			activity, ok := activities[fmt.Sprintf("%s #%d", jobName, 1)]
 			if !ok {
 				// TODO lets see if the build is number 2 instead which it is for tekton currently
 				activity, ok = activities[fmt.Sprintf("%s #%d", jobName, 2)]
+				buildNumber = 2
 			}
-			Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #%d", jobName, 1))
+			Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #1 or #2", jobName))
 
-			utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-1", activity.Status)
+			utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-"+strconv.Itoa(buildNumber), activity.Status)
 		}
 	})
 
@@ -610,6 +635,8 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 			Expect(activity.Spec.Status.String()).Should(Equal("Succeeded"))
 		*/
 	})
+
+	return buildNumber
 }
 
 // RetryExponentialBackoff retries the given function up to the maximum duration

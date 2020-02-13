@@ -16,7 +16,6 @@ BUILDFLAGS += -gcflags "all=-N -l" $(BUILDFLAGS)
 endif
 
 export JX_DISABLE_TEST_CHATOPS_COMMANDS=true
-export GIT_TRACE=true
 
 all: build
 

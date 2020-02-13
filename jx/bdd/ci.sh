@@ -76,5 +76,6 @@ jx step bdd \
     --tests test-create-spring \
     --tests test-single-import \
     --tests test-quickstart-golang-http \
-    --tests test-app-lifecycle
+    --tests test-app-lifecycle \
+    --verbose=true
 

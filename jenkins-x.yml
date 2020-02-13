@@ -16,6 +16,8 @@ pipelineConfig:
                   value: jenkins-x-bot
                 - name: GIT_AUTHOR_EMAIL
                   value: jenkins-x@googlegroups.com
+                - name: XDG_CONFIG_HOME
+                  value: "/builder/home"
 
     pullRequest:
       pipeline:
@@ -40,6 +42,8 @@ pipelineConfig:
               secretKeyRef:
                 name: test-jenkins-user
                 key: password
+          - name: XDG_CONFIG_HOME
+            value: "/builder/home"
         stages:
           - name: bdd-stage
             options:

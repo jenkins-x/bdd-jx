@@ -88,8 +88,6 @@ bdd-init:
 	jx step git credentials
 	ls -al ~
 	cat ~/.gitconfig
-	cat ~/.git-credentials
-	git config -l
 
 bdd: bdd-init $(SUITE)
 

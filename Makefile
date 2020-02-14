@@ -85,7 +85,7 @@ bdd-init:
 	git config --global --add user.email jenkins-x@googlegroups.com
 	git config -l
 	jx step git validate
-	jx step git credentials -o /root/.git-credentials
+	jx step git credentials
 	ls -al ~
 	cat ~/.gitconfig
 	cat ~/.git-credentials

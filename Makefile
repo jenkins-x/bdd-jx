@@ -47,6 +47,9 @@ test-app-lifecycle:
 test-verify-pods:
 	$(GO) test $(TESTFLAGS) ./test/suite/step
 
+test-saas:
+	$(GO) test $(TESTFLAGS) ./test/suite/saas
+
 test-create-spring:
 	$(GO) test $(TESTFLAGS) ./test/suite/spring
 

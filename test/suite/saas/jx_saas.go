@@ -2,39 +2,14 @@ package saas
 
 import (
 	"github.com/jenkins-x/bdd-jx/test/helpers"
-	"time"
-
-	"github.com/jenkins-x/bdd-jx/test/utils/runner"
 	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
-	"github.com/jenkins-x/jx/pkg/kube"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-const (
-	setupTimeout = 1 * time.Minute
-)
-
-type saasConfig struct {
-	name          string
-	client        kubernetes.Interface
-	namespace     string
-	baseNamespace string
-}
-
-func newSaasConfig(client kubernetes.Interface, namespace, baseNamespace string) *saasConfig {
-	return &saasConfig{
-		client:        client,
-		namespace:     namespace,
-		name:          kube.IngressConfigConfigmap,
-		baseNamespace: baseNamespace,
-	}
-}
-
 type testCaseSaas struct {
-	*runner.JxRunner
 	kubeClient kubernetes.Interface
 	namespace  string
 }
@@ -46,28 +21,27 @@ func newTestCaseSaas(cwd string, factory cmd.Factory, ns string) (*testCaseSaas,
 	}
 
 	return &testCaseSaas{
-		JxRunner:   runner.New(cwd, nil, 0),
 		kubeClient: client,
 		namespace:  ns,
 	}, nil
 }
 
 func (t *testCaseSaas) expectIngress(name string) {
-	ing, err := t.kubeClient.Extensions().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
+	ing, err := t.kubeClient.ExtensionsV1beta1().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(ing.GetName()).To(Equal(name))
 }
 
 func (t *testCaseSaas) notExpectIngress(name string) {
-	_, err := t.kubeClient.Extensions().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
+	_, err := t.kubeClient.ExtensionsV1beta1().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
 	Expect(err).To(HaveOccurred())
 }
 
-var _ = Describe("upgrade ingress\n", func() {
+var _ = Describe("SaaS Configuration\n", func() {
 	var test *testCaseSaas
 	BeforeEach(func() {
 		var err error
-		test, err = newTestCaseSaas(helpers.WorkDir, cmd.NewFactory(), "test-saas")
+		test, err = newTestCaseSaas(helpers.WorkDir, cmd.NewFactory(), "jx")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(test).NotTo(BeNil())
 	})
@@ -92,6 +66,22 @@ var _ = Describe("upgrade ingress\n", func() {
 			It("chartmuseum does not have an ingress\n", func() {
 				const testSvc = "chartmuseum"
 				test.notExpectIngress(testSvc)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("hook does have an ingress\n", func() {
+				const testSvc = "hook"
+				test.expectIngress(testSvc)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("kuberhealthy does have an ingress\n", func() {
+				const testSvc = "kuberhealthy"
+				test.expectIngress(testSvc)
 			})
 		})
 	})

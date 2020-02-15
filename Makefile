@@ -94,3 +94,5 @@ bdd-init:
 
 bdd: bdd-init $(SUITE)
 
+saas: bdd test-saas
+

@@ -81,6 +81,9 @@ var (
 
 	// EnableChatOpsTests turns on the chatops tests when specified as true
 	EnableChatOpsTests = utils.GetEnv("BDD_ENABLE_TEST_CHATOPS_COMMANDS", "false")
+
+	// DisablePipelineActivityCheck turns off the check for updated PipelineActivity. Meant to be used with static masters.
+	DisablePipelineActivityCheck = utils.GetEnv("BDD_DISABLE_PIPELINEACTIVITY_CHECK", "false")
 )
 
 // TestOptions is the base testing object
@@ -282,9 +285,8 @@ func (t *TestOptions) GetPullTitleFromActivity(owner string, repo string, branch
 
 	session.Wait(TimeoutCmdLine)
 	Eventually(session).Should(gexec.Exit(0))
-	utils.LogInfof("bytes: %x", session.Out.Contents())
+
 	pullTitle := strings.Trim(string(session.Out.Contents()), "'")
-	utils.LogInfof("len of pulltitle: %d", len(pullTitle))
 	return pullTitle
 }
 
@@ -461,11 +463,12 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		buildNumber = t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
 		utils.ExpectNoError(err)
 	})
-	By("verifying that PipelineActivity has been updated to include the pull request title", func() {
-		pullTitle := t.GetPullTitleFromActivity(owner, applicationName, "pr-" + strconv.Itoa(prNumber), buildNumber)
-		Expect(pullTitle).Should(Equal(prTitle))
-	})
-
+	if t.ShouldTestPipelineActivityUpdate() {
+		By("verifying that PipelineActivity has been updated to include the pull request title", func() {
+			pullTitle := t.GetPullTitleFromActivity(owner, applicationName, "pr-"+strconv.Itoa(prNumber), buildNumber)
+			Expect(pullTitle).Should(Equal(prTitle))
+		})
+	}
 
 	args = []string{"get", "previews"}
 	argsStr = strings.Join(args, " ")
@@ -703,6 +706,11 @@ func (t *TestOptions) DeleteRepos() bool {
 func (t *TestOptions) TestPullRequest() bool {
 	text := os.Getenv("JX_DISABLE_TEST_PULL_REQUEST")
 	return strings.ToLower(text) != "true"
+}
+
+// ShouldTestPipelineActivityUpdate should we make sure the build controller is updating the PipelineActivity
+func (t *TestOptions) ShouldTestPipelineActivityUpdate() bool {
+	return strings.ToLower(DisablePipelineActivityCheck) != "true"
 }
 
 // WaitForFirstRelease should we wait for first release to complete before trying a pull request

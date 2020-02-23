@@ -1,6 +1,7 @@
 package saas
 
 import (
+	"fmt"
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	. "github.com/onsi/ginkgo"
@@ -30,6 +31,13 @@ func (t *testCaseSaas) expectIngress(name string) {
 	ing, err := t.kubeClient.ExtensionsV1beta1().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(ing.GetName()).To(Equal(name))
+}
+
+func (t *testCaseSaas) expectPod(name string, count int) {
+	listOptions := metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s", name)}
+	pods, err := t.kubeClient.CoreV1().Pods(t.namespace).List(listOptions)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(len(pods.Items)).To(Equal(count))
 }
 
 func (t *testCaseSaas) notExpectIngress(name string) {
@@ -82,6 +90,78 @@ var _ = Describe("SaaS Configuration\n", func() {
 			It("kuberhealthy does have an ingress\n", func() {
 				const testSvc = "kuberhealthy"
 				test.expectIngress(testSvc)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("jenkins-x-bucketrepo pod is running\n", func() {
+				const testPod = "jenkins-x-bucketrepo"
+				test.expectPod(testPod, 1)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("kuberhealthy pod is running\n", func() {
+				const testPod = "kuberhealthy"
+				test.expectPod(testPod, 2)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("jenkins-x-jx-segment-controller pod is running\n", func() {
+				const testPod = "jenkins-x-jx-segment-controller"
+				test.expectPod(testPod, 1)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("jenkins-x-repositorycontroller pod is running\n", func() {
+				const testPod = "jenkins-x-repositorycontroller"
+				test.expectPod(testPod, 1)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("tekton-pipelines-controller pod is running\n", func() {
+				const testPod = "tekton-pipelines-controller"
+				test.expectPod(testPod, 1)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("crier pod is not running\n", func() {
+				const testPod = "crier"
+				test.expectPod(testPod, 0)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("hook pod is not running\n", func() {
+				const testPod = "hook"
+				test.expectPod(testPod, 0)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("jenkins-x-nexus pod is not running\n", func() {
+				const testPod = "jenkins-x-nexus"
+				test.expectPod(testPod, 0)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("tide pod is running\n", func() {
+				const testPod = "tide"
+				test.expectPod(testPod, 1)
 			})
 		})
 	})

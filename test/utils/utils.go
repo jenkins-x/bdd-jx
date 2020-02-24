@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/jenkins-x/golang-jenkins"
 )
 
@@ -130,4 +131,13 @@ func CopyDir(source string, dest string) (err error) {
 func Random(min, max int) int {
 	rand.Seed(time.Now().Unix())
 	return rand.Intn(max-min) + min
+}
+
+// Retry retries with exponential backoff the given function
+func Retry(maxElapsedTime time.Duration, f func() error) error {
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxElapsedTime = maxElapsedTime
+	bo.Reset()
+	return backoff.Retry(f, bo)
+
 }

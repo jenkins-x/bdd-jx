@@ -350,7 +350,7 @@ func (t *TestOptions) TheApplicationIsRunning(statusCode int, environment string
 	By(fmt.Sprintf("getting %s", u), func() {
 		Expect(u).ShouldNot(BeEmpty(), "no URL for environment %s", environment)
 		err := t.ExpectUrlReturns(u, statusCode, TimeoutUrlReturns)
-		Expect(err).ShouldNot(HaveOccurred(), "send request to deployed application")
+		Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("request application URL should return %d", statusCode))
 	})
 }
 

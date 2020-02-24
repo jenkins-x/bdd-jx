@@ -1,13 +1,26 @@
 package helpers
 
 import (
+	"context"
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/go-github/v28/github"
+	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	"github.com/jenkins-x/jx/pkg/auth"
+	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
+	"github.com/jenkins-x/jx/pkg/gits"
+	"github.com/jenkins-x/jx/pkg/kube"
+	"golang.org/x/oauth2"
 
 	"github.com/cenkalti/backoff"
 	"github.com/jenkins-x/bdd-jx/test/utils/parsers"
@@ -24,6 +37,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	scm "github.com/jenkins-x/go-scm/scm"
+	scmFactory "github.com/jenkins-x/go-scm/scm/factory"
 )
 
 var (
@@ -35,15 +51,39 @@ var (
 
 	// all timeout values are in minutes
 	// timeout for a build to complete successfully
-	TimeoutBuildCompletes = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_COMPLETES", 20)
-	// Timeout for promoting an application to staging environment
-	TimeoutBuildIsRunningInStaging = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", 10)
-	// Timeout for a given URL to return an expected status code
-	TimeoutUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_URL_RETURNS", 5)
-	// Timeout to wait for a command line execution to complete
+	TimeoutBuildCompletes = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_COMPLETES", 40)
+
+	// TimeoutBuildIsRunningInStaging Timeout for promoting an application to staging environment
+	TimeoutBuildIsRunningInStaging = utils.GetTimeoutFromEnv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", 20)
+
+	// TimeoutPipelineActivityComplete for promoting an application to staging environment
+	TimeoutPipelineActivityComplete = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PIPELINE_ACTIVITY_COMPLETE", 15)
+
+	// TimeoutUrlReturns Timeout for a given URL to return an expected status code
+	TimeoutUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_URL_RETURNS", 15)
+
+	// TimeoutPreviewUrlReturns Timeout for a preview URL to be available
+	TimeoutPreviewUrlReturns = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PREVIEW_URL_RETURNS", 15)
+
+	// TimeoutCmdLine Timeout to wait for a command line execution to complete
 	TimeoutCmdLine = utils.GetTimeoutFromEnv("BDD_TIMEOUT_CMD_LINE", 1)
-	// Session wait timeout
+
+	// TimeoutSessionWait Session wait timeout
 	TimeoutSessionWait = utils.GetTimeoutFromEnv("BDD_TIMEOUT_SESSION_WAIT", 60)
+
+	// TimeoutDeploymentRollout defines the timeout waiting for a deployment rollout
+	TimeoutDeploymentRollout = utils.GetTimeoutFromEnv("", 3)
+
+	// InsecureURLSkipVerify skips the TLS verify when checking URLs of deployed applications
+	InsecureURLSkipVerify = utils.GetEnv("BDD_URL_INSECURE_SKIP_VERIFY", "false")
+	// TimeoutProwActionWait defines the timeout for waiting for a prow action to complete
+	TimeoutProwActionWait = utils.GetTimeoutFromEnv("BDD_TIMEOUT_PROW_ACTION_WAIT", 5)
+
+	// EnableChatOpsTests turns on the chatops tests when specified as true
+	EnableChatOpsTests = utils.GetEnv("BDD_ENABLE_TEST_CHATOPS_COMMANDS", "false")
+
+	// DisablePipelineActivityCheck turns off the check for updated PipelineActivity. Meant to be used with static masters.
+	DisablePipelineActivityCheck = utils.GetEnv("BDD_DISABLE_PIPELINEACTIVITY_CHECK", "false")
 )
 
 // TestOptions is the base testing object
@@ -54,13 +94,81 @@ type TestOptions struct {
 	Organisation    string
 }
 
+func AssignWorkDirValue(generatedWorkDir string) {
+	WorkDir = generatedWorkDir
+}
+
+// GetFreePort asks the kernel for a free open port that is ready to use.
+func (t *TestOptions) GetFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		_ = l.Close()
+	}()
+	return l.Addr().(*net.TCPAddr).Port, nil
+}
+
 // GetGitOrganisation Gets the current git organisation/user
 func (t *TestOptions) GetGitOrganisation() string {
 	org := os.Getenv("GIT_ORGANISATION")
-	if org == "" {
-		org = "jenkins-x-tests"
-	}
 	return org
+}
+
+// GetGitProvider returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
+func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
+	homeDir := os.Getenv("JX_HOME")
+	if homeDir == "" {
+		homeDir = os.Getenv("HOME")
+		if homeDir == "" {
+			return nil, fmt.Errorf("no jx home directory found to pull git creds from")
+		}
+	}
+
+	factory := cmd.NewFactory()
+	_, ns, err := factory.CreateKubeClient()
+	if err != nil {
+		return nil, err
+	}
+
+	authConfigService, err := factory.CreateAuthConfigService("gitAuth.yaml", ns, kube.ValueKindGit, "")
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := authConfigService.LoadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error loading auth config: %s", err)
+	}
+
+	if config == nil {
+		return nil, fmt.Errorf("auth config is nil but no error was returned by LoadConfig")
+	}
+
+	if reflect.DeepEqual(*config, auth.AuthConfig{}) {
+		return nil, fmt.Errorf("auth config struct is empty")
+	}
+
+	authServer := config.CurrentAuthServer()
+	if authServer == nil {
+		return nil, fmt.Errorf("no config for git auth server found")
+	}
+	userAuth := config.CurrentUser(authServer, false)
+	if userAuth == nil {
+		return nil, fmt.Errorf("no config for git user auth found")
+	}
+
+	gitProvider, err := gits.CreateProvider(authServer, userAuth, nil)
+	if err != nil {
+		return nil, err
+	}
+	return gitProvider, nil
 }
 
 // GitProviderURL Gets the current git provider URL
@@ -73,8 +181,9 @@ func (t *TestOptions) GitProviderURL() (string, error) {
 	By("running jx get gitserver", func() {
 
 		r := runner.New(t.WorkDir, nil, 0)
-		out = r.RunWithOutput("get", "gitserver")
-
+		var err error
+		out, err = r.RunWithOutput("get", "gitserver")
+		utils.ExpectNoError(err)
 	})
 	var gitServers []parsers.GitServer
 	var err error
@@ -91,18 +200,117 @@ func (t *TestOptions) GitProviderURL() (string, error) {
 	return gitServers[0].Url, nil
 }
 
+func (t *TestOptions) GitHubClient() *github.Client {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: t.GitHubToken()},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+
+	client := github.NewClient(tc)
+	Expect(client).ShouldNot(BeNil())
+	return client
+}
+
+// GitHubToken returns the GitHub token for the pipeline user.
+func (t *TestOptions) GitHubToken() string {
+	provider, err := t.GetGitProvider()
+	Expect(err).Should(BeNil())
+
+	return provider.UserAuth().ApiToken
+}
+
+// GitOpsDevRepo returns repository URL for the gitops environment repo.
+// The empty string is returned in case there is no gitops repo.
+func (t *TestOptions) GitOpsDevRepo() string {
+	args := []string{"get", "environment", "dev", "-o=jsonpath='{.spec.source.url}'"}
+	command := exec.Command("kubectl", args...)
+	session, err := gexec.Start(command, nil, nil)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutCmdLine)
+	Eventually(session).Should(gexec.Exit(0))
+
+	url := strings.Trim(string(session.Out.Contents()), "'")
+	return url
+}
+
+// GitOpsEnabled returns true if the current cluster is GitOps enabled, false otherwise.
+func (t *TestOptions) GitOpsEnabled() bool {
+	url := t.GitOpsDevRepo()
+	if url == "" {
+		return false
+	} else {
+		return true
+	}
+}
+
+// NextBuildNumber returns the next build number for a given repo by looking at the SourceRepository CRD.
+func (t *TestOptions) NextBuildNumber(repo *gits.GitRepository) string {
+	crd := fmt.Sprintf("%s-%s", repo.Organisation, repo.Name)
+
+	args := []string{"get", "sourcerepository", crd, "-o", "json"}
+	command := exec.Command("kubectl", args...)
+	session, err := gexec.Start(command, nil, nil)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutCmdLine)
+	Eventually(session).Should(gexec.Exit(0))
+
+	out := string(session.Out.Contents())
+	sourceRepository := v1.SourceRepository{}
+	err = json.Unmarshal([]byte(out), &sourceRepository)
+	Expect(err).Should(BeNil())
+
+	latestBuild := sourceRepository.Annotations["jenkins.io/last-build-number-for-master"]
+	if latestBuild == "" {
+		latestBuild = "0"
+	}
+	latestBuildInt, err := strconv.Atoi(latestBuild)
+	Expect(err).Should(BeNil())
+
+	nextBuildInt := latestBuildInt + 1
+
+	return strconv.Itoa(nextBuildInt)
+}
+
+// GetPullTitleForBranch returns the PullTitle field from the PipelineActivity for the owner/repo/branch
+func (t *TestOptions) GetPullTitleFromActivity(owner string, repo string, branch string, buildNumber int) string {
+	activityName := fmt.Sprintf("%s-%s-%s-%s", owner, repo, branch, strconv.Itoa(buildNumber))
+	args := []string{"get", "pipelineactivity", activityName, "-o=jsonpath='{.spec.pullTitle}'"}
+
+	command := exec.Command("kubectl", args...)
+	session, err := gexec.Start(command, nil, nil)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutCmdLine)
+	Eventually(session).Should(gexec.Exit(0))
+
+	pullTitle := strings.Trim(string(session.Out.Contents()), "'")
+	return pullTitle
+}
+
+func (t *TestOptions) TheApplicationIsRunningInProduction(statusCode int) {
+	t.TheApplicationIsRunning(statusCode, "production")
+}
+
 // TheApplicationIsRunningInStaging lets assert that the application is deployed into the first automatic staging environment
 func (t *TestOptions) TheApplicationIsRunningInStaging(statusCode int) {
+	t.TheApplicationIsRunning(statusCode, "staging")
+}
+
+// TheApplicationIsRunning lets assert that the application is deployed into the passed environment
+func (t *TestOptions) TheApplicationIsRunning(statusCode int, environment string) {
 	u := ""
-	key := "staging"
-	args := []string{"get", "applications", "-e", key}
+	args := []string{"get", "applications", "-e", environment}
 	r := runner.New(t.WorkDir, nil, 0)
 	argsStr := strings.Join(args, " ")
 	f := func() error {
 		var err error
 		var out string
 		By(fmt.Sprintf("running jx %s", argsStr), func() {
-			out = r.RunWithOutput(args...)
+			out, err = r.RunWithOutput(args...)
+			utils.ExpectNoError(err)
 		})
 		var applications map[string]parsers.Application
 		By(fmt.Sprintf("parsing the output of jx %s", argsStr), func() {
@@ -123,14 +331,14 @@ func (t *TestOptions) TheApplicationIsRunningInStaging(statusCode int) {
 			utils.LogInfof("failed to get application: %s. Output of jx %s was %s. Parsed applications map is %v`\n", err.Error(), argsStr, out, applications)
 			return err
 		}
-		Expect(application).ShouldNot(BeNil(), "no application found for % in environment %s", applicationName, key)
+		Expect(application).ShouldNot(BeNil(), "no application found for % in environment %s", applicationName, environment)
 		By(fmt.Sprintf("getting url for application %s", application.Name), func() {
 			u = application.Url
 		})
 		if u == "" {
-			return fmt.Errorf("no URL found for environment %s has app: %#v", key, applications)
+			return fmt.Errorf("no URL found for environment %s has app: %#v", environment, applications)
 		}
-		utils.LogInfof("still looking for application %s in env %s\n", applicationName, key)
+		utils.LogInfof("still looking for application %s in env %s\n", applicationName, environment)
 		return nil
 	}
 
@@ -140,16 +348,26 @@ func (t *TestOptions) TheApplicationIsRunningInStaging(statusCode int) {
 	})
 
 	By(fmt.Sprintf("getting %s", u), func() {
-		Expect(u).ShouldNot(BeEmpty(), "no URL for environment %s", key)
+		Expect(u).ShouldNot(BeEmpty(), "no URL for environment %s", environment)
 		err := t.ExpectUrlReturns(u, statusCode, TimeoutUrlReturns)
 		Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("request application URL should return %d", statusCode))
 	})
+}
 
+// WaitForDeployment waits for the specified deployment to rollout. Wait timeout can be set via BDD_DEPLOYMENT_ROLLOUT_WAIT.
+func (t *TestOptions) WaitForDeploymentRollout(deployment string) {
+	args := []string{"rollout", "status", "-w", fmt.Sprintf("deployment/%s", deployment)}
+	command := exec.Command("kubectl", args...)
+	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutDeploymentRollout)
+	Eventually(session).Should(gexec.Exit())
 }
 
 func getApplication(applicationName string, runningApplications map[string]parsers.Application) (*parsers.Application, error) {
 	if len(runningApplications) == 0 {
-		return nil, fmt.Errorf("No applications found")
+		return nil, fmt.Errorf("no applications found")
 	}
 
 	applicationEnvInfo, ok := runningApplications[applicationName]
@@ -190,7 +408,7 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		t.ExpectCommandExecution(workDir, TimeoutCmdLine, 0, "git", "checkout", "-b", "changes")
 	})
 
-	By("making a code change, commiting and pushing it", func() {
+	By("making a code change, committing and pushing it", func() {
 		// now lets make a code change
 		fileName := "README.md"
 		readme := filepath.Join(workDir, fileName)
@@ -206,12 +424,23 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 		t.ExpectCommandExecution(workDir, time.Minute, 0, "git", "push", "--set-upstream", "origin", "changes")
 	})
 
-	args := []string{"create", "pullrequest", "-b", "--title", "My First PR commit", "--body", "PR comments"}
+	prTitle := "My First PR commit"
+	args := []string{"create", "pullrequest", "-b", "--title", prTitle, "--body", "PR comments"}
 	argsStr := strings.Join(args, " ")
 	var out string
 	By(fmt.Sprintf("creating a pull request by running jx %s", argsStr), func() {
-		out = r.RunWithOutput(args...)
+		var err error
+		out, err = r.RunWithOutputNoTimeout(args...)
+		out = strings.TrimSpace(out)
+		if err != nil {
+			utils.LogInfof("ERROR: %s\n", err.Error())
+		} else {
+			Expect(out).ShouldNot(BeEmpty(), "no output returned from command: jx "+argsStr)
+		}
+		utils.ExpectNoError(err)
 	})
+
+	utils.LogInfof("running jx %s and got result: %s\n", argsStr, out)
 
 	var pr *parsers.CreatePullRequest
 	var err error
@@ -228,82 +457,176 @@ func (t *TestOptions) CreatePullRequestAndGetPreviewEnvironment(statusCode int) 
 
 	})
 
+	buildNumber := 0
 	jobName := owner + "/" + applicationName + "/PR-" + strconv.Itoa(prNumber)
 	By(fmt.Sprintf("checking that job %s completes successfully", jobName), func() {
-		t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
+		buildNumber = t.ThereShouldBeAJobThatCompletesSuccessfully(jobName, TimeoutBuildCompletes)
 		utils.ExpectNoError(err)
 	})
+	if t.ShouldTestPipelineActivityUpdate() {
+		By("verifying that PipelineActivity has been updated to include the pull request title", func() {
+			pullTitle := t.GetPullTitleFromActivity(owner, applicationName, "pr-"+strconv.Itoa(prNumber), buildNumber)
+			Expect(pullTitle).Should(Equal(prTitle))
+		})
+	}
 
 	args = []string{"get", "previews"}
 	argsStr = strings.Join(args, " ")
 	By(fmt.Sprintf("verifying there is a preview environment by running jx %s", argsStr), func() {
-		out = r.RunWithOutput(args...)
-	})
-
-	var previews map[string]parsers.Preview
-	By(fmt.Sprintf("parsing the output of jx %s", argsStr), func() {
-		previews, err = parsers.ParseJxGetPreviews(out)
+		var err error
+		out, err = r.RunWithOutput(args...)
 		utils.ExpectNoError(err)
 	})
 
-	By(fmt.Sprintf("checking that a preview environment exists for %s", pr.Url), func() {
+	logError := func(err error) error {
+		utils.LogInfof("WARNING: %s\n", err.Error())
+		return err
+	}
+
+	f := func() error {
+		var err error
+		var previews map[string]parsers.Preview
+
+		utils.LogInfof("parsing the output of jx %s", argsStr)
+		out, err = r.RunWithOutput(args...)
+		if err != nil {
+			return logError(err)
+		}
+		previews, err = parsers.ParseJxGetPreviews(out)
+		if err != nil {
+			return logError(err)
+		}
 		previewEnv := previews[pr.Url]
-		Expect(previewEnv).ShouldNot(BeNil(), "Could not find Preview Environment for application name %s", applicationName)
 		applicationUrl := previewEnv.Url
-		Expect(applicationUrl).ShouldNot(Equal(""), "No Preview Application URL found")
+		if applicationUrl == "" {
+			idx := strings.LastIndex(pr.Url, "/")
+			for k, v := range previews {
+				utils.LogInfof("found Preview URL %s with preview %s", k, v.Url)
+				if idx > 0 {
+					if strings.HasSuffix(k, pr.Url[idx:]) {
+						applicationUrl = v.Url
+						utils.LogInfof("for PR %s using preview %s", k, applicationUrl)
+					}
+				}
+			}
+		}
+		if applicationUrl == "" {
+			return logError(fmt.Errorf("no Preview Application URL found for PR %s", pr.Url))
+		}
 
 		utils.LogInfof("Running Preview Environment application at: %s\n", util.ColorInfo(applicationUrl))
 
 		err = t.ExpectUrlReturns(applicationUrl, statusCode, TimeoutUrlReturns)
-		utils.ExpectNoError(err)
+		if err != nil {
+			return logError(fmt.Errorf("preview URL at %s not working: %s", applicationUrl, err.Error()))
+		}
+		return nil
+	}
+
+	By(fmt.Sprint("retrying waiting for Preview URL to be working with exponential backoff to ensure it completes"), func() {
+		err := Retry(TimeoutPreviewUrlReturns, f)
+		Expect(err).ShouldNot(HaveOccurred(), "preview environment visible at a URL")
 	})
 	return nil
 
 }
 
-// ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
-func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) {
-	// NOTE Need to retry here to ensure that the build has started before asking for the log as the jx create quickstart command returns slightly before the build log is available
+// SetGitHubToken runs jx create git token using the values of GIT_ORGANISATION & GH_ACCESS_TOKEN
+func (t *TestOptions) SetGitHubToken() {
+	gitUser, set := os.LookupEnv("GIT_ORGANISATION")
+	if !set {
+		Fail("GIT_ORGANISATION environment variable must be set")
+	}
+
+	token, set := os.LookupEnv("GH_ACCESS_TOKEN")
+	if !set {
+		Fail("GH_ACCESS_TOKEN environment variable must be set")
+	}
+
+	args := []string{"create", "git", "token", gitUser, "-t", token}
+	command := exec.Command(runner.JxBin(), args...)
+	session, err := gexec.Start(command, nil, nil)
+	Expect(err).Should(BeNil())
+
+	session.Wait(TimeoutCmdLine)
+	Eventually(session).Should(gexec.Exit(0))
+}
+
+// GetPullRequestWithTitle Returns a pull request with a matching title
+func (t *TestOptions) GetPullRequestWithTitle(client *github.Client, ctx context.Context, repoOwner string, repoName string, title string) (*github.PullRequest, error) {
+	pullRequestList, _, err := client.PullRequests.List(ctx, repoOwner, repoName, nil)
+	if err != nil {
+		return nil, err
+
+	}
+
+	var matchingPR *github.PullRequest
+	for _, pullRequest := range pullRequestList {
+		if *pullRequest.Title == title {
+			matchingPR = pullRequest
+		}
+	}
+
+	return matchingPR, nil
+}
+
+// TailBuildLog tails the logs of the specified job
+func (t *TestOptions) TailBuildLog(jobName string, maxDuration time.Duration) {
 	args := []string{"get", "build", "logs", "--wait", jobName}
 	argsStr := strings.Join(args, " ")
 	By(fmt.Sprintf("checking that there is a job built successfully by calling jx %s", argsStr), func() {
 		t.ExpectJxExecution(t.WorkDir, maxDuration, 0, args...)
 	})
+}
+
+// ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
+func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string, maxDuration time.Duration) int {
+	t.TailBuildLog(jobName, maxDuration)
 
 	r := runner.New(t.WorkDir, nil, 0)
 	// TODO the current --build 1 breaks as it can be number 2 these days!
 	//out := r.RunWithOutput("get", "activities", "--filter", jobName, "--build", "1")
-	args = []string{"get", "activities", "--filter", jobName}
-	argsStr = strings.Join(args, " ")
-	var out string
-	By(fmt.Sprintf("calling jx %s", argsStr), func() {
-		out = r.RunWithOutput(args...)
-	})
-
+	args := []string{"get", "activities", "--filter", jobName}
+	argsStr := strings.Join(args, " ")
 	var activities map[string]*parsers.Activity
-	var err error
-	By(fmt.Sprintf("parsing the output of jx %s", argsStr), func() {
+	f := func() error {
+		var err error
+		var out string
+		By(fmt.Sprintf("calling jx %s", argsStr), func() {
+			out, err = r.RunWithOutput(args...)
+		})
+		out, err = r.RunWithOutput(args...)
+		if err != nil {
+			return err
+		}
 		activities, err = parsers.ParseJxGetActivities(out)
 		// TODO fails on --ng for now...
 		//utils.ExpectNoError(err)
 		if err != nil {
 			utils.LogInfof("got error parsing activities: %s\n", err.Error())
 		}
+		return err
+	}
+
+	By(fmt.Sprintf("retrying jx %s with exponential backoff to ensure it completes", argsStr), func() {
+		err := RetryExponentialBackoff(TimeoutPipelineActivityComplete, f)
+		Expect(err).ShouldNot(HaveOccurred(), "get applications with a URL")
 	})
 
+	buildNumber := 1
 	activityKey := fmt.Sprintf("%s #%d", jobName, 1)
 	By(fmt.Sprintf("finding the activity for %s in %v", activityKey, activities), func() {
-		// TODO disabling this for now as we get a failure on ng
 		if activities != nil {
 			Expect(activities).Should(HaveLen(1), fmt.Sprintf("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v", len(activities), jobName, activities))
 			activity, ok := activities[fmt.Sprintf("%s #%d", jobName, 1)]
 			if !ok {
 				// TODO lets see if the build is number 2 instead which it is for tekton currently
 				activity, ok = activities[fmt.Sprintf("%s #%d", jobName, 2)]
+				buildNumber = 2
 			}
-			Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #%d", jobName, 1))
+			Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #1 or #2", jobName))
 
-			utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-1", activity.Status)
+			utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-"+strconv.Itoa(buildNumber), activity.Status)
 		}
 	})
 
@@ -315,6 +638,19 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 			Expect(activity.Spec.Status.String()).Should(Equal("Succeeded"))
 		*/
 	})
+
+	return buildNumber
+}
+
+// RetryExponentialBackoff retries the given function up to the maximum duration
+func Retry(maxDuration time.Duration, f func() error) error {
+	exponentialBackOff := backoff.NewExponentialBackOff()
+	exponentialBackOff.MaxElapsedTime = maxDuration
+	exponentialBackOff.MaxInterval = 20 * time.Second
+	exponentialBackOff.Reset()
+	utils.LogInfof("retrying for duration %#v with max interval %#v\n", maxDuration, exponentialBackOff.MaxInterval)
+	err := backoff.Retry(f, exponentialBackOff)
+	return err
 }
 
 // RetryExponentialBackoff retries the given function up to the maximum duration
@@ -345,8 +681,8 @@ func (t *TestOptions) ExpectCommandExecution(dir string, commandTimeout time.Dur
 		Eventually(session).Should(gexec.Exit(exitCode))
 		return err
 	}
-	err := RetryExponentialBackoff((TimeoutCmdLine), f)
-	Ω(err).ShouldNot(HaveOccurred())
+	err := RetryExponentialBackoff(TimeoutCmdLine, f)
+	Expect(err).ShouldNot(HaveOccurred())
 }
 
 func (t *TestOptions) ExpectJxExecution(dir string, commandTimeout time.Duration, exitCode int, args ...string) {
@@ -372,18 +708,38 @@ func (t *TestOptions) TestPullRequest() bool {
 	return strings.ToLower(text) != "true"
 }
 
+// ShouldTestPipelineActivityUpdate should we make sure the build controller is updating the PipelineActivity
+func (t *TestOptions) ShouldTestPipelineActivityUpdate() bool {
+	return strings.ToLower(DisablePipelineActivityCheck) != "true"
+}
+
 // WaitForFirstRelease should we wait for first release to complete before trying a pull request
 func (t *TestOptions) WaitForFirstRelease() bool {
 	text := os.Getenv("JX_DISABLE_WAIT_FOR_FIRST_RELEASE")
 	return strings.ToLower(text) != "true"
 }
 
+// WeShouldTestChatOpsCommands should we test prow ChatOps commands
+func (t *TestOptions) WeShouldTestChatOpsCommands() bool {
+	return strings.ToLower(EnableChatOpsTests) == "true"
+}
+
 // ExpectUrlReturns expects that the given URL returns the given status code within the given time period
 func (t *TestOptions) ExpectUrlReturns(url string, expectedStatusCode int, maxDuration time.Duration) error {
 	lastLoggedStatus := -1
 	f := func() error {
+		skipVerify := false
+		if strings.ToLower(InsecureURLSkipVerify) == "true" {
+			skipVerify = true
+		}
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: skipVerify,
+			},
+		}
 		var httpClient = &http.Client{
-			Timeout: time.Second * 30,
+			Timeout:   time.Second * 30,
+			Transport: transport,
 		}
 		response, err := httpClient.Get(url)
 		if err != nil {
@@ -397,9 +753,192 @@ func (t *TestOptions) ExpectUrlReturns(url string, expectedStatusCode int, maxDu
 		if actualStatusCode == expectedStatusCode {
 			return nil
 		}
-		return fmt.Errorf("Invalid HTTP status code for %s expected %d but got %d", url, expectedStatusCode, actualStatusCode)
+		return fmt.Errorf("invalid HTTP status code for %s expected %d but got %d", url, expectedStatusCode, actualStatusCode)
 	}
 	return RetryExponentialBackoff(maxDuration, f)
+}
+
+func (t *TestOptions) CreateChatOpsCommands(commands []string) error {
+	gitProvider, err := t.GetGitProvider()
+	if err != nil {
+		return err
+	}
+
+	utils.LogInfof("successfully create git provider of kind %s", gitProvider.Kind())
+
+	return nil
+}
+
+// CreateIssueAndAssignToUser creates an issue on the configure git provider and assigns it to a user.
+func (t *TestOptions) CreateIssueAndAssignToUserWithChatOpsCommand(issue *gits.GitIssue, provider gits.GitProvider) error {
+
+	createdIssue, err := provider.CreateIssue(issue.Owner, issue.Repo, issue)
+	if err != nil {
+		return err
+	}
+
+	utils.LogInfof("created issue with number %d\n", *createdIssue.Number)
+
+	err = provider.CreateIssueComment(
+		issue.Owner,
+		issue.Repo,
+		*createdIssue.Number,
+		fmt.Sprintf("/assign %s", provider.CurrentUsername()),
+	)
+	if err != nil {
+		return err
+	}
+	utils.LogInfof("create issue comment on issue %d\n", *createdIssue.Number)
+
+	createdIssue.Owner = issue.Owner
+	createdIssue.Repo = issue.Repo
+
+	return t.ExpectThatIssueIsAssignedToUser(provider, createdIssue, provider.CurrentUsername())
+
+}
+
+// ExpectThatIssueIsAssignedToUser returns an error if
+func (t *TestOptions) ExpectThatIssueIsAssignedToUser(provider gits.GitProvider, issue *gits.GitIssue, username string) error {
+	f := func() error {
+		fetchedIssue, err := provider.GetIssue(issue.Owner, issue.Repo, *issue.Number)
+		if err != nil {
+			return err
+		}
+
+		if fetchedIssue == nil {
+			return fmt.Errorf("fetched issue is nil but did not throw an error")
+		}
+
+		for _, assignee := range fetchedIssue.Assignees {
+			if assignee.Login == username {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("user was not found in issue assignees")
+	}
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
+}
+
+// AttemptToLGTMOwnPR return an error if the /lgtm fails to add the lgtm label to PR
+func (t *TestOptions) AttemptToLGTMOwnPR(provider gits.GitProvider, owner string, repo string) error {
+	pullRequests, err := provider.ListOpenPullRequests(owner, repo)
+	if err != nil {
+		return err
+	}
+	if len(pullRequests) < 1 {
+		return fmt.Errorf("no open pull requests found for %s/%s", owner, repo)
+	}
+
+	err = provider.AddPRComment(pullRequests[0], "/lgtm")
+	if err != nil {
+		return err
+	}
+
+	repoStruct := &gits.GitRepository{
+		Name:         repo,
+		Organisation: owner,
+	}
+	pullRequest, err := provider.GetPullRequest(owner, repoStruct, *pullRequests[0].Number)
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPRHasCommentWithText(provider, pullRequest, "you cannot LGTM your own PR.")
+}
+
+// ExpectThatPRHasCommentWithText returns an error if the PR does not have a comment with the specified text
+func (t *TestOptions) ExpectThatPRHasCommentWithText(provider gits.GitProvider, pullRequest *gits.GitPullRequest, commentText string) error {
+	f := func() error {
+		userAuth := provider.UserAuth()
+
+		scmClient, err := scmFactory.NewClient(provider.Kind(), provider.ServerURL(), userAuth.ApiToken)
+		if err != nil {
+			return err
+		}
+
+		repoString := fmt.Sprintf("%s/%s", pullRequest.Owner, pullRequest.Repo)
+		comments, _, err := scmClient.PullRequests.ListComments(context.Background(), repoString, *pullRequest.Number, scm.ListOptions{})
+
+		for _, comment := range comments {
+			if strings.Contains(comment.Body, commentText) {
+				return nil
+			}
+		}
+		return fmt.Errorf("comment text not found in PR")
+	}
+
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
+}
+
+// AddHoldLabelToPRWithChatOpsCommand returns an error of the command fails to add the do-not-merge/hold label
+func (t *TestOptions) AddHoldLabelToPRWithChatOpsCommand(provider gits.GitProvider, owner, repo string) error {
+	pullRequests, err := provider.ListOpenPullRequests(owner, repo)
+	if err != nil {
+		return err
+	}
+	if len(pullRequests) < 1 {
+		return fmt.Errorf("no open pull requests found for %s/%s", owner, repo)
+	}
+
+	err = provider.AddPRComment(pullRequests[0], "/hold")
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPRHasLabel(provider, *pullRequests[0].Number, owner, repo, "do-not-merge/hold")
+}
+
+// AddWIPLabelToPRByUpdatingTitle adds the WIP label by adding WIP to a pull request's title
+func (t *TestOptions) AddWIPLabelToPRByUpdatingTitle(provider gits.GitProvider, owner, repo string) error {
+	pullRequests, err := provider.ListOpenPullRequests(owner, repo)
+	if err != nil {
+		return err
+	}
+	if len(pullRequests) < 1 {
+		return fmt.Errorf("no open pull requests found for %s/%s", owner, repo)
+	}
+
+	pullRequest := pullRequests[0]
+
+	pullRequestArgs := &gits.GitPullRequestArguments{
+		Title: fmt.Sprintf("WIP %s", pullRequest.Title),
+		GitRepository: &gits.GitRepository{
+			Organisation: pullRequest.Owner,
+			Name:         pullRequest.Repo,
+		},
+	}
+	updatedPullRequest, err := provider.UpdatePullRequest(pullRequestArgs, *pullRequest.Number)
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPRHasLabel(provider, *updatedPullRequest.Number, owner, repo, "do-not-merge/work-in-progress")
+}
+
+// ExpectThatPRHasLabel returns an error if the PR does not have the specified label
+func (t *TestOptions) ExpectThatPRHasLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
+	f := func() error {
+		repoStruct := &gits.GitRepository{
+			Name:         repo,
+			Organisation: owner,
+		}
+		pullRequest, err := provider.GetPullRequest(owner, repoStruct, pullRequestNumber)
+		if err != nil {
+			return err
+		}
+		if len(pullRequest.Labels) < 1 {
+			return fmt.Errorf("the pull request has no labels")
+		}
+		for _, l := range pullRequest.Labels {
+			if *l.Name == label {
+				return nil
+			}
+		}
+		return fmt.Errorf("the pull request does not have the specified label: %s", label)
+	}
+
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
 }
 
 // AddAppTests Creates a jx add app test

@@ -2,15 +2,15 @@ package ingress
 
 import (
 	"fmt"
+	"github.com/jenkins-x/bdd-jx/test/utils"
 	"strconv"
 	"time"
 
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
-	cmd "github.com/jenkins-x/jx/pkg/jx/cmd/clients"
+	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/kube"
-	"github.com/jenkins-x/jx/pkg/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -170,7 +170,7 @@ func newTestCaseUpgradeIngress(cwd string, factory cmd.Factory, ns string) (*tes
 
 func (t *testCaseUpgradeIngress) setupCluster() error {
 	// ensure that the test namespace does not already exists
-	err := util.Retry(setupTimeout, func() error {
+	err := utils.Retry(setupTimeout, func() error {
 		_, err := t.kubeClient.CoreV1().Namespaces().Get(t.namespace, metav1.GetOptions{})
 		if err != nil {
 			return nil

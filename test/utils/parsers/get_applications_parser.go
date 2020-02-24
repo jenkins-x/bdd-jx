@@ -1,6 +1,7 @@
 package parsers
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -31,7 +32,7 @@ func ParseJxGetApplications(s string) (map[string]Application, error) {
 		line = strings.TrimSpace(line)
 		fields := strings.Fields(line)
 		if len(fields) < 3 {
-			return nil, errors.Errorf("must be at least 3 fields in %s, entire output was %s", line, s)
+			return nil, errors.Errorf("must be at least %d fields in %s, entire output was %s", 3, line, s)
 		}
 		var desiredPods, runningPods int
 		if len(fields) == 4 {
@@ -49,13 +50,26 @@ func ParseJxGetApplications(s string) (map[string]Application, error) {
 				return nil, errors.Wrapf(err, "cannot convert %v to integer, entire output was %s", runningPods, s)
 			}
 		}
-		answer[fields[0]] = Application{
+		app := Application{
 			Name:        fields[0],
 			Version:     fields[1],
 			DesiredPods: desiredPods,
 			RunningPods: runningPods,
-			Url:         fields[len(fields)-1],
 		}
+		urlString := fields[len(fields)-1]
+		if urlString != "" {
+			// The last field can end up as "1/1" (or "0/1" etc) for a brief time before the ingress is created. We want
+			// to try again when that happens. The easiest way to do so is to parse it and make sure it has a non-empty
+			// scheme.
+			u, err := url.Parse(urlString)
+			if err != nil {
+				return nil, errors.Wrapf(err, "parsing URL %s from full output %s", urlString, s)
+			}
+			if u != nil && u.Scheme != "" {
+				app.Url = urlString
+			}
+		}
+		answer[fields[0]] = app
 	}
 	return answer, nil
 }

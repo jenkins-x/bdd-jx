@@ -1,9 +1,5 @@
 package parsers
 
-
-
-
-
 import (
 	"github.com/pkg/errors"
 	"regexp"
@@ -13,27 +9,27 @@ import (
 var activityLineRegex = regexp.MustCompile(`(?m:(^.*?)\s*((?:\d+h)?(?:\d+m)?(?:\d+s))?\s*((?:\d+h)?(?:\d+m)?(?:\d+s))\s*(.*)$)`)
 
 type Activity struct {
-	JobName string
+	JobName     string
 	BuildNumber int
-	StartedAgo string
-	Duration string
-	Status string
-	Stages []*Stage
+	StartedAgo  string
+	Duration    string
+	Status      string
+	Stages      []*Stage
 }
 
 type Stage struct {
-	Name string
+	Name       string
 	StartedAgo string
-	Duration string
-	Status string
-	Steps []*Step
+	Duration   string
+	Status     string
+	Steps      []*Step
 }
 
 type Step struct {
-	Name string
+	Name       string
 	StartedAgo string
-	Duration string
-	Status string
+	Duration   string
+	Status     string
 }
 
 func ParseJxGetActivities(s string) (map[string]*Activity, error) {
@@ -56,15 +52,15 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 			// If the string starts with text, it's the root of an activity
 			line = strings.TrimSpace(line)
 			fields := activityLineRegex.FindStringSubmatch(line)
-			if len(fields) != 5{
+			if len(fields) != 5 {
 				return nil, errors.Errorf("unable to parse %s as activity, entire output was: \n\n%s\n", line, s)
 			}
 			currentActivity = &Activity{
-				JobName:fields[1],
+				JobName:    fields[1],
 				StartedAgo: fields[2],
-				Duration: fields[3],
-				Status: fields[4],
-				Stages: make([]*Stage, 0),
+				Duration:   fields[3],
+				Status:     fields[4],
+				Stages:     make([]*Stage, 0),
 			}
 			answer[currentActivity.JobName] = currentActivity
 		} else if !strings.HasPrefix(line, "    ") {
@@ -96,7 +92,7 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 				}
 				currentStage.Steps = append(currentStage.Steps, step)
 			} else {
-				return  nil, errors.Errorf("Unable to parse %s as step, entire output was %s", line, s)
+				return nil, errors.Errorf("Unable to parse %s as step, entire output was %s", line, s)
 			}
 		}
 	}

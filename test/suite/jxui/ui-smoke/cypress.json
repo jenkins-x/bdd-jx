@@ -1,0 +1,10 @@
+{
+    "viewportWidth": 1200,
+    "viewportHeight": 1080,
+    "video": false,
+    "baseUrl": "http://localhost:9000",
+    "reporter": "junit",
+    "reporterOptions": {
+        "mochaFile": "ui-smoke.junit.xml"
+    }
+}

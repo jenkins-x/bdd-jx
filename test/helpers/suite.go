@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/jenkins-x/jx/pkg/client/clientset/versioned"
-	"github.com/jenkins-x/jx/pkg/jx/cmd/clients"
+	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/onsi/ginkgo/config"
 	"k8s.io/client-go/kubernetes"
@@ -39,7 +39,7 @@ func RunWithReporters(t *testing.T, suiteId string) {
 	slowSpecThresholdStr := os.Getenv("SLOW_SPEC_THRESHOLD")
 	if slowSpecThresholdStr == "" {
 		slowSpecThresholdStr = "50000"
-		os.Setenv("SLOW_SPEC_THRESHOLD", slowSpecThresholdStr)
+		_ = os.Setenv("SLOW_SPEC_THRESHOLD", slowSpecThresholdStr)
 
 	}
 	slowSpecThreshold, err := strconv.ParseFloat(slowSpecThresholdStr, 64)
@@ -73,36 +73,23 @@ var SynchronizedAfterSuiteCallback = func() {
 	}
 }
 
-func configureGHE() error {
-	if os.Getenv("GHE_TOKEN") != "" {
-		utils.LogInfof("Setting up GitHub Enterprise support for user %s", os.Getenv("GHE_USER"))
-		cwd, err := os.Getwd()
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		r := runner.New(cwd, &TimeoutSessionWait, 0)
-		r.Run("create", "git", "server", "github,", os.Getenv("GHE_PROVIDER_URL"), "-n", "GHE")
-		out, err := r.RunWithOutput("get", "git", "server")
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		utils.LogInfo(out)
-		r.Run("create", "git", "token", "-n", "GHE", os.Getenv("GHE_USER"), "-t", os.Getenv("GHE_TOKEN"))
-	}
-	return nil
-}
-
 func ensureConfiguration() error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	_, found := os.LookupEnv("BDD_JX")
+	if !found {
+		_ = os.Setenv("BDD_JX", runner.Jx)
+	}
+
 	r := runner.New(cwd, &TimeoutSessionWait, 0)
 	version, err := r.RunWithOutput("--version")
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	factory := clients.NewFactory()
+	factory := cmd.NewFactory()
 	kubeClient, ns, err := factory.CreateKubeClient()
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "failed to create kubeClient")
@@ -121,12 +108,17 @@ func ensureConfiguration() error {
 		if gitOrganisation == "" {
 			gitOrganisation = "jenkins-x-tests"
 		}
-		os.Setenv("GIT_ORGANISATION", gitOrganisation)
+		_ = os.Setenv("GIT_ORGANISATION", gitOrganisation)
 	}
 	gitProviderUrl := os.Getenv("GIT_PROVIDER_URL")
 	if gitProviderUrl == "" {
 		gitProviderUrl = "https://github.com"
-		os.Setenv("GIT_PROVIDER_URL", gitProviderUrl)
+		_ = os.Setenv("GIT_PROVIDER_URL", gitProviderUrl)
+	}
+	gitKind := os.Getenv("GIT_KIND")
+	if gitKind == "" {
+		gitKind = "github"
+		os.Setenv("GIT_KIND", gitKind)
 	}
 	disableDeleteAppStr := os.Getenv("JX_DISABLE_DELETE_APP")
 	disableDeleteApp := "is set. Apps created in the test run will NOT be deleted"
@@ -143,6 +135,14 @@ func ensureConfiguration() error {
 	if disableWaitForFirstReleaseStr == "true" || disableWaitForFirstReleaseStr == "1" || disableWaitForFirstReleaseStr == "on" {
 		disableWaitForFirstRelease = "is not set. If you would like to disable waiting for the build to be promoted to staging set this variable to TRUE"
 	}
+	enableChatOpsTestLogStr := "is not set. ChatOps tests will not be run as part of quickstart tests. If you would like to run those tests, set this variable to TRUE"
+	if EnableChatOpsTests == "true" {
+		enableChatOpsTestLogStr = "is set. ChatOps tests will be run as part of quickstart tests"
+	}
+	disablePACheckStr := "is not set. PipelineActivity update tests will be run as part of PR-related tests. If you would like to not run those tests, set this variable to TRUE"
+	if DisablePipelineActivityCheck == "true" {
+		disablePACheckStr = "is set. PipelineActivity update tests will NOT be run as part of PR-related tests"
+	}
 	includeAppsStr := os.Getenv("JX_BDD_INCLUDE_APPS")
 	includeApps := "is not set"
 	if includeAppsStr != "" {
@@ -150,51 +150,55 @@ func ensureConfiguration() error {
 	}
 	bddTimeoutBuildCompletes := os.Getenv("BDD_TIMEOUT_BUILD_COMPLETES")
 	if bddTimeoutBuildCompletes == "" {
-		os.Setenv("BDD_TIMEOUT_BUILD_COMPLETES", "60")
+		_ = os.Setenv("BDD_TIMEOUT_BUILD_COMPLETES", "60")
 	}
 	bddTimeoutBuildRunningInStaging := os.Getenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING")
 	if bddTimeoutBuildRunningInStaging == "" {
-		os.Setenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", "60")
+		_ = os.Setenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING", "60")
 	}
 	bddTimeoutURLReturns := os.Getenv("BDD_TIMEOUT_URL_RETURNS")
 	if bddTimeoutURLReturns == "" {
-		os.Setenv("BDD_TIMEOUT_URL_RETURNS", "5")
+		_ = os.Setenv("BDD_TIMEOUT_URL_RETURNS", "5")
 	}
 	bddTimeoutCmdLine := os.Getenv("BDD_TIMEOUT_CMD_LINE")
 	if bddTimeoutCmdLine == "" {
-		os.Setenv("BDD_TIMEOUT_CMD_LINE", "1")
+		_ = os.Setenv("BDD_TIMEOUT_CMD_LINE", "1")
 	}
 	bddTimeoutAppTests := os.Getenv("BDD_TIMEOUT_APP_TESTS")
 	if bddTimeoutAppTests == "" {
-		os.Setenv("BDD_TIMEOUT_APP_TESTS", "60")
+		_ = os.Setenv("BDD_TIMEOUT_APP_TESTS", "60")
 	}
 	bddTimeoutSessionWait := os.Getenv("BDD_TIMEOUT_SESSION_WAIT")
 	if bddTimeoutSessionWait == "" {
-		os.Setenv("BDD_TIMEOUT_SESSION_WAIT", "60")
+		_ = os.Setenv("BDD_TIMEOUT_SESSION_WAIT", "60")
 	}
 	bddTimeoutDevpod := os.Getenv("BDD_TIMEOUT_DEVPOD")
 	if bddTimeoutDevpod == "" {
-		os.Setenv("BDD_TIMEOUT_DEVPOD", "15")
+		_ = os.Setenv("BDD_TIMEOUT_DEVPOD", "15")
 	}
 
 	gheUser := os.Getenv("GHE_USER")
 	if gheUser == "" {
 		gheUser = "dev1"
-		os.Setenv("GHE_USER", gheUser)
+		_ = os.Setenv("GHE_USER", gheUser)
 	}
 	gheProviderUrl := os.Getenv("GHE_PROVIDER_URL")
 	if gheProviderUrl == "" {
 		gheProviderUrl = "https://github.beescloud.com"
-		os.Setenv("GHE_PROVIDER_URL", gheProviderUrl)
+		_ = os.Setenv("GHE_PROVIDER_URL", gheProviderUrl)
 	}
 
+	utils.LogInfof("BDD_JX:                                             %s\n", os.Getenv("BDD_JX"))
 	utils.LogInfof("jx version:                                         %s\n", version)
 	utils.LogInfof("GIT_ORGANISATION:                                   %s\n", gitOrganisation)
 	utils.LogInfof("GIT_PROVIDER_URL:                                   %s\n", gitProviderUrl)
+	utils.LogInfof("GIT_KIND:                                           %s\n", gitKind)
 	utils.LogInfof("JX_DISABLE_DELETE_APP:                              %s\n", disableDeleteApp)
 	utils.LogInfof("JX_DISABLE_DELETE_REPO:                             %s\n", disableDeleteRepo)
 	utils.LogInfof("JX_DISABLE_WAIT_FOR_FIRST_RELEASE:                  %s\n", disableWaitForFirstRelease)
+	utils.LogInfof("BDD_ENABLE_TEST_CHATOPS_COMMANDS:                   %s\n", enableChatOpsTestLogStr)
 	utils.LogInfof("JX_BDD_INCLUDE_APPS:                                %s\n", includeApps)
+	utils.LogInfof("BDD_DISABLE_PIPELINEACTIVITY_CHECK:                 %s\n", disablePACheckStr)
 	utils.LogInfof("BDD_TIMEOUT_BUILD_COMPLETES timeout value:          %s\n", os.Getenv("BDD_TIMEOUT_BUILD_COMPLETES"))
 	utils.LogInfof("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING timeout value: %s\n", os.Getenv("BDD_TIMEOUT_BUILD_RUNNING_IN_STAGING"))
 	utils.LogInfof("BDD_TIMEOUT_URL_RETURNS timeout value:              %s\n", os.Getenv("BDD_TIMEOUT_URL_RETURNS"))
@@ -218,6 +222,9 @@ func findDefaultOrganisation(kubeClient kubernetes.Interface, jxClient versioned
 	answer := ""
 	if devEnv != nil {
 		answer = devEnv.Spec.TeamSettings.Organisation
+		if answer == "" {
+			answer = devEnv.Spec.TeamSettings.EnvOrganisation
+		}
 		if answer == "" {
 			answer = devEnv.Spec.TeamSettings.PipelineUsername
 		}

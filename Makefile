@@ -9,10 +9,13 @@ TESTFLAGS ?= -v
 
 TESTFLAGS += -timeout 2h
 
+SUITE ?= test-create-spring
+
 ifdef DEBUG
 BUILDFLAGS += -gcflags "all=-N -l" $(BUILDFLAGS)
 endif
 
+export JX_DISABLE_TEST_CHATOPS_COMMANDS=true
 
 all: build
 
@@ -44,11 +47,17 @@ test-app-lifecycle:
 test-verify-pods:
 	$(GO) test $(TESTFLAGS) ./test/suite/step
 
+test-saas:
+	$(GO) test $(TESTFLAGS) ./test/suite/saas
+
 test-create-spring:
 	$(GO) test $(TESTFLAGS) ./test/suite/spring
 
 test-upgrade-ingress:
 	$(GO) test $(TESTFLAGS) ./test/suite/ingress
+
+test-upgrade-boot:
+	$(GO) test $(TESTFLAGS) ./test/suite/upgrade
 
 test-upgrade-platform:
 	$(GO) test $(TESTFLAGS) ./test/suite/platform
@@ -58,6 +67,9 @@ test-supported-quickstarts:
 
 test-devpod:
 	$(GO) test $(TESTFLAGS) ./test/suite/devpods
+
+test-jxui:
+	$(GO) test $(TESTFLAGS) ./test/suite/jxui
 
 #targets for individual quickstarts
 test-quickstart-golang-http:
@@ -74,10 +86,13 @@ bdd-init:
 	git config --global credential.helper store
 	git config --global --add user.name jenkins-x-bot
 	git config --global --add user.email jenkins-x@googlegroups.com
+	git config -l
 	jx step git validate
 	jx step git credentials
 	ls -al ~
 	cat ~/.gitconfig
 
-bdd: bdd-init test-create-spring
+bdd: bdd-init $(SUITE)
+
+saas: bdd test-saas
 

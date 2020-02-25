@@ -75,14 +75,14 @@ var _ = Describe("SaaS Configuration\n", func() {
 			})
 		})
 	})
-	//Describe("Given valid parameters", func() {
-	//	Context("when a saas cluster is configured", func() {
-	//		It("nexus does not have an ingress\n", func() {
-	//			const testSvc = "nexus"
-	//			test.notExpectIngress(testSvc)
-	//		})
-	//	})
-	//})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("nexus does not have an ingress\n", func() {
+				const testSvc = "nexus"
+				test.notExpectIngress(testSvc)
+			})
+		})
+	})
 	Describe("Given valid parameters", func() {
 		Context("when a saas cluster is configured", func() {
 			It("chartmuseum does not have an ingress\n", func() {

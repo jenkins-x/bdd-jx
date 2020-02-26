@@ -28,7 +28,7 @@ require (
 	github.com/gfleury/go-bitbucket-v1 v0.0.0-20190216152406-3a732135aa4d
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-openapi/jsonreference v0.19.2
-	github.com/go-openapi/spec v0.19.2
+	github.com/go-openapi/spec v0.19.3
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.3.1
@@ -43,9 +43,9 @@ require (
 	github.com/hpcloud/tail v1.0.0
 	github.com/iancoleman/orderedmap v0.0.0-20181121102841-22c6ecc9fe13
 	github.com/jenkins-x/draft-repo v0.0.0-20180417100212-2f66cc518135
-	github.com/jenkins-x/go-scm v1.5.60
+	github.com/jenkins-x/go-scm v1.5.77
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20200109001856-9433d1c29eca
+	github.com/jenkins-x/jx v0.0.0-20200226121148-017a8d003a15
 	github.com/jetstack/cert-manager v0.5.2
 	github.com/knative/build v0.7.0
 	github.com/knative/build-pipeline v0.1.0
@@ -72,13 +72,13 @@ require (
 	github.com/wbrefvem/go-bitbucket v0.0.0-20190128183802-fc08fd046abb
 	github.com/xanzy/go-gitlab v0.22.1
 	gocloud.dev v0.9.0
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
 	gopkg.in/AlecAivazis/survey.v1 v1.8.3
 	gopkg.in/src-d/go-git.v4 v4.5.0
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/api v0.0.0-20190718183219-b59d8169aab5
 	k8s.io/apiextensions-apiserver v0.0.0-20190718185103-d1ef975d28ce
 	k8s.io/apimachinery v0.0.0-20190703205208-4cfb76a8bf76
@@ -113,6 +113,3 @@ replace github.com/Azure/azure-sdk-for-go => github.com/Azure/azure-sdk-for-go v
 replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v10.15.5+incompatible
 
 replace github.com/banzaicloud/bank-vaults => github.com/banzaicloud/bank-vaults v0.0.0-20190508130850-5673d28c46bd
-
-// TODO: Remove once https://github.com/jenkins-x/go-scm/pull/65 is merged and we can update the real dependency
-replace github.com/jenkins-x/go-scm => github.com/abayer/go-scm v1.5.1-0.20200117190616-8db331f9cc60

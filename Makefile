@@ -5,6 +5,9 @@ PACKAGE_DIRS = $(shell $(GO) list ./test/...)
 
 BUILDFLAGS :=
 
+BUILD_TIME_CONFIG_FLAGS ?= ""
+TEST_BUILDFLAGS :=  -ldflags "$(BUILD_TIME_CONFIG_FLAGS)"
+
 TESTFLAGS ?= -v
 
 TESTFLAGS += -timeout 2h
@@ -80,6 +83,9 @@ test-import-golang-http-from-jenkins-x-yml:
 
 test-single-import:
 	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=${BDD_TEST_SINGLE_IMPORT}
+
+testbin:
+	$(GO) test $(TESTFLAGS) -c github.com/jenkins-x/bdd-jx/test/suite/quickstart -o build/bddjx $(TEST_BUILDFLAGS)
 
 bdd-init:
 	echo "About to run the BDD tests on the current cluster"

@@ -54,7 +54,6 @@ describe('Smoke Tests', function() {
             cy.get('[data-test=buildlist-search]').within(() => {
                 cy.get('input').type(testProjectName);
             });
-            cy.get('[data-test=buildlist-build]').should('have.length', 4);
             cy.get('[data-test=buildlist-build]').each(element => {
                 expect(element.text()).toContain(testProjectName);
             });

@@ -1,10 +1,16 @@
 package parsers
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"regexp"
 	"strconv"
 	"strings"
+)
+
+const (
+	// CreatedPRLogLinePrefix is the prefix we'll find on a log line that will be parsable
+	CreatedPRLogLinePrefix = "Created Pull Request: "
 )
 
 var createPullRequestOutputRegex = regexp.MustCompile(`^https:\/\/([^\/]*)\/(?:projects\/)?([^\/]*)\/(?:repos\/)?([^\/]*)\/(?:-\/)?(?:pull|pull-requests|merge_requests)\/([0-9]*)$`)
@@ -18,7 +24,7 @@ type CreatePullRequest struct {
 }
 
 func ParseJxCreatePullRequest(s string) (*CreatePullRequest, error) {
-	s = strings.TrimPrefix(s, "Created Pull Request: ")
+	s = strings.TrimPrefix(s, CreatedPRLogLinePrefix)
 	parts := createPullRequestOutputRegex.FindStringSubmatch(s)
 	if len(parts) != 5 {
 		return nil, errors.Errorf("Unable to parse %s as output from jx create pull request and has parts %#v", s, parts)
@@ -41,4 +47,13 @@ func ParseJxCreatePullRequest(s string) (*CreatePullRequest, error) {
 		PullRequestNumber: prn,
 		Url:               s,
 	}, nil
+}
+
+func ParseJxCreatePullRequestFromFullLog(s string) (*CreatePullRequest, error) {
+	for _, line := range strings.Split(strings.Replace(s, "\r\n", "\n", -1), "\n") {
+		if strings.HasPrefix(line, CreatedPRLogLinePrefix) {
+			return ParseJxCreatePullRequest(line)
+		}
+	}
+	return nil, fmt.Errorf("could not find %s in log output", CreatedPRLogLinePrefix)
 }

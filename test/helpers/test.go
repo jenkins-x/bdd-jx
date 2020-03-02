@@ -570,6 +570,16 @@ func (t *TestOptions) GetPullRequestWithTitle(client *github.Client, ctx context
 	return matchingPR, nil
 }
 
+// GetPullRequestByNumber Returns a pull request with the given owner, repo, and number
+func (t *TestOptions) GetPullRequestByNumber(client *github.Client, ctx context.Context, repoOwner string, repoName string, prNumber int) (*github.PullRequest, error) {
+	pr, _, err := client.PullRequests.Get(ctx, repoOwner, repoName, prNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	return pr, nil
+}
+
 // TailBuildLog tails the logs of the specified job
 func (t *TestOptions) TailBuildLog(jobName string, maxDuration time.Duration) {
 	args := []string{"get", "build", "logs", "--wait", jobName}
@@ -683,6 +693,13 @@ func (t *TestOptions) ExpectCommandExecution(dir string, commandTimeout time.Dur
 func (t *TestOptions) ExpectJxExecution(dir string, commandTimeout time.Duration, exitCode int, args ...string) {
 	r := runner.New(dir, &commandTimeout, exitCode)
 	r.Run(args...)
+}
+
+func (t *TestOptions) ExpectJxExecutionWithOutput(dir string, commandTimeout time.Duration, exitCode int, args ...string) string {
+	r := runner.New(dir, &commandTimeout, exitCode)
+	out, err := r.RunWithOutput(args...)
+	utils.ExpectNoError(err)
+	return out
 }
 
 // DeleteApplications should we delete applications after the quickstart has run
@@ -936,4 +953,31 @@ func (t *TestOptions) ExpectThatPRHasLabel(provider gits.GitProvider, pullReques
 	return RetryExponentialBackoff(TimeoutProwActionWait, f)
 }
 
-// AddAppTests Creates a jx add app test
+func (t *TestOptions) WaitForCreatedPRToMerge(gitHubClient *github.Client, ctx context.Context, prCreateOutput string) {
+	createdPR, err := parsers.ParseJxCreatePullRequestFromFullLog(prCreateOutput)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	waitForMergeFunc := func() error {
+		pr, err := t.GetPullRequestByNumber(gitHubClient, ctx, createdPR.Owner, createdPR.Repository, createdPR.PullRequestNumber)
+		if err != nil {
+			utils.LogInfof("WARNING: Error getting pull request: %s\n", err)
+			return err
+		}
+		if pr == nil {
+			err = fmt.Errorf("got a nil PR for %s", createdPR.Url)
+			utils.LogInfof("WARNING: %s\n", err)
+			return err
+		}
+		isMerged := pr.Merged
+		if isMerged != nil && *isMerged {
+			return nil
+		} else {
+			err = fmt.Errorf("PR %s not yet merged", createdPR.Url)
+			utils.LogInfof("WARNING: %s, sleeping and retrying\n", err)
+			return err
+		}
+	}
+
+	err = RetryExponentialBackoff(TimeoutUrlReturns, waitForMergeFunc)
+	Expect(err).ShouldNot(HaveOccurred())
+}

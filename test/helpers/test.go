@@ -247,7 +247,7 @@ func (t *TestOptions) GitOpsEnabled() bool {
 
 // NextBuildNumber returns the next build number for a given repo by looking at the SourceRepository CRD.
 func (t *TestOptions) NextBuildNumber(repo *gits.GitRepository) string {
-	crd := fmt.Sprintf("%s-%s", repo.Organisation, repo.Name)
+	crd := strings.ToLower(fmt.Sprintf("%s-%s", repo.Organisation, repo.Name))
 
 	args := []string{"get", "sourcerepository", crd, "-o", "json"}
 	command := exec.Command("kubectl", args...)

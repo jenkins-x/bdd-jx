@@ -56,6 +56,7 @@ func (t *AppTestOptions) UITest() bool {
 		if jxUiUrl := runner.JxUiUrl(); jxUiUrl != "" {
 			uiURL = jxUiUrl
 		} else {
+			var addAppJobName string
 			By("setting a temporary JX_HOME directory")
 			jxHome, err = ioutil.TempDir("", helpers.TempDirPrefix+"ui-jx-home-")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -82,26 +83,14 @@ func (t *AppTestOptions) UITest() bool {
 
 			By("install UI via 'jx add app'", func() {
 				By("installing the app")
-				args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees"}
-				t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
+				addAppJobName = fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
+				args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees", "--auto-merge"}
+				out := t.ExpectJxExecutionWithOutput(t.WorkDir, timeoutAppTests, 0, args...)
 
-				pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(pr).ShouldNot(BeNil())
-				Expect(*pr.State).Should(Equal("open"))
-
-				// Wait for the pipeline to be started before merging to avoid pipelinerun non unique name bug
-				// TODO: can be removed when builder includes https://github.com/jenkins-x/jx/pull/6322
-				time.Sleep(30 * time.Second)
-
-				By("merging the install app PR")
-				results, _, err := gitHubClient.PullRequests.Merge(ctx, gitInfo.Organisation, gitInfo.Name, *pr.Number, "PR merge", nil)
-				Expect(pr).ShouldNot(BeNil())
-				Expect(*results.Merged).Should(BeTrue())
+				t.WaitForCreatedPRToMerge(gitHubClient, ctx, out)
 
 				By("waiting for the build to complete")
-				jobName := fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
-				t.TailBuildLog(jobName, helpers.TimeoutBuildCompletes)
+				t.TailBuildLog(addAppJobName, helpers.TimeoutBuildCompletes)
 			})
 
 			By("ensure UI is installed", func() {
@@ -160,21 +149,14 @@ func (t *AppTestOptions) UITest() bool {
 			if runner.JxUiUrl() == "" {
 				return
 			}
-			args := []string{"delete", "app", uiAppName}
-			t.ExpectJxExecution(t.WorkDir, timeoutAppTests, 0, args...)
+			deleteAppJobName := fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
+			args := []string{"delete", "app", uiAppName, "--auto-merge"}
+			out := t.ExpectJxExecutionWithOutput(t.WorkDir, timeoutAppTests, 0, args...)
 
-			pr, err := helpers.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Delete %s", uiAppName))
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(pr).ShouldNot(BeNil())
-
-			By("merging the uninstall app PR")
-			results, _, err := gitHubClient.PullRequests.Merge(ctx, gitInfo.Organisation, gitInfo.Name, *pr.Number, "PR merge", nil)
-			Expect(pr).ShouldNot(BeNil())
-			Expect(*results.Merged).Should(BeTrue())
+			t.WaitForCreatedPRToMerge(gitHubClient, ctx, out)
 
 			By("waiting for the build to complete")
-			jobName := fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
-			t.TailBuildLog(jobName, helpers.TimeoutBuildCompletes)
+			t.TailBuildLog(deleteAppJobName, helpers.TimeoutBuildCompletes)
 		})
 
 		_ = os.RemoveAll(jxHome)

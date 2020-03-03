@@ -1,6 +1,6 @@
 cluster:
   clusterName: bdd-jx-bdd
-  environmentGitOwner: jenkins-x-bot-test
+  environmentGitOwner: jenkins-x-versions-bot-test
   project: jenkins-x-bdd3
   provider: gke
   zone: europe-west1-c
@@ -14,6 +14,7 @@ environments:
   - key: production
     owner: ""
     repository: ""
+gitops: true
 ingress:
   domain: ""
   externalDNS: false

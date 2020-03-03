@@ -89,7 +89,7 @@ func (t *AppTestOptions) UITest() bool {
 
 				provider, err := t.GetGitProvider()
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(provider).Should(BeNil())
+				Expect(provider).ShouldNot(BeNil())
 
 				t.WaitForCreatedPRToMerge(provider, out)
 
@@ -159,7 +159,7 @@ func (t *AppTestOptions) UITest() bool {
 
 			provider, err := t.GetGitProvider()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(provider).Should(BeNil())
+			Expect(provider).ShouldNot(BeNil())
 
 			t.WaitForCreatedPRToMerge(provider, out)
 

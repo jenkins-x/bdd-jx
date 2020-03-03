@@ -58,6 +58,7 @@ func (t *AppTestOptions) UITest() bool {
 	BeforeEach(func() {
 		By("setting the GitHub token")
 		t.SetGitHubToken()
+		t.SetApproverGitHubToken()
 	})
 
 	BeforeEach(func() {

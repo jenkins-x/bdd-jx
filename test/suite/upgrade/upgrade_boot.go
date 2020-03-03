@@ -85,6 +85,7 @@ var _ = Describe("upgrade boot", func() {
 	BeforeEach(func() {
 		By("setting the GitHub token")
 		test.SetGitHubToken()
+		test.SetApproverGitHubToken()
 	})
 
 	BeforeEach(func() {

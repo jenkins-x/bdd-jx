@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-github/v28/github"
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	"github.com/jenkins-x/bdd-jx/test/utils"
+	"github.com/jenkins-x/bdd-jx/test/utils/parsers"
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
 	"github.com/jenkins-x/jx/pkg/gits"
 	. "github.com/onsi/ginkgo"
@@ -88,14 +89,38 @@ func (t *AppTestOptions) UITest() bool {
 		It("install UI via 'jx add app'", func() {
 			By("installing the app")
 			addAppJobName = fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
-			args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees", "--auto-merge"}
+			args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees"}
 			out := t.ExpectJxExecutionWithOutput(t.WorkDir, timeoutAppTests, 0, args...)
+
+			createdPR, err := parsers.ParseJxCreatePullRequestFromFullLog(out)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(createdPR).ShouldNot(BeNil())
 
 			provider, err := t.GetGitProvider()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(provider).Should(BeNil())
+			approverProvider, err := t.GetApproverGitProvider()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(approverProvider).ShouldNot(BeNil())
 
-			t.WaitForCreatedPRToMerge(provider, out)
+			By("adding the approver user as a collaborator")
+			err = t.AddApproverAsCollaborator(provider, gitInfo.Organisation, gitInfo.Name)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			repoStruct := &gits.GitRepository{
+				Name:         gitInfo.Name,
+				Organisation: gitInfo.Organisation,
+			}
+			pr, err := provider.GetPullRequest(gitInfo.Organisation, repoStruct, createdPR.PullRequestNumber)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(pr).ShouldNot(BeNil())
+			Expect(*pr.State).Should(Equal("open"))
+
+			By("approving the upgrade PR")
+			err = t.ApprovePR(approverProvider, pr)
+
+			By("waiting for the upgrade PR to be merged")
+			t.WaitForPRToMerge(provider, pr.Owner, pr.Repo, *pr.Number, pr.URL)
 
 			By("waiting for the build to complete")
 			t.TailBuildLog(addAppJobName, helpers.TimeoutBuildCompletes)

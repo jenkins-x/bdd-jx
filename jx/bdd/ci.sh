@@ -73,9 +73,6 @@ jx step bdd \
     --no-delete-app \
     --no-delete-repo \
     --tests install \
-    --tests test-create-spring \
-    --tests test-single-import \
-    --tests test-quickstart-golang-http \
     --tests test-app-lifecycle \
     --verbose=true
 

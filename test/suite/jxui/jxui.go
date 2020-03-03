@@ -87,7 +87,11 @@ func (t *AppTestOptions) UITest() bool {
 				args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees", "--auto-merge"}
 				out := t.ExpectJxExecutionWithOutput(t.WorkDir, timeoutAppTests, 0, args...)
 
-				t.WaitForCreatedPRToMerge(gitHubClient, ctx, out)
+				provider, err := t.GetGitProvider()
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(provider).Should(BeNil())
+
+				t.WaitForCreatedPRToMerge(provider, out)
 
 				By("waiting for the build to complete")
 				t.TailBuildLog(addAppJobName, helpers.TimeoutBuildCompletes)
@@ -153,7 +157,11 @@ func (t *AppTestOptions) UITest() bool {
 			args := []string{"delete", "app", uiAppName, "--auto-merge"}
 			out := t.ExpectJxExecutionWithOutput(t.WorkDir, timeoutAppTests, 0, args...)
 
-			t.WaitForCreatedPRToMerge(gitHubClient, ctx, out)
+			provider, err := t.GetGitProvider()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(provider).Should(BeNil())
+
+			t.WaitForCreatedPRToMerge(provider, out)
 
 			By("waiting for the build to complete")
 			t.TailBuildLog(deleteAppJobName, helpers.TimeoutBuildCompletes)

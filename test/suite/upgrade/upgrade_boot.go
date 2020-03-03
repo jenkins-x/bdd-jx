@@ -6,6 +6,7 @@ import (
 	"github.com/google/go-github/v28/github"
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	"github.com/jenkins-x/bdd-jx/test/utils"
+	"github.com/jenkins-x/bdd-jx/test/utils/parsers"
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
 	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/gits"
@@ -37,15 +38,16 @@ func newTestCaseUpgradeBoot(cwd string, factory cmd.Factory) (*testCaseUpgradeBo
 	}, nil
 }
 
-func (t *testCaseUpgradeBoot) upgrade() {
+func (t *testCaseUpgradeBoot) upgrade() (string, error) {
 	allargs := []string{"upgrade", "boot", "-b"}
 	upgradeVersionRef := os.Getenv("JX_UPGRADE_VERSION_REF")
 	if upgradeVersionRef != "" {
 		utils.LogInfo(fmt.Sprintf("Using upgrade ref: %s", upgradeVersionRef))
 		allargs = append(allargs, fmt.Sprintf("--upgrade-version-stream-ref=%s", upgradeVersionRef))
 	}
-	t.Run(allargs...)
+	return t.RunWithOutput(allargs...)
 }
+
 func (t *testCaseUpgradeBoot) overwriteJxBinary() {
 	// TODO: We should get this working with jx upgrade cli
 	jxBinDir := os.Getenv("JX_BIN_DIR")
@@ -104,21 +106,42 @@ var _ = Describe("upgrade boot", func() {
 	Describe("Given valid parameters", func() {
 		Context("when running upgrade platform", func() {
 			It("updates the platform to the given version", func() {
+				provider, err := test.GetGitProvider()
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(provider).ShouldNot(BeNil())
+				approverProvider, err := test.GetApproverGitProvider()
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(approverProvider).ShouldNot(BeNil())
+
 				if os.Getenv("JX_UPGRADE_BIN_DIR") != "" {
 					test.overwriteJxBinary()
 				} else {
 					utils.LogInfo("JX_UPGRADE_BIN_DIR was not set so not upgrading using existing jx binary")
 				}
-				test.upgrade()
-				pr, err := test.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, "feat(config): upgrade configuration")
+				upgradeOutput, err := test.upgrade()
+				Expect(err).ShouldNot(HaveOccurred())
+				createdPR, err := parsers.ParseJxCreatePullRequestFromFullLog(upgradeOutput)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(createdPR).ShouldNot(BeNil())
+
+				repoStruct := &gits.GitRepository{
+					Name:         gitInfo.Name,
+					Organisation: gitInfo.Organisation,
+				}
+				pr, err := provider.GetPullRequest(gitInfo.Organisation, repoStruct, createdPR.PullRequestNumber)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(pr).ShouldNot(BeNil())
 				Expect(*pr.State).Should(Equal("open"))
 
-				By("merging the upgrade PR")
-				results, _, err := gitHubClient.PullRequests.Merge(ctx, gitInfo.Organisation, gitInfo.Name, *pr.Number, "PR merge", nil)
-				Expect(pr).ShouldNot(BeNil())
-				Expect(*results.Merged).Should(BeTrue())
+				By("adding the approver user as a collaborator")
+				err = test.AddApproverAsCollaborator(provider, gitInfo.Organisation, gitInfo.Name)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("approving the upgrade PR")
+				err = test.ApprovePR(approverProvider, pr)
+
+				By("waiting for the upgrade PR to be merged")
+				test.WaitForPRToMerge(provider, pr.Owner, pr.Repo, *pr.Number, pr.URL)
 
 				By("waiting for the build to complete")
 				jobName := fmt.Sprintf("%s/%s/master", gitInfo.Organisation, gitInfo.Name)

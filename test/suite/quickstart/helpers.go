@@ -120,17 +120,17 @@ func createQuickstartTests(quickstartName string) bool {
 							})
 
 							By("attempting to LGTM our own PR", func() {
-								err = T.AttemptToLGTMOwnPR(gitProvider, owner, applicationName)
+								err = T.AttemptToLGTMOwnPullRequest(gitProvider, owner, applicationName)
 								Expect(err).NotTo(HaveOccurred())
 							})
 
 							By("adding a hold label", func() {
-								err = T.AddHoldLabelToPRWithChatOpsCommand(gitProvider, owner, applicationName)
+								err = T.AddHoldLabelToPullRequestWithChatOpsCommand(gitProvider, owner, applicationName)
 								Expect(err).NotTo(HaveOccurred())
 							})
 
 							By("adding a WIP label", func() {
-								err = T.AddWIPLabelToPRByUpdatingTitle(gitProvider, owner, applicationName)
+								err = T.AddWIPLabelToPullRequestByUpdatingTitle(gitProvider, owner, applicationName)
 								Expect(err).NotTo(HaveOccurred())
 							})
 						}

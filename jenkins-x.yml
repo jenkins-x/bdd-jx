@@ -44,6 +44,16 @@ pipelineConfig:
                 key: password
           - name: XDG_CONFIG_HOME
             value: "/builder/home"
+          - name: BDD_APPROVER_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: jenkins-x-bot-test-github
+                key: username
+          - name: BDD_APPROVER_ACCESS_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: jenkins-x-bot-test-github
+                key: password
         stages:
           - name: bdd-stage
             options:

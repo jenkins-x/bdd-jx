@@ -1,9 +1,11 @@
 package upgrade
 
 import (
-	"context"
 	"fmt"
-	"github.com/google/go-github/v28/github"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	"github.com/jenkins-x/bdd-jx/test/utils"
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
@@ -11,10 +13,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/gits"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"io/ioutil"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
 )
 
 type testCaseUpgradeBoot struct {
@@ -46,6 +45,7 @@ func (t *testCaseUpgradeBoot) upgrade() {
 	}
 	t.Run(allargs...)
 }
+
 func (t *testCaseUpgradeBoot) overwriteJxBinary() {
 	// TODO: We should get this working with jx upgrade cli
 	jxBinDir := os.Getenv("JX_BIN_DIR")
@@ -61,12 +61,10 @@ func (t *testCaseUpgradeBoot) overwriteJxBinary() {
 
 var _ = Describe("upgrade boot", func() {
 	var (
-		test         *testCaseUpgradeBoot
-		jxHome       string
-		ctx          context.Context
-		gitHubClient *github.Client
-		gitInfo      *gits.GitRepository
-		err          error
+		test    *testCaseUpgradeBoot
+		jxHome  string
+		gitInfo *gits.GitRepository
+		err     error
 	)
 
 	BeforeEach(func() {
@@ -78,17 +76,6 @@ var _ = Describe("upgrade boot", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		_ = os.Setenv("JX_HOME", jxHome)
 		utils.LogInfo(fmt.Sprintf("Using '%s' as JX_HOME", jxHome))
-	})
-
-	BeforeEach(func() {
-		By("setting the GitHub token")
-		test.SetGitHubToken()
-	})
-
-	BeforeEach(func() {
-		By("setting up a GitHub client")
-		ctx = context.Background()
-		gitHubClient = test.GitHubClient()
 	})
 
 	BeforeEach(func() {
@@ -104,21 +91,27 @@ var _ = Describe("upgrade boot", func() {
 	Describe("Given valid parameters", func() {
 		Context("when running upgrade platform", func() {
 			It("updates the platform to the given version", func() {
+				provider, err := test.GetGitProvider()
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(provider).ShouldNot(BeNil())
+
 				if os.Getenv("JX_UPGRADE_BIN_DIR") != "" {
 					test.overwriteJxBinary()
 				} else {
 					utils.LogInfo("JX_UPGRADE_BIN_DIR was not set so not upgrading using existing jx binary")
 				}
 				test.upgrade()
-				pr, err := test.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, "feat(config): upgrade configuration")
+
+				pr, err := test.GetPullRequestWithTitle(provider, gitInfo.Organisation, gitInfo.Name, "feat(config): upgrade configuration")
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(pr).ShouldNot(BeNil())
 				Expect(*pr.State).Should(Equal("open"))
 
 				By("merging the upgrade PR")
-				results, _, err := gitHubClient.PullRequests.Merge(ctx, gitInfo.Organisation, gitInfo.Name, *pr.Number, "PR merge", nil)
-				Expect(pr).ShouldNot(BeNil())
-				Expect(*results.Merged).Should(BeTrue())
+				err = provider.MergePullRequest(pr, "PR merge")
+				Expect(err).ShouldNot(HaveOccurred())
+
+				test.WaitForPullRequestToMerge(provider, gitInfo.Organisation, gitInfo.Name, *pr.Number, pr.URL)
 
 				By("waiting for the build to complete")
 				jobName := fmt.Sprintf("%s/%s/master", gitInfo.Organisation, gitInfo.Name)

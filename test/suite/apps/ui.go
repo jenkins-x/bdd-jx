@@ -1,7 +1,6 @@
 package apps
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -9,7 +8,6 @@ import (
 	"os/exec"
 	"strconv"
 
-	"github.com/google/go-github/v28/github"
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	"github.com/jenkins-x/bdd-jx/test/utils"
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
@@ -39,11 +37,11 @@ var _ = Describe("Jenkins X UI tests", func() {
 
 func (t *AppTestOptions) UITest() bool {
 	var (
-		jxHome       string
-		ctx          context.Context
-		gitHubClient *github.Client
-		gitInfo      *gits.GitRepository
-		err          error
+		jxHome           string
+		gitInfo          *gits.GitRepository
+		err              error
+		provider         gits.GitProvider
+		approverProvider gits.GitProvider
 	)
 
 	BeforeEach(func() {
@@ -55,20 +53,19 @@ func (t *AppTestOptions) UITest() bool {
 	})
 
 	BeforeEach(func() {
-		By("setting the GitHub token")
-		t.SetGitHubToken()
-	})
-
-	BeforeEach(func() {
-		By("setting up a GitHub client")
-		ctx = context.Background()
-		gitHubClient = t.GitHubClient()
-	})
-
-	BeforeEach(func() {
 		By("parsing the gitops dev repo information")
 		gitInfo, err = gits.ParseGitURL(t.GitOpsDevRepo())
 		Expect(err).ShouldNot(HaveOccurred())
+
+		provider, err = t.GetGitProvider()
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(provider).ShouldNot(BeNil())
+
+		if helpers.PullRequestApproverUsername != "" {
+			approverProvider, err = t.GetApproverGitProvider()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(approverProvider).ShouldNot(BeNil())
+		}
 	})
 
 	AfterEach(func() {
@@ -80,7 +77,7 @@ func (t *AppTestOptions) UITest() bool {
 		var addAppJobName string
 		var deleteAppJobName string
 		It("ensure UI is not installed", func() {
-			pr, err := t.GetPullRequestWithTitle(gitHubClient, ctx, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
+			pr, err := t.GetPullRequestWithTitle(provider, gitInfo.Organisation, gitInfo.Name, fmt.Sprintf("Add %s %s", uiAppName, uiAppVersion))
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pr).Should(BeNil())
 		})
@@ -88,10 +85,17 @@ func (t *AppTestOptions) UITest() bool {
 		It("install UI via 'jx add app'", func() {
 			By("installing the app")
 			addAppJobName = fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
-			args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees", "--auto-merge"}
+			args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees"}
+			if helpers.PullRequestApproverUsername == "" {
+				args = append(args, "--auto-merge")
+			}
 			out := t.ExpectJxExecutionWithOutput(t.WorkDir, timeoutAppTests, 0, args...)
 
-			t.WaitForCreatedPRToMerge(gitHubClient, ctx, out)
+			if helpers.PullRequestApproverUsername != "" {
+				t.ApprovePullRequestFromLogOutput(provider, approverProvider, gitInfo, out)
+			}
+			By("waiting for the add app PR to be merged")
+			t.WaitForCreatedPullRequestToMerge(provider, out)
 
 			By("waiting for the build to complete")
 			t.TailBuildLog(addAppJobName, helpers.TimeoutBuildCompletes)
@@ -145,10 +149,16 @@ func (t *AppTestOptions) UITest() bool {
 
 		It("uninstall UI", func() {
 			deleteAppJobName = fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
-			args := []string{"delete", "app", uiAppName, "--auto-merge"}
+			args := []string{"delete", "app", uiAppName}
+			if helpers.PullRequestApproverUsername == "" {
+				args = append(args, "--auto-merge")
+			}
 			out := t.ExpectJxExecutionWithOutput(t.WorkDir, timeoutAppTests, 0, args...)
 
-			t.WaitForCreatedPRToMerge(gitHubClient, ctx, out)
+			if helpers.PullRequestApproverUsername != "" {
+				t.ApprovePullRequestFromLogOutput(provider, approverProvider, gitInfo, out)
+			}
+			t.WaitForCreatedPullRequestToMerge(provider, out)
 
 			By("waiting for the build to complete")
 			t.TailBuildLog(deleteAppJobName, helpers.TimeoutBuildCompletes)

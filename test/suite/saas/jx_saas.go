@@ -52,8 +52,6 @@ func (t *testCaseSaas) expectAllPodsNotInState(phase v1.PodPhase) {
 	}
 }
 
-
-
 func (t *testCaseSaas) notExpectIngress(name string) {
 	_, err := t.kubeClient.ExtensionsV1beta1().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
 	Expect(err).To(HaveOccurred())

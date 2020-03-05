@@ -21,6 +21,10 @@ func ParseJxGetApplications(s string) (map[string]Application, error) {
 	lines := strings.Split(strings.TrimSpace(s), "\n")
 	headerFound := false
 	for _, line := range lines {
+		// lets ignore any warnings
+		if strings.Contains(line, "WARNING") {
+			continue
+		}
 		// Ignore any output before the header
 		if strings.HasPrefix(line, "APPLICATION") {
 			headerFound = true

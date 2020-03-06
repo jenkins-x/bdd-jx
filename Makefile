@@ -34,7 +34,10 @@ clean:
 build:
 	$(GO) build $(BUILDFLAGS) ./test/...
 
-.PHONY: clean test build fmt
+build-all:
+	$(GO) test -run=nope -failfast -short ./test/...
+
+.PHONY: clean test build fmt build-all
 
 ### LEGACY TARGETS, use go test when running locally ###
 
@@ -73,6 +76,9 @@ test-devpod:
 
 test-jxui:
 	$(GO) test $(TESTFLAGS) ./test/suite/jxui
+
+test-lighthouse:
+	$(GO) test $(TESTFLAGS) ./test/suite/lighthouse
 
 #targets for individual quickstarts
 test-quickstart-golang-http:

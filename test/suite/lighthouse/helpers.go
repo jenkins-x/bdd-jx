@@ -30,7 +30,7 @@ pipelineConfig:
       - pipeline: pullRequest
         name: make-linux
         step:
-          sh: sleep 60 && exit 1
+          sh: sleep 15 && exit 1
 `
 )
 

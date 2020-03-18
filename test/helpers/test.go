@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/jenkins-x/jx/pkg/log"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -167,9 +168,26 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 		return nil, err
 	}
 
-	authConfigService, err := factory.CreateGitAuthConfigService(ns, "")
-	if err != nil {
-		return nil, err
+	useLocalAuthString := os.Getenv("USE_LOCAL_AUTH")
+	useLocalAuth := false
+	if useLocalAuthString == "true" {
+		useLocalAuth = true
+	}
+
+	var authConfigService auth.ConfigService
+
+	if useLocalAuth {
+		log.Logger().Infof("using local git auth config service")
+		authConfigService, err = factory.CreateLocalGitAuthConfigService()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		log.Logger().Infof("using git auth config service")
+		authConfigService, err = factory.CreateGitAuthConfigService(ns, "")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	config, err := authConfigService.LoadConfig()
@@ -1176,12 +1194,12 @@ func (t *TestOptions) WaitForPullRequestToMerge(provider gits.GitProvider, owner
 	waitForMergeFunc := func() error {
 		pr, err := provider.GetPullRequest(owner, repoStruct, prNumber)
 		if err != nil {
-			utils.LogInfof("WARNING: Error getting pull request: %s\n", err)
+			utils.LogInfof("WARNING: Error getting pull request: %s", err)
 			return err
 		}
 		if pr == nil {
 			err = fmt.Errorf("got a nil PR for %s", prURL)
-			utils.LogInfof("WARNING: %s\n", err)
+			utils.LogInfof("WARNING: %s", err)
 			return err
 		}
 		isMerged := pr.Merged
@@ -1189,7 +1207,7 @@ func (t *TestOptions) WaitForPullRequestToMerge(provider gits.GitProvider, owner
 			return nil
 		} else {
 			err = fmt.Errorf("PR %s not yet merged", prURL)
-			utils.LogInfof("WARNING: %s, sleeping and retrying\n", err)
+			utils.LogInfof("WARNING: %s, sleeping and retrying", err)
 			return err
 		}
 	}

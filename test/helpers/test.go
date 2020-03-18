@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/jenkins-x/jx/pkg/log"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -177,13 +176,13 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 	var authConfigService auth.ConfigService
 
 	if useLocalAuth {
-		log.Logger().Infof("using local git auth config service")
+		utils.LogInfof(("using local git auth config service")
 		authConfigService, err = factory.CreateLocalGitAuthConfigService()
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		log.Logger().Infof("using git auth config service")
+		utils.LogInfof("using git auth config service")
 		authConfigService, err = factory.CreateGitAuthConfigService(ns, "")
 		if err != nil {
 			return nil, err
@@ -211,7 +210,7 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 		return nil, fmt.Errorf("no config for git user auth found")
 	}
 
-	log.Logger().Infof("using user auth %s", userAuth.Username)
+	utils.LogInfof("using user auth %s", userAuth.Username)
 	gitProvider, err := gits.CreateProvider(authServer, userAuth, nil)
 	if err != nil {
 		return nil, err

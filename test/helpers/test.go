@@ -211,6 +211,7 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 		return nil, fmt.Errorf("no config for git user auth found")
 	}
 
+	log.Logger().Infof("using user auth %s", userAuth.Username)
 	gitProvider, err := gits.CreateProvider(authServer, userAuth, nil)
 	if err != nil {
 		return nil, err

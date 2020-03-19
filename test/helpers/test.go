@@ -96,6 +96,9 @@ var (
 
 	// PullRequestApproverToken is the access token used by the PullRequestApproverUsername user.
 	PullRequestApproverToken = utils.GetEnv(BDDPullRequestApproverTokenEnvVar, "")
+
+	// ForceLocalAuthConfig when enabled, the tests will only use the local auth config
+	ForceLocalAuthConfig = utils.GetEnv("BDD_FORCE_LOCAL_AUTH_CONFIG", "false")
 )
 
 // TestOptions is the base testing object
@@ -167,7 +170,7 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 		return nil, err
 	}
 
-	useLocalAuthString := os.Getenv("USE_LOCAL_AUTH")
+	useLocalAuthString := ForceLocalAuthConfig
 	useLocalAuth := false
 	if useLocalAuthString == "true" {
 		useLocalAuth = true

@@ -176,13 +176,13 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 	var authConfigService auth.ConfigService
 
 	if useLocalAuth {
-		utils.LogInfof("using local git auth config service")
+		utils.LogInfof("using local git auth config service\n")
 		authConfigService, err = factory.CreateLocalGitAuthConfigService()
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		utils.LogInfof("using git auth config service")
+		utils.LogInfof("using git auth config service\n")
 		authConfigService, err = factory.CreateGitAuthConfigService(ns, "")
 		if err != nil {
 			return nil, err
@@ -210,7 +210,7 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 		return nil, fmt.Errorf("no config for git user auth found")
 	}
 
-	utils.LogInfof("using user auth %s", userAuth.Username)
+	utils.LogInfof("using user auth %s\n", userAuth.Username)
 	gitProvider, err := gits.CreateProvider(authServer, userAuth, nil)
 	if err != nil {
 		return nil, err

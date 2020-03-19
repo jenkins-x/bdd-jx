@@ -176,7 +176,7 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 	var authConfigService auth.ConfigService
 
 	if useLocalAuth {
-		utils.LogInfof(("using local git auth config service")
+		utils.LogInfof("using local git auth config service")
 		authConfigService, err = factory.CreateLocalGitAuthConfigService()
 		if err != nil {
 			return nil, err

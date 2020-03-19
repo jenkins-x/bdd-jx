@@ -96,6 +96,9 @@ var (
 
 	// PullRequestApproverToken is the access token used by the PullRequestApproverUsername user.
 	PullRequestApproverToken = utils.GetEnv(BDDPullRequestApproverTokenEnvVar, "")
+
+	// ForceLocalAuthConfig when enabled, the tests will only use the local auth config
+	ForceLocalAuthConfig = utils.GetEnv("BDD_FORCE_LOCAL_AUTH_CONFIG", "false")
 )
 
 // TestOptions is the base testing object
@@ -167,9 +170,26 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 		return nil, err
 	}
 
-	authConfigService, err := factory.CreateGitAuthConfigService(ns, "")
-	if err != nil {
-		return nil, err
+	useLocalAuthString := ForceLocalAuthConfig
+	useLocalAuth := false
+	if useLocalAuthString == "true" {
+		useLocalAuth = true
+	}
+
+	var authConfigService auth.ConfigService
+
+	if useLocalAuth {
+		utils.LogInfof("using local git auth config service\n")
+		authConfigService, err = factory.CreateLocalGitAuthConfigService()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		utils.LogInfof("using git auth config service\n")
+		authConfigService, err = factory.CreateGitAuthConfigService(ns, "")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	config, err := authConfigService.LoadConfig()
@@ -193,6 +213,7 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 		return nil, fmt.Errorf("no config for git user auth found")
 	}
 
+	utils.LogInfof("using user auth %s\n", userAuth.Username)
 	gitProvider, err := gits.CreateProvider(authServer, userAuth, nil)
 	if err != nil {
 		return nil, err
@@ -1176,12 +1197,12 @@ func (t *TestOptions) WaitForPullRequestToMerge(provider gits.GitProvider, owner
 	waitForMergeFunc := func() error {
 		pr, err := provider.GetPullRequest(owner, repoStruct, prNumber)
 		if err != nil {
-			utils.LogInfof("WARNING: Error getting pull request: %s\n", err)
+			utils.LogInfof("WARNING: Error getting pull request: %s", err)
 			return err
 		}
 		if pr == nil {
 			err = fmt.Errorf("got a nil PR for %s", prURL)
-			utils.LogInfof("WARNING: %s\n", err)
+			utils.LogInfof("WARNING: %s", err)
 			return err
 		}
 		isMerged := pr.Merged
@@ -1189,7 +1210,7 @@ func (t *TestOptions) WaitForPullRequestToMerge(provider gits.GitProvider, owner
 			return nil
 		} else {
 			err = fmt.Errorf("PR %s not yet merged", prURL)
-			utils.LogInfof("WARNING: %s, sleeping and retrying\n", err)
+			utils.LogInfof("WARNING: %s, sleeping and retrying", err)
 			return err
 		}
 	}

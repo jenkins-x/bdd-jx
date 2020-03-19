@@ -206,6 +206,7 @@ func ensureConfiguration() error {
 	utils.LogInfof("BDD_TIMEOUT_APP_TESTS timeout value:                %s\n", os.Getenv("BDD_TIMEOUT_APP_TESTS"))
 	utils.LogInfof("BDD_TIMEOUT_SESSION_WAIT timeout value:             %s\n", os.Getenv("BDD_TIMEOUT_SESSION_WAIT"))
 	utils.LogInfof("BDD_TIMEOUT_DEVPOD timeout value:             	   %s\n", os.Getenv("BDD_TIMEOUT_DEVPOD"))
+	utils.LogInfof("BDD_FORCE_LOCAL_AUTH_CONFIG:             		   %s\n", os.Getenv("BDD_FORCE_LOCAL_AUTH_CONFIG"))
 	utils.LogInfof("SLOW_SPEC_THRESHOLD:                                %s\n", os.Getenv("SLOW_SPEC_THRESHOLD"))
 	utils.LogInfof("GHE_USER:                                           %s\n", os.Getenv("GHE_USER"))
 	utils.LogInfof("GHE_TOKEN:                                          %s\n", os.Getenv("GHE_TOKEN"))

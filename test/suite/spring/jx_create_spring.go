@@ -39,7 +39,7 @@ var _ = Describe("create spring\n", func() {
 				gitProviderUrl, err := T.GitProviderURL()
 				Expect(err).NotTo(HaveOccurred())
 				if gitProviderUrl != "" {
-					utils.LogInfof("Using Git provider URL %s\n", gitProviderUrl)
+					utils.LogInfof("Using Git provider URL %s", gitProviderUrl)
 					args = append(args, "--git-provider-url", gitProviderUrl)
 				}
 				argsStr := strings.Join(args, " ")

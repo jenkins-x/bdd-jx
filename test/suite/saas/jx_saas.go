@@ -51,8 +51,7 @@ func (t *testCaseSaas) expectJxLogFormat(format string) {
 			for _, env := range container.Env {
 				if env.Name == "JX_LOG_FORMAT" {
 					fmt.Printf("%s\n", pod.Name)
-					fmt.Printf("JX_LOG_FORMAT=%s\n", env.Value)
-					//Expect(env.Value).To(Equal(format))
+					Expect(env.Value).To(Equal(format))
 				}
 			}
 		}

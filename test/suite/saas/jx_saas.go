@@ -42,6 +42,23 @@ func (t *testCaseSaas) expectPod(name string, count int) {
 	Expect(len(pods.Items)).To(Equal(count))
 }
 
+func (t *testCaseSaas) expectJxLogFormat(format string) {
+	listOptions := metav1.ListOptions{}
+	pods, err := t.kubeClient.CoreV1().Pods(t.namespace).List(listOptions)
+	Expect(err).NotTo(HaveOccurred())
+	for _, pod := range pods.Items {
+		for _, container := range pod.Spec.Containers {
+			for _, env := range container.Env {
+				if env.Name == "JX_LOG_FORMAT" {
+					fmt.Printf("%s\n", pod.Name)
+					fmt.Printf("JX_LOG_FORMAT=%s\n", env.Value)
+					//Expect(env.Value).To(Equal(format))
+				}
+			}
+		}
+	}
+}
+
 func (t *testCaseSaas) expectAllPodsNotInState(phase v1.PodPhase) {
 	listOptions := metav1.ListOptions{}
 	pods, err := t.kubeClient.CoreV1().Pods(t.namespace).List(listOptions)
@@ -183,6 +200,13 @@ var _ = Describe("SaaS Configuration\n", func() {
 			It("pods not in Failed|Unknown state\n", func() {
 				test.expectAllPodsNotInState(v1.PodFailed)
 				test.expectAllPodsNotInState(v1.PodUnknown)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("pods should log to stackdriver\n", func() {
+				test.expectJxLogFormat("stackdriver")
 			})
 		})
 	})

@@ -739,7 +739,7 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 		// Check if the link exists and has the appropriate prefix, if appropriate
 		if LighthouseBaseReportURL != "" && matchedStatus != nil {
 			// We don't care about the build number.
-			expectedPrefix := fmt.Sprintf("%s/teams/jx/projects/%s/%s/PR-%d/", LighthouseBaseReportURL, pr.Owner, pr.Repo, pr.Number)
+			expectedPrefix := fmt.Sprintf("%s/teams/jx/projects/%s/%s/PR-%d/", LighthouseBaseReportURL, pr.Owner, pr.Repo, *pr.Number)
 			if !strings.HasPrefix(matchedStatus.TargetURL, expectedPrefix) {
 				errMsg := fmt.Sprintf("wrong or missing build link on status for PR %s/%s/%s. Expected %s, got %s", pr.Owner, pr.Repo, pr.NumberString(), expectedPrefix, matchedStatus.TargetURL)
 				utils.LogInfof("WARNING: %s\n", errMsg)

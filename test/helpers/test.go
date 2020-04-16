@@ -46,6 +46,8 @@ const (
 	BDDPullRequestApproverUsernameEnvVar = "BDD_APPROVER_USERNAME"
 	// BDDPullRequestApproverTokenEnvVar is the environment variable that we look at for the token for the approver in some tests.
 	BDDPullRequestApproverTokenEnvVar = "BDD_APPROVER_ACCESS_TOKEN"
+	// BDDLighthouseBaseReportURLEnvVar is the environment variable we look at to find the possible base URL for status reports in Lighthouse.
+	BDDLighthouseBaseReportURLEnvVar = "BDD_LIGHTHOUSE_BASE_REPORT_URL"
 )
 
 var (
@@ -99,6 +101,9 @@ var (
 
 	// ForceLocalAuthConfig when enabled, the tests will only use the local auth config
 	ForceLocalAuthConfig = utils.GetEnv("BDD_FORCE_LOCAL_AUTH_CONFIG", "false")
+
+	// LighthouseBaseReportURL is the base URL used by Lighthouse for status reporting, if set.
+	LighthouseBaseReportURL = utils.GetEnv(BDDLighthouseBaseReportURLEnvVar, "")
 )
 
 // TestOptions is the base testing object
@@ -711,6 +716,7 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 			}
 		}
 
+		var matchedStatus *gits.GitRepoStatus
 		var wrongStatuses []string
 
 		for _, c := range contexts {
@@ -719,6 +725,8 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 				wrongStatuses = append(wrongStatuses, fmt.Sprintf("%s: missing", c))
 			} else if status.State != desiredStatus {
 				wrongStatuses = append(wrongStatuses, fmt.Sprintf("%s: %s", c, status.State))
+			} else {
+				matchedStatus = status
 			}
 		}
 
@@ -726,6 +734,17 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 			errMsg := fmt.Sprintf("wrong or missing status for PR %s/%s/%d context(s): %s, expected %s", pr.Owner, pr.Repo, *pr.Number, strings.Join(wrongStatuses, ", "), desiredStatus)
 			utils.LogInfof("WARNING: %s\n", errMsg)
 			return errors.New(errMsg)
+		}
+
+		// Check if the link exists and has the appropriate prefix, if appropriate
+		if LighthouseBaseReportURL != "" && matchedStatus != nil {
+			// We don't care about the build number.
+			expectedPrefix := fmt.Sprintf("%s/teams/jx/projects/%s/%s/PR-%d/", LighthouseBaseReportURL, pr.Owner, pr.Repo, pr.Number)
+			if !strings.HasPrefix(matchedStatus.TargetURL, expectedPrefix) {
+				errMsg := fmt.Sprintf("wrong or missing build link on status for PR %s/%s/%s. Expected %s, got %s", pr.Owner, pr.Repo, pr.NumberString(), expectedPrefix, matchedStatus.TargetURL)
+				utils.LogInfof("WARNING: %s\n", errMsg)
+				return errors.New(errMsg)
+			}
 		}
 
 		return nil

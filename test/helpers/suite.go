@@ -211,6 +211,7 @@ func ensureConfiguration() error {
 	utils.LogInfof("GHE_USER:                                           %s\n", os.Getenv("GHE_USER"))
 	utils.LogInfof("GHE_TOKEN:                                          %s\n", os.Getenv("GHE_TOKEN"))
 	utils.LogInfof("GHE_PROVIDER_URL:                                   %s\n", os.Getenv("GHE_PROVIDER_URL"))
+	utils.LogInfof("BDD_LIGHTHOUSE_BASE_REPORT_URL:                     %s\n", LighthouseBaseReportURL)
 	return nil
 }
 

@@ -188,9 +188,25 @@ var _ = Describe("SaaS Configuration\n", func() {
 	})
 	Describe("Given valid parameters", func() {
 		Context("when a saas cluster is configured", func() {
-			It("tide pod is running\n", func() {
-				const testPod = "tide"
+			It("lighthouse-foghorn pod is running\n", func() {
+				const testPod = "lighthouse-foghorn"
 				test.expectPod(testPod, 1)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("lighthouse-keeper pod is running\n", func() {
+				const testPod = "lighthouse-keeper"
+				test.expectPod(testPod, 1)
+			})
+		})
+	})
+	Describe("Given valid parameters", func() {
+		Context("when a saas cluster is configured", func() {
+			It("lighthouse-webhooks pod is running\n", func() {
+				const testPod = "lighthouse-webhooks"
+				test.expectPod(testPod, 2)
 			})
 		})
 	})

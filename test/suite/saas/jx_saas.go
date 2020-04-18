@@ -1,11 +1,13 @@
 package saas
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"io"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -64,6 +66,13 @@ func (t *testCaseSaas) expectAllPodsNotInState(phase v1.PodPhase) {
 	Expect(err).NotTo(HaveOccurred())
 	for _, pod := range pods.Items {
 		if !strings.Contains(pod.Labels["job-name"],"jx-boot") {
+
+			if pod.Status.Phase == phase {
+				fmt.Println("=======================================================")
+				fmt.Println(pod.Name)
+				fmt.Println("=======================================================")
+				fmt.Printf(getPodLogs(t.kubeClient, pod))
+			}
 			Expect(pod.Status.Phase).NotTo(Equal(phase), fmt.Sprintf("pod %s is in phase %s", pod.Name, pod.Status.Phase))
 		}
 	}
@@ -72,6 +81,26 @@ func (t *testCaseSaas) expectAllPodsNotInState(phase v1.PodPhase) {
 func (t *testCaseSaas) notExpectIngress(name string) {
 	_, err := t.kubeClient.ExtensionsV1beta1().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
 	Expect(err).To(HaveOccurred())
+}
+
+func getPodLogs(kc kubernetes.Interface, pod v1.Pod) string {
+	podLogOpts := v1.PodLogOptions{}
+
+	req := kc.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
+	podLogs, err := req.Stream()
+	if err != nil {
+		return "error in opening stream"
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "error in copy information from podLogs to buf"
+	}
+	str := buf.String()
+
+	return str
 }
 
 var _ = Describe("SaaS Configuration\n", func() {

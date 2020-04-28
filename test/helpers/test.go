@@ -965,11 +965,16 @@ func (t *TestOptions) CreateIssueAndAssignToUserWithChatOpsCommand(issue *gits.G
 
 	utils.LogInfof("created issue with number %d\n", *createdIssue.Number)
 
+	cmd := "assign"
+	// Deal with GitLab hijacking /assign
+	if provider.Kind() == "gitlab" {
+		cmd = "lh-" + cmd
+	}
 	err = provider.CreateIssueComment(
 		issue.Owner,
 		issue.Repo,
 		*createdIssue.Number,
-		fmt.Sprintf("/assign %s", provider.CurrentUsername()),
+		fmt.Sprintf("/%s %s", cmd, provider.CurrentUsername()),
 	)
 	if err != nil {
 		return err
@@ -1039,7 +1044,12 @@ func (t *TestOptions) ApprovePullRequest(defaultProvider gits.GitProvider, appro
 	Expect(err).ShouldNot(HaveOccurred())
 
 	By("approving the PR")
-	err = approverProvider.AddPRComment(pullRequest, "/approve")
+	cmd := "approve"
+	if approverProvider.Kind() == "gitlab" {
+		cmd = "lh-" + cmd
+	}
+	utils.LogInfof("COMMAND FOR KIND %s IS: %s\n", approverProvider.Kind(), cmd)
+	err = approverProvider.AddPRComment(pullRequest, fmt.Sprintf("/%s", cmd))
 	if err != nil {
 		return err
 	}

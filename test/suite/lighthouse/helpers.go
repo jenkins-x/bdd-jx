@@ -108,6 +108,10 @@ func ChatOpsTests() bool {
 						Expect(ownersPR).ShouldNot(BeNil())
 
 						By("merging the OWNERS PR")
+						// GitLab seems to want us to sleep a bit after creation
+						if provider.Kind() == "gitlab" {
+							time.Sleep(30 * time.Second)
+						}
 						err = provider.MergePullRequest(ownersPR, "PR merge")
 						Expect(err).ShouldNot(HaveOccurred())
 
@@ -138,20 +142,25 @@ func ChatOpsTests() bool {
 						T.WaitForPullRequestCommitStatus(provider, pr, "failure", []string{defaultContext})
 					})
 
-					By("attempting to LGTM our own PR", func() {
-						err = T.AttemptToLGTMOwnPullRequest(provider, pr)
-						Expect(err).NotTo(HaveOccurred())
-					})
+					if provider.Kind() != "gitlab" {
+						By("attempting to LGTM our own PR", func() {
+							err = T.AttemptToLGTMOwnPullRequest(provider, pr)
+							Expect(err).NotTo(HaveOccurred())
+						})
+					}
 
 					By("adding a hold label", func() {
 						err = T.AddHoldLabelToPullRequestWithChatOpsCommand(provider, pr)
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					By("adding a WIP label", func() {
-						err = T.AddWIPLabelToPullRequestByUpdatingTitle(provider, pr)
-						Expect(err).NotTo(HaveOccurred())
-					})
+					// Adding WIP to a MR title is hijacked by GitLab and currently doesn't send a webhook event, so skip for now.
+					if provider.Kind() != "gitlab" {
+						By("adding a WIP label", func() {
+							err = T.AddWIPLabelToPullRequestByUpdatingTitle(provider, pr)
+							Expect(err).NotTo(HaveOccurred())
+						})
+					}
 
 					By("approving pull request", func() {
 						err = T.ApprovePullRequest(provider, approverProvider, pr)

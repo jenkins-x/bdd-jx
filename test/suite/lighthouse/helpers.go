@@ -139,7 +139,7 @@ func ChatOpsTests() bool {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(pr).ShouldNot(BeNil())
 
-						T.WaitForPullRequestCommitStatus(provider, pr, "failure", []string{defaultContext})
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
 					})
 
 					if provider.Kind() != "gitlab" {
@@ -173,22 +173,22 @@ func ChatOpsTests() bool {
 						err = approverProvider.AddPRComment(pr, "/retest")
 						Expect(err).ShouldNot(HaveOccurred())
 
-						// Wait until we see a pending status, meaning we've got a new build
-						T.WaitForPullRequestCommitStatus(provider, pr, "pending", []string{defaultContext})
+						// Wait until we see a pending or running status, meaning we've got a new build
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "pending", "running")
 
 						// Wait until we see the build fail.
-						T.WaitForPullRequestCommitStatus(provider, pr, "failure", []string{defaultContext})
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
 					})
 
 					By("'/test this' with it failing again", func() {
 						err = approverProvider.AddPRComment(pr, "/test this")
 						Expect(err).ShouldNot(HaveOccurred())
 
-						// Wait until we see a pending status, meaning we've got a new build
-						T.WaitForPullRequestCommitStatus(provider, pr, "pending", []string{defaultContext})
+						// Wait until we see a pending or running status, meaning we've got a new build
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "pending", "running")
 
 						// Wait until we see the build fail.
-						T.WaitForPullRequestCommitStatus(provider, pr, "failure", []string{defaultContext})
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
 					})
 
 					// '/override' has to be done by a repo admin, so use the bot user.
@@ -198,23 +198,25 @@ func ChatOpsTests() bool {
 						Expect(err).ShouldNot(HaveOccurred())
 
 						// Wait until we see a success status
-						T.WaitForPullRequestCommitStatus(provider, pr, "success", []string{defaultContext})
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "success")
 
 						T.WaitForPullRequestToMerge(provider, pr.Owner, pr.Repo, *pr.Number, pr.URL)
 					})
 
 					// TODO: Later: add multiple contexts, one more required, one more optional
 
-					By("creating an issue and assigning it to a valid user", func() {
-						issue := &gits.GitIssue{
-							Owner: T.GetGitOrganisation(),
-							Repo:  T.GetApplicationName(),
-							Title: "Test the /assign command",
-							Body:  "This tests assigning a user using a ChatOps command",
-						}
-						err = T.CreateIssueAndAssignToUserWithChatOpsCommand(issue, provider)
-						Expect(err).NotTo(HaveOccurred())
-					})
+					if provider.Kind() != "gitlab" {
+						By("creating an issue and assigning it to a valid user", func() {
+							issue := &gits.GitIssue{
+								Owner: T.GetGitOrganisation(),
+								Repo:  T.GetApplicationName(),
+								Title: "Test the /assign command",
+								Body:  "This tests assigning a user using a ChatOps command",
+							}
+							err = T.CreateIssueAndAssignToUserWithChatOpsCommand(issue, provider)
+							Expect(err).NotTo(HaveOccurred())
+						})
+					}
 
 					if T.DeleteApplications() {
 						args = []string{"delete", "application", "-b", T.ApplicationName}

@@ -6,7 +6,7 @@ require (
 	github.com/google/go-github/v28 v28.1.1
 	github.com/jenkins-x/go-scm v1.5.90
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20200428172844-e2bf23f9b390
+	github.com/jenkins-x/jx v0.0.0-20200429072337-ecafbe2d3ce6
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1

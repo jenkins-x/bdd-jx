@@ -403,10 +403,8 @@ github.com/jenkins-x/go-scm v1.5.90 h1:8XWoYB8xnszRhqDJcEwr8Z/c71Jk5CKuMNZWsmX47
 github.com/jenkins-x/go-scm v1.5.90/go.mod h1:PCT338UhP/pQ0IeEeMEf/hoLTYKcH7qjGEKd7jPkeYg=
 github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314 h1:kyBMx/ucSV92S+umX/V6DDaPNynlFFOM9MGJWApltoU=
 github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314/go.mod h1:C6j5HgwlHGjRU27W4XCs6jXksqYFo8OdBu+p44jqQeM=
-github.com/jenkins-x/jx v0.0.0-20200413182250-109f0011927c h1:T/0yDxfeerBv2btNrIFTtlJdgdr9al/UNgvEaeRhqtw=
-github.com/jenkins-x/jx v0.0.0-20200413182250-109f0011927c/go.mod h1:1rj7aDeo0CG4Wg6vzFsslR843L692yr5F6Bg+wW5Njs=
-github.com/jenkins-x/jx v0.0.0-20200428172844-e2bf23f9b390 h1:9nEGaCHSdFAN2EP8wK4xU5KOhchxUzCMPl1RvcJ3FPA=
-github.com/jenkins-x/jx v0.0.0-20200428172844-e2bf23f9b390/go.mod h1:AJ/IR1nGGbDLePNIxD0X9yiGGmlIJDB7+OuiBcT+KHo=
+github.com/jenkins-x/jx v0.0.0-20200429072337-ecafbe2d3ce6 h1:SIQWyvWo0UNqEHo6VrwDQFdlzi7l0Ymm7xlSGWul2uI=
+github.com/jenkins-x/jx v0.0.0-20200429072337-ecafbe2d3ce6/go.mod h1:AJ/IR1nGGbDLePNIxD0X9yiGGmlIJDB7+OuiBcT+KHo=
 github.com/jenkins-x/sonobuoy v0.11.7-0.20190318120422-253758214767 h1:lKtC9uHyWi8wd+EUch3Pfzk3/8XSJvYRJhvk9dK4YKY=
 github.com/jenkins-x/sonobuoy v0.11.7-0.20190318120422-253758214767/go.mod h1:UR3AoCKJHHKi2AoOWeFbZcMKyd5LqQkdCRgwqZkX/io=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=

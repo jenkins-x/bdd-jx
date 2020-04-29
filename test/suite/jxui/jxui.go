@@ -139,7 +139,7 @@ func (t *AppTestOptions) UITest() bool {
 					if err != nil {
 						return err
 					}
-					Expect(string(contents)).Should(ContainSubstring("<title>CJXD UI</title>"))
+					Expect(string(contents)).Should(ContainSubstring("<title>JX UI</title>"))
 					return nil
 				}
 

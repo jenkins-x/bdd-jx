@@ -2,6 +2,7 @@ package quickstart
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -62,12 +63,18 @@ func createQuickstartTests(quickstartName string) bool {
 
 			}
 			rand.Seed(GinkgoRandomSeed())
-			applicationName := helpers.TempDirPrefix + qsAbbr + "-" + strconv.FormatInt(rand.Int63(), 10)
+			applicationName := helpers.TempDirPrefix + qsAbbr + "-" + strconv.FormatInt(rand.Int63(), 10)[:8]
 			T = helpers.TestOptions{
 				ApplicationName: applicationName,
 				WorkDir:         helpers.WorkDir,
 			}
 			T.GitProviderURL()
+			wd, err := ioutil.TempDir("", helpers.TempDirPrefix)
+			Expect(err).NotTo(HaveOccurred())
+			err = os.MkdirAll(wd, 0760)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(wd).To(BeADirectory())
+			helpers.AssignWorkDirValue(wd)
 
 			utils.LogInfof("Creating application %s in dir %s\n", util.ColorInfo(applicationName), util.ColorInfo(helpers.WorkDir))
 		})
@@ -127,26 +134,8 @@ func createQuickstartTests(quickstartName string) bool {
 							T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
 						})
 					}
-				})
-			})
-		})
-		Describe("Create a quickstart with invalid parameters", func() {
-			Context("when -p param (project name) is missing", func() {
-				It("exits with signal 1", func() {
-					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-f", quickstartName}
-					argsStr := strings.Join(args, " ")
-					By(fmt.Sprintf("calling jx %s", argsStr), func() {
-						T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 1, args...)
-					})
-				})
-			})
-			Context("when -f param (filter) does not match any quickstart", func() {
-				It("exits with signal 1", func() {
-					args := []string{"create", "quickstart", "-b", "--org", T.GetGitOrganisation(), "-p", T.ApplicationName, "-f", "the_derek_zoolander_app_for_being_really_really_good_looking"}
-					argsStr := strings.Join(args, " ")
-					By(fmt.Sprintf("calling jx %s", argsStr), func() {
-						T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 1, args...)
-					})
+
+
 				})
 			})
 		})

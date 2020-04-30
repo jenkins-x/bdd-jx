@@ -37,7 +37,7 @@ func AllQuickstartsTest() []bool {
 		panic(errors.WithStack(err))
 	}
 	tests := make([]bool, 0)
-	for _, testQuickstartName := range IncludedQuickstarts {
+	for _, testQuickstartName := range []string{"golang-http", "golang-http", "golang-http", "golang-http", "golang-http", "golang-http", "golang-http", "golang-http", "golang-http", "golang-http"} {
 		tests = append(tests, CreateQuickstartsTests(testQuickstartName))
 	}
 	return tests

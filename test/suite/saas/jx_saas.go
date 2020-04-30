@@ -63,7 +63,7 @@ func (t *testCaseSaas) expectAllPodsNotInState(phase v1.PodPhase) {
 	pods, err := t.kubeClient.CoreV1().Pods(t.namespace).List(listOptions)
 	Expect(err).NotTo(HaveOccurred())
 	for _, pod := range pods.Items {
-		if !strings.Contains(pod.Labels["job-name"],"jx-boot") {
+		if !strings.Contains(pod.Labels["job-name"], "jx-boot") {
 			Expect(pod.Status.Phase).NotTo(Equal(phase), fmt.Sprintf("pod %s is in phase %s", pod.Name, pod.Status.Phase))
 		}
 	}

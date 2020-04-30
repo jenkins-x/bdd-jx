@@ -653,7 +653,7 @@ func (t *TestOptions) ApprovePullRequestFromLogOutput(provider gits.GitProvider,
 	pr, err := provider.GetPullRequest(gitInfo.Organisation, repoStruct, createdPR.PullRequestNumber)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(pr).ShouldNot(BeNil())
-	Expect(*pr.State).Should(Equal("open"))
+	Expect(*pr.State).Should(Or(Equal("open"), Equal("opened")))
 
 	By("approving the PR")
 	err = t.ApprovePullRequest(provider, approverProvider, pr)
@@ -664,6 +664,10 @@ func (t *TestOptions) ApprovePullRequestFromLogOutput(provider gits.GitProvider,
 func (t *TestOptions) AddApproverAsCollaborator(provider gits.GitProvider, approverProvider gits.GitProvider, repoOwner string, repoName string) error {
 	err := provider.AddCollaborator(PullRequestApproverUsername, repoOwner, repoName)
 	if err != nil {
+		// Ignore the error and just return if the provider is gitlab and the error contains "Member already exists"
+		if strings.Contains(err.Error(), "Member already exists") {
+			return nil
+		}
 		return err
 	}
 	invites, _, err := approverProvider.ListInvitations()
@@ -696,7 +700,7 @@ func (t *TestOptions) GetPullRequestByNumber(provider gits.GitProvider, repoOwne
 
 // WaitForPullRequestCommitStatus checks a pull request until either it reaches a given status in all the contexts supplied
 // or a timeout is reached.
-func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, pr *gits.GitPullRequest, desiredStatus string, contexts []string) {
+func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, pr *gits.GitPullRequest, contexts []string, desiredStatuses ...string) {
 	Expect(pr.LastCommitSha).ShouldNot(Equal(""))
 
 	checkPRStatuses := func() error {
@@ -706,11 +710,21 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 			return err
 		}
 		contextStatuses := make(map[string]*gits.GitRepoStatus)
-		for _, status := range statuses {
+		// For GitHub, only set the status if it's the first one we see for the context, which is always the newest
+		// For GitLab, ordering is actually the inverse,
+
+		var orderedStatuses []*gits.GitRepoStatus
+		if provider.Kind() == "gitlab" {
+			for i := len(statuses) - 1; i >= 0; i-- {
+				orderedStatuses = append(orderedStatuses, statuses[i])
+			}
+		} else {
+			orderedStatuses = append(orderedStatuses, statuses...)
+		}
+		for _, status := range orderedStatuses {
 			if status == nil {
 				return err
 			}
-			// Only set the status if it's the first one we see for the context, which is always the newest
 			if _, exists := contextStatuses[status.Context]; !exists {
 				contextStatuses[status.Context] = status
 			}
@@ -723,7 +737,7 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 			status, ok := contextStatuses[c]
 			if !ok || status == nil {
 				wrongStatuses = append(wrongStatuses, fmt.Sprintf("%s: missing", c))
-			} else if status.State != desiredStatus {
+			} else if !isADesiredStatus(status.State, desiredStatuses) {
 				wrongStatuses = append(wrongStatuses, fmt.Sprintf("%s: %s", c, status.State))
 			} else {
 				matchedStatus = status
@@ -731,7 +745,7 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 		}
 
 		if len(wrongStatuses) > 0 {
-			errMsg := fmt.Sprintf("wrong or missing status for PR %s/%s/%d context(s): %s, expected %s", pr.Owner, pr.Repo, *pr.Number, strings.Join(wrongStatuses, ", "), desiredStatus)
+			errMsg := fmt.Sprintf("wrong or missing status for PR %s/%s/%d context(s): %s, expected %s", pr.Owner, pr.Repo, *pr.Number, strings.Join(wrongStatuses, ", "), strings.Join(desiredStatuses, ","))
 			utils.LogInfof("WARNING: %s\n", errMsg)
 			return errors.New(errMsg)
 		}
@@ -750,8 +764,22 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 		return nil
 	}
 
-	err := RetryExponentialBackoff(TimeoutPipelineActivityComplete, checkPRStatuses)
+	exponentialBackOff := backoff.NewExponentialBackOff()
+	exponentialBackOff.MaxElapsedTime = TimeoutPipelineActivityComplete
+	exponentialBackOff.MaxInterval = 10 * time.Second
+	exponentialBackOff.Reset()
+	err := backoff.Retry(checkPRStatuses, exponentialBackOff)
+
 	Expect(err).ShouldNot(HaveOccurred())
+}
+
+func isADesiredStatus(status string, desiredStatuses []string) bool {
+	for _, s := range desiredStatuses {
+		if status == s {
+			return true
+		}
+	}
+	return false
 }
 
 // TailBuildLog tails the logs of the specified job
@@ -821,7 +849,7 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 	return buildNumber
 }
 
-// RetryExponentialBackoff retries the given function up to the maximum duration
+// Retry retries the given function up to the maximum duration
 func Retry(maxDuration time.Duration, f func() error) error {
 	exponentialBackOff := backoff.NewExponentialBackOff()
 	exponentialBackOff.MaxElapsedTime = maxDuration
@@ -965,11 +993,16 @@ func (t *TestOptions) CreateIssueAndAssignToUserWithChatOpsCommand(issue *gits.G
 
 	utils.LogInfof("created issue with number %d\n", *createdIssue.Number)
 
+	cmd := "assign"
+	// Deal with GitLab hijacking /assign
+	if provider.Kind() == "gitlab" {
+		cmd = "lh-" + cmd
+	}
 	err = provider.CreateIssueComment(
 		issue.Owner,
 		issue.Repo,
 		*createdIssue.Number,
-		fmt.Sprintf("/assign %s", provider.CurrentUsername()),
+		fmt.Sprintf("/%s %s", cmd, provider.CurrentUsername()),
 	)
 	if err != nil {
 		return err
@@ -1039,7 +1072,11 @@ func (t *TestOptions) ApprovePullRequest(defaultProvider gits.GitProvider, appro
 	Expect(err).ShouldNot(HaveOccurred())
 
 	By("approving the PR")
-	err = approverProvider.AddPRComment(pullRequest, "/approve")
+	cmd := "approve"
+	if approverProvider.Kind() == "gitlab" {
+		cmd = "lh-" + cmd
+	}
+	err = approverProvider.AddPRComment(pullRequest, fmt.Sprintf("/%s", cmd))
 	if err != nil {
 		return err
 	}
@@ -1216,12 +1253,12 @@ func (t *TestOptions) WaitForPullRequestToMerge(provider gits.GitProvider, owner
 	waitForMergeFunc := func() error {
 		pr, err := provider.GetPullRequest(owner, repoStruct, prNumber)
 		if err != nil {
-			utils.LogInfof("WARNING: Error getting pull request: %s", err)
+			utils.LogInfof("WARNING: Error getting pull request: %s\n", err)
 			return err
 		}
 		if pr == nil {
 			err = fmt.Errorf("got a nil PR for %s", prURL)
-			utils.LogInfof("WARNING: %s", err)
+			utils.LogInfof("WARNING: %s\n", err)
 			return err
 		}
 		isMerged := pr.Merged
@@ -1229,7 +1266,7 @@ func (t *TestOptions) WaitForPullRequestToMerge(provider gits.GitProvider, owner
 			return nil
 		} else {
 			err = fmt.Errorf("PR %s not yet merged", prURL)
-			utils.LogInfof("WARNING: %s, sleeping and retrying", err)
+			utils.LogInfof("WARNING: %s, sleeping and retrying\n", err)
 			return err
 		}
 	}

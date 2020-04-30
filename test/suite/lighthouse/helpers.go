@@ -108,6 +108,10 @@ func ChatOpsTests() bool {
 						Expect(ownersPR).ShouldNot(BeNil())
 
 						By("merging the OWNERS PR")
+						// GitLab seems to want us to sleep a bit after creation
+						if provider.Kind() == "gitlab" {
+							time.Sleep(30 * time.Second)
+						}
 						err = provider.MergePullRequest(ownersPR, "PR merge")
 						Expect(err).ShouldNot(HaveOccurred())
 
@@ -135,23 +139,28 @@ func ChatOpsTests() bool {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(pr).ShouldNot(BeNil())
 
-						T.WaitForPullRequestCommitStatus(provider, pr, "failure", []string{defaultContext})
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
 					})
 
-					By("attempting to LGTM our own PR", func() {
-						err = T.AttemptToLGTMOwnPullRequest(provider, pr)
-						Expect(err).NotTo(HaveOccurred())
-					})
+					if provider.Kind() != "gitlab" {
+						By("attempting to LGTM our own PR", func() {
+							err = T.AttemptToLGTMOwnPullRequest(provider, pr)
+							Expect(err).NotTo(HaveOccurred())
+						})
+					}
 
 					By("adding a hold label", func() {
 						err = T.AddHoldLabelToPullRequestWithChatOpsCommand(provider, pr)
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					By("adding a WIP label", func() {
-						err = T.AddWIPLabelToPullRequestByUpdatingTitle(provider, pr)
-						Expect(err).NotTo(HaveOccurred())
-					})
+					// Adding WIP to a MR title is hijacked by GitLab and currently doesn't send a webhook event, so skip for now.
+					if provider.Kind() != "gitlab" {
+						By("adding a WIP label", func() {
+							err = T.AddWIPLabelToPullRequestByUpdatingTitle(provider, pr)
+							Expect(err).NotTo(HaveOccurred())
+						})
+					}
 
 					By("approving pull request", func() {
 						err = T.ApprovePullRequest(provider, approverProvider, pr)
@@ -164,22 +173,22 @@ func ChatOpsTests() bool {
 						err = approverProvider.AddPRComment(pr, "/retest")
 						Expect(err).ShouldNot(HaveOccurred())
 
-						// Wait until we see a pending status, meaning we've got a new build
-						T.WaitForPullRequestCommitStatus(provider, pr, "pending", []string{defaultContext})
+						// Wait until we see a pending or running status, meaning we've got a new build
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "pending", "running")
 
 						// Wait until we see the build fail.
-						T.WaitForPullRequestCommitStatus(provider, pr, "failure", []string{defaultContext})
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
 					})
 
 					By("'/test this' with it failing again", func() {
 						err = approverProvider.AddPRComment(pr, "/test this")
 						Expect(err).ShouldNot(HaveOccurred())
 
-						// Wait until we see a pending status, meaning we've got a new build
-						T.WaitForPullRequestCommitStatus(provider, pr, "pending", []string{defaultContext})
+						// Wait until we see a pending or running status, meaning we've got a new build
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "pending", "running")
 
 						// Wait until we see the build fail.
-						T.WaitForPullRequestCommitStatus(provider, pr, "failure", []string{defaultContext})
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
 					})
 
 					// '/override' has to be done by a repo admin, so use the bot user.
@@ -189,23 +198,25 @@ func ChatOpsTests() bool {
 						Expect(err).ShouldNot(HaveOccurred())
 
 						// Wait until we see a success status
-						T.WaitForPullRequestCommitStatus(provider, pr, "success", []string{defaultContext})
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "success")
 
 						T.WaitForPullRequestToMerge(provider, pr.Owner, pr.Repo, *pr.Number, pr.URL)
 					})
 
 					// TODO: Later: add multiple contexts, one more required, one more optional
 
-					By("creating an issue and assigning it to a valid user", func() {
-						issue := &gits.GitIssue{
-							Owner: T.GetGitOrganisation(),
-							Repo:  T.GetApplicationName(),
-							Title: "Test the /assign command",
-							Body:  "This tests assigning a user using a ChatOps command",
-						}
-						err = T.CreateIssueAndAssignToUserWithChatOpsCommand(issue, provider)
-						Expect(err).NotTo(HaveOccurred())
-					})
+					if provider.Kind() != "gitlab" {
+						By("creating an issue and assigning it to a valid user", func() {
+							issue := &gits.GitIssue{
+								Owner: T.GetGitOrganisation(),
+								Repo:  T.GetApplicationName(),
+								Title: "Test the /assign command",
+								Body:  "This tests assigning a user using a ChatOps command",
+							}
+							err = T.CreateIssueAndAssignToUserWithChatOpsCommand(issue, provider)
+							Expect(err).NotTo(HaveOccurred())
+						})
+					}
 
 					if T.DeleteApplications() {
 						args = []string{"delete", "application", "-b", T.ApplicationName}

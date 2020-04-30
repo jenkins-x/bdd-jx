@@ -63,7 +63,7 @@ func createQuickstartTests(quickstartName string) bool {
 
 			}
 			rand.Seed(GinkgoRandomSeed())
-			applicationName := helpers.TempDirPrefix + qsAbbr + "-" + strconv.FormatInt(rand.Int63(), 10)[:8]
+			applicationName := helpers.TempDirPrefix + qsAbbr + "-" + strconv.FormatInt(rand.Int63(), 16)
 			T = helpers.TestOptions{
 				ApplicationName: applicationName,
 				WorkDir:         helpers.WorkDir,

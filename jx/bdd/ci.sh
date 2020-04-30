@@ -57,7 +57,7 @@ helm repo add jenkins-x https://storage.googleapis.com/chartmuseum.jenkins-x.io
 
 # Just run the golang-http-from-jenkins-x-yml import test here
 export BDD_TEST_SINGLE_IMPORT="golang-http-from-jenkins-x-yml"
-export JX_DISABLE_WAIT_FOR_FIRST_RELEASE=true
+export JX_DISABLE_WAIT_FOR_FIRST_RELEASE="true"
 
 # TODO: Are there other tests we should be running on every PR? Starting with create spring, a single import, a single
 # quickstart, and the app lifecycle.

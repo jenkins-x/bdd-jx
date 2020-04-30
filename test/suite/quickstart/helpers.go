@@ -2,6 +2,7 @@ package quickstart
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strconv"
@@ -60,7 +61,8 @@ func createQuickstartTests(quickstartName string) bool {
 				qsAbbr = qsAbbr + qsNameParts[s][:1]
 
 			}
-			applicationName := helpers.TempDirPrefix + qsAbbr + "-" + strconv.FormatInt(GinkgoRandomSeed(), 10)
+			rand.Seed(GinkgoRandomSeed())
+			applicationName := helpers.TempDirPrefix + qsAbbr + "-" + strconv.FormatInt(rand.Int63(), 10)
 			T = helpers.TestOptions{
 				ApplicationName: applicationName,
 				WorkDir:         helpers.WorkDir,

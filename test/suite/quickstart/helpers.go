@@ -104,8 +104,8 @@ func createQuickstartTests(quickstartName string) bool {
 							})
 						}
 					} else {
-						By(fmt.Sprintf("waiting for the first successful build of master of %s", applicationName), func() {
-							T.ThereShouldBeAJobThatCompletesSuccessfully(jobName, helpers.TimeoutBuildCompletes)
+						By(fmt.Sprintf("waiting a bit to kick off a new quickstart after %s", applicationName), func() {
+							time.Sleep(3 * time.Minute)
 						})
 					}
 

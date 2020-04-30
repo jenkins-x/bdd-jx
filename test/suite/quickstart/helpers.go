@@ -118,23 +118,18 @@ func createQuickstartTests(quickstartName string) bool {
 						})
 					}
 
-					if T.DeleteApplications() {
-						args = []string{"delete", "application", "-b", T.ApplicationName}
-						argsStr := strings.Join(args, " ")
-						By(fmt.Sprintf("calling %s to delete the application", argsStr), func() {
-							T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
-						})
-					}
+					args = []string{"delete", "application", "-b", T.ApplicationName}
+					argsStr = strings.Join(args, " ")
+					By(fmt.Sprintf("calling %s to delete the application", argsStr), func() {
+						T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
+					})
 
-					if T.DeleteRepos() {
-						args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
-						argsStr = strings.Join(args, " ")
+					args = []string{"delete", "repo", "-b", "--github", "-o", T.GetGitOrganisation(), "-n", T.ApplicationName}
+					argsStr = strings.Join(args, " ")
 
-						By(fmt.Sprintf("calling %s to delete the repository", os.Args), func() {
-							T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
-						})
-					}
-
+					By(fmt.Sprintf("calling %s to delete the repository", os.Args), func() {
+						T.ExpectJxExecution(T.WorkDir, helpers.TimeoutSessionWait, 0, args...)
+					})
 
 				})
 			})

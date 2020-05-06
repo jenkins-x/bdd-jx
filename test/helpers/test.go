@@ -1150,6 +1150,62 @@ func (t *TestOptions) AddHoldLabelToPullRequestWithChatOpsCommand(provider gits.
 	return t.ExpectThatPullRequestDoesNotHaveLabel(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, "do-not-merge/hold")
 }
 
+// AddReviewerToPullRequestWithChatOpsCommand returns an error of the command fails to add the reviewer to either the reviewers list or the assignees list
+func (t *TestOptions) AddReviewerToPullRequestWithChatOpsCommand(provider gits.GitProvider, approverProvider gits.GitProvider, pullRequest *gits.GitPullRequest, reviewer string) error {
+	By("adding the approver user as a collaborator")
+	err := t.AddApproverAsCollaborator(provider, approverProvider, pullRequest.Owner, pullRequest.Repo)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By(fmt.Sprintf("Adding the '/cc %s' comment and waiting for %s to be a reviewer", reviewer, reviewer))
+	err = provider.AddPRComment(pullRequest, fmt.Sprintf("/cc %s", reviewer))
+	if err != nil {
+		return err
+	}
+
+	err = t.ExpectThatPullRequestMatches(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, func(request *gits.GitPullRequest) error {
+		if len(request.Assignees) == 0 && len(request.RequestedReviewers) == 0 {
+			return fmt.Errorf("expected %s as reviewer, but no reviewers or assignees set on PR")
+		}
+		for _, r := range request.RequestedReviewers {
+			if r.Login == reviewer {
+				return nil
+			}
+		}
+		for _, a := range request.Assignees {
+			if a.Login == reviewer {
+				return nil
+			}
+		}
+		return fmt.Errorf("expected %s as a reviewer, but the user is not present in reviewers or assignees on the PR")
+	})
+	if err != nil {
+		return err
+	}
+
+	By(fmt.Sprintf("Adding the '/uncc %s' comment and waiting for the user to be gone from reviewers", reviewer))
+	err = provider.AddPRComment(pullRequest, fmt.Sprintf("/uncc %s", reviewer))
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPullRequestMatches(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, func(request *gits.GitPullRequest) error {
+		if len(request.Assignees) == 0 && len(request.RequestedReviewers) == 0 {
+			return nil
+		}
+		for _, r := range request.RequestedReviewers {
+			if r.Login == reviewer {
+				return fmt.Errorf("expected %s to be removed from reviewers but is still present", reviewer)
+			}
+		}
+		for _, a := range request.Assignees {
+			if a.Login == reviewer {
+				return fmt.Errorf("expected %s to be removed from assignees but is still present", reviewer)
+			}
+		}
+		return nil
+	})
+}
+
 // AddWIPLabelToPullRequestByUpdatingTitle adds the WIP label by adding WIP to a pull request's title
 func (t *TestOptions) AddWIPLabelToPullRequestByUpdatingTitle(provider gits.GitProvider, pullRequest *gits.GitPullRequest) error {
 	originalTitle := pullRequest.Title
@@ -1190,31 +1246,38 @@ func (t *TestOptions) AddWIPLabelToPullRequestByUpdatingTitle(provider gits.GitP
 
 // ExpectThatPullRequestHasLabel returns an error if the PR does not have the specified label
 func (t *TestOptions) ExpectThatPullRequestHasLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
-	f := func() error {
-		repoStruct := &gits.GitRepository{
-			Name:         repo,
-			Organisation: owner,
-		}
-		pullRequest, err := provider.GetPullRequest(owner, repoStruct, pullRequestNumber)
-		if err != nil {
-			return err
-		}
-		if len(pullRequest.Labels) < 1 {
+	return t.ExpectThatPullRequestMatches(provider, pullRequestNumber, owner, repo, func(request *gits.GitPullRequest) error {
+		if len(request.Labels) < 1 {
 			return fmt.Errorf("the pull request has no labels")
 		}
-		for _, l := range pullRequest.Labels {
+		for _, l := range request.Labels {
 			if *l.Name == label {
 				return nil
 			}
 		}
 		return fmt.Errorf("the pull request does not have the specified label: %s", label)
-	}
 
-	return RetryExponentialBackoff(TimeoutProwActionWait, f)
+	})
 }
 
 // ExpectThatPullRequestDoesNotHaveLabel returns an error if the PR does have the specified label
 func (t *TestOptions) ExpectThatPullRequestDoesNotHaveLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
+	return t.ExpectThatPullRequestMatches(provider, pullRequestNumber, owner, repo, func(request *gits.GitPullRequest) error {
+		if len(request.Labels) < 1 {
+			return nil
+		}
+		for _, l := range request.Labels {
+			if *l.Name == label {
+				return fmt.Errorf("the pull request has the specified label %s but shouldn't", label)
+			}
+		}
+		return nil
+
+	})
+}
+
+// ExpectThatPullRequestMatches returns an error if the PR does not satisfy the provided funciton
+func (t *TestOptions) ExpectThatPullRequestMatches(provider gits.GitProvider, pullRequestNumber int, owner, repo string, matchFunc func(request *gits.GitPullRequest) error) error {
 	f := func() error {
 		repoStruct := &gits.GitRepository{
 			Name:         repo,
@@ -1224,15 +1287,7 @@ func (t *TestOptions) ExpectThatPullRequestDoesNotHaveLabel(provider gits.GitPro
 		if err != nil {
 			return err
 		}
-		if len(pullRequest.Labels) < 1 {
-			return nil
-		}
-		for _, l := range pullRequest.Labels {
-			if *l.Name == label {
-				return fmt.Errorf("the pull request has the specified label %s but shouldn't", label)
-			}
-		}
-		return nil
+		return matchFunc(pullRequest)
 	}
 
 	return RetryExponentialBackoff(TimeoutProwActionWait, f)

@@ -149,6 +149,11 @@ func ChatOpsTests() bool {
 						})
 					}
 
+					By("requesting and unrequesting a reviewer", func() {
+						err = T.AddReviewerToPullRequestWithChatOpsCommand(provider, approverProvider, pr, helpers.PullRequestApproverUsername)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
 					By("adding a hold label", func() {
 						err = T.AddHoldLabelToPullRequestWithChatOpsCommand(provider, pr)
 						Expect(err).NotTo(HaveOccurred())

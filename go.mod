@@ -4,17 +4,18 @@ require (
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/fatih/color v1.7.0
 	github.com/google/go-github/v28 v28.1.1
-	github.com/jenkins-x/go-scm v1.5.90
+	github.com/jenkins-x/go-scm v1.5.121
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20200506212314-f6c0570661bd
+	github.com/jenkins-x/jx v0.0.0-20200511165834-ba15169e28fc
+	github.com/jenkins-x/lighthouse v0.0.586
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	k8s.io/api v0.0.0-20190718183219-b59d8169aab5
-	k8s.io/apimachinery v0.0.0-20190703205208-4cfb76a8bf76
-	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
+	k8s.io/api v0.0.0-20190816222004-e3a6b8045b0b
+	k8s.io/apimachinery v0.0.0-20190816221834-a9f1d8a9c101
+	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 
 )
 

@@ -21,6 +21,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/auth"
 	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/gits"
+	"github.com/jenkins-x/lighthouse/pkg/scmprovider"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/util/rand"
 
@@ -141,6 +142,20 @@ func (t *TestOptions) GetGitOrganisation() string {
 	return org
 }
 
+// GetLighthouseSCMClient returns a Lighthouse SCM client using the default credentials
+func (t *TestOptions) GetLighthouseSCMClient(provider gits.GitProvider) (scmprovider.SCMClient, error) {
+	_, config, err := t.getAuthConfig()
+	if err != nil {
+		return nil, err
+	}
+	user := config.CurrentUser(config.CurrentAuthServer(), false)
+	scmClient, err := scmFactory.NewClient(provider.Kind(), provider.ServerURL(), user.ApiToken)
+	if err != nil {
+		return nil, err
+	}
+	return scmprovider.ToClient(scmClient, user.Username), nil
+}
+
 // GetGitProvider returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
 func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
 	return t.getGitProviderWithUserFunc(func(service auth.ConfigService, config *auth.AuthConfig, server *auth.AuthServer) (*auth.UserAuth, error) {
@@ -167,14 +182,13 @@ func (t *TestOptions) GetApproverGitProvider() (gits.GitProvider, error) {
 	})
 }
 
-// getGitProviderWithUserFunc returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
-func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigService, *auth.AuthConfig, *auth.AuthServer) (*auth.UserAuth, error)) (gits.GitProvider, error) {
+
+func (t *TestOptions) getAuthConfig() (auth.ConfigService, *auth.AuthConfig, error) {
 	factory := cmd.NewFactory()
 	_, ns, err := factory.CreateKubeClient()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
 	useLocalAuthString := ForceLocalAuthConfig
 	useLocalAuth := false
 	if useLocalAuthString == "true" {
@@ -187,25 +201,34 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 		utils.LogInfof("using local git auth config service\n")
 		authConfigService, err = factory.CreateLocalGitAuthConfigService()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		utils.LogInfof("using git auth config service\n")
 		authConfigService, err = factory.CreateGitAuthConfigService(ns, "")
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	config, err := authConfigService.LoadConfig()
 	if err != nil {
-		return nil, fmt.Errorf("error loading auth config: %s", err)
+		return nil, nil, fmt.Errorf("error loading auth config: %s", err)
 	}
 
 	if config == nil {
-		return nil, fmt.Errorf("auth config is nil but no error was returned by LoadConfig")
+		return nil, nil, fmt.Errorf("auth config is nil but no error was returned by LoadConfig")
 	}
 
+	return authConfigService, config, nil
+}
+
+// getGitProviderWithUserFunc returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
+func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigService, *auth.AuthConfig, *auth.AuthServer) (*auth.UserAuth, error)) (gits.GitProvider, error) {
+	authConfigService, config, err := t.getAuthConfig()
+	if err != nil {
+		return nil, err
+	}
 	authServer := config.CurrentAuthServer()
 	if authServer == nil {
 		return nil, fmt.Errorf("no config for git auth server found")
@@ -1162,11 +1185,11 @@ func (t *TestOptions) AddReviewerToPullRequestWithChatOpsCommand(provider gits.G
 		return err
 	}
 
-	err = t.ExpectThatPullRequestMatches(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, func(request *gits.GitPullRequest) error {
-		if len(request.Assignees) == 0 && len(request.RequestedReviewers) == 0 {
+	err = t.ExpectThatPullRequestMatches(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, func(request *scm.PullRequest) error {
+		if len(request.Assignees) == 0 && len(request.Reviewers) == 0 {
 			return fmt.Errorf("expected %s as reviewer, but no reviewers or assignees set on PR")
 		}
-		for _, r := range request.RequestedReviewers {
+		for _, r := range request.Reviewers {
 			if r.Login == reviewer {
 				return nil
 			}
@@ -1176,7 +1199,7 @@ func (t *TestOptions) AddReviewerToPullRequestWithChatOpsCommand(provider gits.G
 				return nil
 			}
 		}
-		return fmt.Errorf("expected %s as a reviewer, but the user is not present in reviewers or assignees on the PR")
+		return fmt.Errorf("expected %s as a reviewer, but the user is not present in reviewers or assignees on the PR", reviewer)
 	})
 	if err != nil {
 		return err
@@ -1188,11 +1211,11 @@ func (t *TestOptions) AddReviewerToPullRequestWithChatOpsCommand(provider gits.G
 		return err
 	}
 
-	return t.ExpectThatPullRequestMatches(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, func(request *gits.GitPullRequest) error {
-		if len(request.Assignees) == 0 && len(request.RequestedReviewers) == 0 {
+	return t.ExpectThatPullRequestMatches(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, func(request *scm.PullRequest) error {
+		if len(request.Assignees) == 0 && len(request.Reviewers) == 0 {
 			return nil
 		}
-		for _, r := range request.RequestedReviewers {
+		for _, r := range request.Reviewers {
 			if r.Login == reviewer {
 				return fmt.Errorf("expected %s to be removed from reviewers but is still present", reviewer)
 			}
@@ -1246,12 +1269,12 @@ func (t *TestOptions) AddWIPLabelToPullRequestByUpdatingTitle(provider gits.GitP
 
 // ExpectThatPullRequestHasLabel returns an error if the PR does not have the specified label
 func (t *TestOptions) ExpectThatPullRequestHasLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
-	return t.ExpectThatPullRequestMatches(provider, pullRequestNumber, owner, repo, func(request *gits.GitPullRequest) error {
+	return t.ExpectThatPullRequestMatches(provider, pullRequestNumber, owner, repo, func(request *scm.PullRequest) error {
 		if len(request.Labels) < 1 {
 			return fmt.Errorf("the pull request has no labels")
 		}
 		for _, l := range request.Labels {
-			if *l.Name == label {
+			if l.Name == label {
 				return nil
 			}
 		}
@@ -1262,12 +1285,12 @@ func (t *TestOptions) ExpectThatPullRequestHasLabel(provider gits.GitProvider, p
 
 // ExpectThatPullRequestDoesNotHaveLabel returns an error if the PR does have the specified label
 func (t *TestOptions) ExpectThatPullRequestDoesNotHaveLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
-	return t.ExpectThatPullRequestMatches(provider, pullRequestNumber, owner, repo, func(request *gits.GitPullRequest) error {
+	return t.ExpectThatPullRequestMatches(provider, pullRequestNumber, owner, repo, func(request *scm.PullRequest) error {
 		if len(request.Labels) < 1 {
 			return nil
 		}
 		for _, l := range request.Labels {
-			if *l.Name == label {
+			if l.Name == label {
 				return fmt.Errorf("the pull request has the specified label %s but shouldn't", label)
 			}
 		}
@@ -1277,13 +1300,13 @@ func (t *TestOptions) ExpectThatPullRequestDoesNotHaveLabel(provider gits.GitPro
 }
 
 // ExpectThatPullRequestMatches returns an error if the PR does not satisfy the provided funciton
-func (t *TestOptions) ExpectThatPullRequestMatches(provider gits.GitProvider, pullRequestNumber int, owner, repo string, matchFunc func(request *gits.GitPullRequest) error) error {
+func (t *TestOptions) ExpectThatPullRequestMatches(provider gits.GitProvider, pullRequestNumber int, owner, repo string, matchFunc func(request *scm.PullRequest) error) error {
+	lhClient, err := t.GetLighthouseSCMClient(provider)
+	if err != nil {
+		return err
+	}
 	f := func() error {
-		repoStruct := &gits.GitRepository{
-			Name:         repo,
-			Organisation: owner,
-		}
-		pullRequest, err := provider.GetPullRequest(owner, repoStruct, pullRequestNumber)
+		pullRequest, err := lhClient.GetPullRequest(owner, repo, pullRequestNumber)
 		if err != nil {
 			return err
 		}

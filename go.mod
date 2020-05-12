@@ -4,10 +4,10 @@ require (
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/fatih/color v1.7.0
 	github.com/google/go-github/v28 v28.1.1
-	github.com/jenkins-x/go-scm v1.5.121
+	github.com/jenkins-x/go-scm v1.5.122
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
 	github.com/jenkins-x/jx v0.0.0-20200511165834-ba15169e28fc
-	github.com/jenkins-x/lighthouse v0.0.586
+	github.com/jenkins-x/lighthouse v0.0.591
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1

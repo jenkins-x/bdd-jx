@@ -142,17 +142,18 @@ func ChatOpsTests() bool {
 						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
 					})
 
-					if provider.Kind() != "gitlab" {
-						By("attempting to LGTM our own PR", func() {
-							err = T.AttemptToLGTMOwnPullRequest(provider, pr)
+					By("attempting to LGTM our own PR", func() {
+						err = T.AttemptToLGTMOwnPullRequest(provider, pr)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					// TODO: Figure out if this something that we can actually fix for BitBucket Server or if we should just ignore it forever
+					if provider.Kind() != gits.KindBitBucketServer {
+						By("requesting and unrequesting a reviewer", func() {
+							err = T.AddReviewerToPullRequestWithChatOpsCommand(provider, approverProvider, pr, helpers.PullRequestApproverUsername)
 							Expect(err).NotTo(HaveOccurred())
 						})
 					}
-
-					By("requesting and unrequesting a reviewer", func() {
-						err = T.AddReviewerToPullRequestWithChatOpsCommand(provider, approverProvider, pr, helpers.PullRequestApproverUsername)
-						Expect(err).NotTo(HaveOccurred())
-					})
 
 					By("adding a hold label", func() {
 						err = T.AddHoldLabelToPullRequestWithChatOpsCommand(provider, pr)
@@ -179,7 +180,7 @@ func ChatOpsTests() bool {
 						Expect(err).ShouldNot(HaveOccurred())
 
 						// Wait until we see a pending or running status, meaning we've got a new build
-						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "pending", "running")
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "pending", "running", "in-progress")
 
 						// Wait until we see the build fail.
 						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
@@ -190,7 +191,7 @@ func ChatOpsTests() bool {
 						Expect(err).ShouldNot(HaveOccurred())
 
 						// Wait until we see a pending or running status, meaning we've got a new build
-						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "pending", "running")
+						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "pending", "running", "in-progress")
 
 						// Wait until we see the build fail.
 						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
@@ -210,7 +211,7 @@ func ChatOpsTests() bool {
 
 					// TODO: Later: add multiple contexts, one more required, one more optional
 
-					if provider.Kind() != "gitlab" {
+					if provider.Kind() == "github" {
 						By("creating an issue and assigning it to a valid user", func() {
 							issue := &gits.GitIssue{
 								Owner: T.GetGitOrganisation(),

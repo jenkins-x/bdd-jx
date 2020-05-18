@@ -143,17 +143,17 @@ func (t *TestOptions) GetGitOrganisation() string {
 }
 
 // GetLighthouseSCMClient returns a Lighthouse SCM client using the default credentials
-func (t *TestOptions) GetLighthouseSCMClient(provider gits.GitProvider) (scmprovider.SCMClient, error) {
+func (t *TestOptions) GetLighthouseSCMClient(provider gits.GitProvider) (*scm.Client, scmprovider.SCMClient, error) {
 	_, config, err := t.getAuthConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	user := config.CurrentUser(config.CurrentAuthServer(), false)
 	scmClient, err := scmFactory.NewClient(provider.Kind(), provider.ServerURL(), user.ApiToken)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return scmprovider.ToClient(scmClient, user.Username), nil
+	return scmClient, scmprovider.ToClient(scmClient, user.Username), nil
 }
 
 // GetGitProvider returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
@@ -672,6 +672,7 @@ func (t *TestOptions) ApprovePullRequestFromLogOutput(provider gits.GitProvider,
 	repoStruct := &gits.GitRepository{
 		Name:         gitInfo.Name,
 		Organisation: gitInfo.Organisation,
+		Project:      gitInfo.Organisation,
 	}
 	pr, err := provider.GetPullRequest(gitInfo.Organisation, repoStruct, createdPR.PullRequestNumber)
 	Expect(err).ShouldNot(HaveOccurred())
@@ -693,6 +694,10 @@ func (t *TestOptions) AddApproverAsCollaborator(provider gits.GitProvider, appro
 		}
 		return err
 	}
+	// If the provider is BitBucket Server, just return
+	if provider.IsBitbucketServer() {
+		return nil
+	}
 	invites, _, err := approverProvider.ListInvitations()
 	if err != nil {
 		return err
@@ -712,6 +717,7 @@ func (t *TestOptions) GetPullRequestByNumber(provider gits.GitProvider, repoOwne
 	repoStruct := &gits.GitRepository{
 		Name:         repoName,
 		Organisation: repoOwner,
+		Project:      repoOwner,
 	}
 	pr, err := provider.GetPullRequest(repoOwner, repoStruct, prNumber)
 	if err != nil {
@@ -776,7 +782,7 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 		// Check if the link exists and has the appropriate prefix, if appropriate
 		if LighthouseBaseReportURL != "" && matchedStatus != nil {
 			// We don't care about the build number.
-			expectedPrefix := fmt.Sprintf("%s/teams/jx/projects/%s/%s/PR-%d/", LighthouseBaseReportURL, pr.Owner, pr.Repo, *pr.Number)
+			expectedPrefix := fmt.Sprintf("%s/teams/jx/projects/%s/%s/PR-%d/", LighthouseBaseReportURL, strings.ToLower(pr.Owner), pr.Repo, *pr.Number)
 			if !strings.HasPrefix(matchedStatus.TargetURL, expectedPrefix) {
 				errMsg := fmt.Sprintf("wrong or missing build link on status for PR %s/%s/%s. Expected %s, got %s", pr.Owner, pr.Repo, pr.NumberString(), expectedPrefix, matchedStatus.TargetURL)
 				utils.LogInfof("WARNING: %s\n", errMsg)
@@ -1118,6 +1124,7 @@ func (t *TestOptions) AttemptToLGTMOwnPullRequest(provider gits.GitProvider, pul
 	repoStruct := &gits.GitRepository{
 		Name:         pullRequest.Repo,
 		Organisation: pullRequest.Owner,
+		Project:      pullRequest.Owner,
 	}
 	updatedPullRequest, err := provider.GetPullRequest(pullRequest.Owner, repoStruct, *pullRequest.Number)
 	if err != nil {
@@ -1234,32 +1241,28 @@ func (t *TestOptions) AddWIPLabelToPullRequestByUpdatingTitle(provider gits.GitP
 	originalTitle := pullRequest.Title
 
 	By("Changing the pull request title to start with WIP and waiting for the label to be present")
-	pullRequestArgs := &gits.GitPullRequestArguments{
-		Title: fmt.Sprintf("WIP %s", originalTitle),
-		GitRepository: &gits.GitRepository{
-			Organisation: pullRequest.Owner,
-			Name:         pullRequest.Repo,
-		},
-	}
-	_, err := provider.UpdatePullRequest(pullRequestArgs, *pullRequest.Number)
+	scmClient, _, err := t.GetLighthouseSCMClient(provider)
 	if err != nil {
 		return err
 	}
 
+	input := &scm.PullRequestInput{
+		Title: fmt.Sprintf("WIP %s", originalTitle),
+	}
+	_, _, err = scmClient.PullRequests.Update(context.Background(), fmt.Sprintf("%s/%s", pullRequest.Owner, pullRequest.Repo), *pullRequest.Number, input)
+	if err != nil {
+		return err
+	}
 	err = t.ExpectThatPullRequestHasLabel(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, "do-not-merge/work-in-progress")
 	if err != nil {
 		return err
 	}
 
 	By("Changing the pull request title to remove the WIP and waiting for the label to be gone")
-	pullRequestArgs = &gits.GitPullRequestArguments{
+	input = &scm.PullRequestInput{
 		Title: originalTitle,
-		GitRepository: &gits.GitRepository{
-			Organisation: pullRequest.Owner,
-			Name:         pullRequest.Repo,
-		},
 	}
-	_, err = provider.UpdatePullRequest(pullRequestArgs, *pullRequest.Number)
+	_, _, err = scmClient.PullRequests.Update(context.Background(), fmt.Sprintf("%s/%s", pullRequest.Owner, pullRequest.Repo), *pullRequest.Number, input)
 	if err != nil {
 		return err
 	}
@@ -1301,7 +1304,7 @@ func (t *TestOptions) ExpectThatPullRequestDoesNotHaveLabel(provider gits.GitPro
 
 // ExpectThatPullRequestMatches returns an error if the PR does not satisfy the provided funciton
 func (t *TestOptions) ExpectThatPullRequestMatches(provider gits.GitProvider, pullRequestNumber int, owner, repo string, matchFunc func(request *scm.PullRequest) error) error {
-	lhClient, err := t.GetLighthouseSCMClient(provider)
+	_, lhClient, err := t.GetLighthouseSCMClient(provider)
 	if err != nil {
 		return err
 	}
@@ -1327,6 +1330,7 @@ func (t *TestOptions) WaitForPullRequestToMerge(provider gits.GitProvider, owner
 	repoStruct := &gits.GitRepository{
 		Name:         repo,
 		Organisation: owner,
+		Project:      owner,
 	}
 	waitForMergeFunc := func() error {
 		pr, err := provider.GetPullRequest(owner, repoStruct, prNumber)

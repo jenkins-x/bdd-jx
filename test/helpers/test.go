@@ -17,17 +17,17 @@ import (
 	"time"
 
 	"github.com/google/go-github/v28/github"
-	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
-	"github.com/jenkins-x/jx/pkg/auth"
-	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
-	"github.com/jenkins-x/jx/pkg/gits"
+	v1 "github.com/jenkins-x/jx/v2/pkg/apis/jenkins.io/v1"
+	"github.com/jenkins-x/jx/v2/pkg/auth"
+	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
+	"github.com/jenkins-x/jx/v2/pkg/gits"
 	"github.com/jenkins-x/lighthouse/pkg/scmprovider"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/util/rand"
 
 	"github.com/cenkalti/backoff"
 	"github.com/jenkins-x/bdd-jx/test/utils/parsers"
-	"github.com/jenkins-x/jx/pkg/util"
+	"github.com/jenkins-x/jx/v2/pkg/util"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
 
@@ -181,7 +181,6 @@ func (t *TestOptions) GetApproverGitProvider() (gits.GitProvider, error) {
 		return userAuth, nil
 	})
 }
-
 
 func (t *TestOptions) getAuthConfig() (auth.ConfigService, *auth.AuthConfig, error) {
 	factory := cmd.NewFactory()

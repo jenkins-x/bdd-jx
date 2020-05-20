@@ -9,8 +9,8 @@ import (
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
-	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
-	"github.com/jenkins-x/jx/pkg/kube"
+	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
+	"github.com/jenkins-x/jx/v2/pkg/kube"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"

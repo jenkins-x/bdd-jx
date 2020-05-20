@@ -6,7 +6,7 @@ require (
 	github.com/google/go-github/v28 v28.1.1
 	github.com/jenkins-x/go-scm v1.5.135
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20200518142902-d0d715e40f22
+	github.com/jenkins-x/jx/v2 v2.1.42
 	github.com/jenkins-x/lighthouse v0.0.602
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
@@ -40,3 +40,5 @@ replace github.com/Azure/azure-sdk-for-go => github.com/Azure/azure-sdk-for-go v
 replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v10.15.5+incompatible
 
 replace github.com/banzaicloud/bank-vaults => github.com/banzaicloud/bank-vaults v0.0.0-20190508130850-5673d28c46bd
+
+go 1.13

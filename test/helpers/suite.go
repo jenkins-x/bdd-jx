@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jenkins-x/jx/pkg/client/clientset/versioned"
-	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
-	"github.com/jenkins-x/jx/pkg/kube"
+	"github.com/jenkins-x/jx/v2/pkg/client/clientset/versioned"
+	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
+	"github.com/jenkins-x/jx/v2/pkg/kube"
 	"github.com/onsi/ginkgo/config"
 	"k8s.io/client-go/kubernetes"
 

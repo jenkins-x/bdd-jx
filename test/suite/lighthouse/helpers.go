@@ -140,6 +140,10 @@ func ChatOpsTests() bool {
 						Expect(pr).ShouldNot(BeNil())
 
 						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
+
+						// Verify that we can get the build log for a completed build.
+						jobName := createdPR.Owner + "/" + createdPR.Repository + "/PR-" + strconv.Itoa(createdPR.PullRequestNumber)
+						T.TailSpecificBuildLog(jobName, 1, helpers.TimeoutBuildCompletes)
 					})
 
 					By("attempting to LGTM our own PR", func() {

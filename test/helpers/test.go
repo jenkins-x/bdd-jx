@@ -810,13 +810,22 @@ func isADesiredStatus(status string, desiredStatuses []string) bool {
 	return false
 }
 
-// TailBuildLog tails the logs of the specified job
-func (t *TestOptions) TailBuildLog(jobName string, maxDuration time.Duration) {
+// TailSpecificBuildLog tails the logs of the specified job and number, not passing a specific build number to "jx get build logs"
+// if the build number is 0.
+func (t *TestOptions) TailSpecificBuildLog(jobName string, buildNumber int, maxDuration time.Duration) {
 	args := []string{"get", "build", "logs", "--wait", jobName}
+	if buildNumber != 0 {
+		args = append(args, "--build", strconv.Itoa(buildNumber))
+	}
 	argsStr := strings.Join(args, " ")
 	By(fmt.Sprintf("checking that there is a job built successfully by calling jx %s", argsStr), func() {
 		t.ExpectJxExecution(t.WorkDir, maxDuration, 0, args...)
 	})
+}
+
+// TailBuildLog tails the logs of the specified job, getting the latest build.
+func (t *TestOptions) TailBuildLog(jobName string, maxDuration time.Duration) {
+	t.TailSpecificBuildLog(jobName, 0, maxDuration)
 }
 
 // ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration

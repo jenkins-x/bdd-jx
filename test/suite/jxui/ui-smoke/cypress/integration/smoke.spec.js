@@ -1,8 +1,8 @@
 import expect from 'expect';
 
 describe('Smoke Tests', function() {
+    let testProjectName = Cypress.env('APPLICATION_NAME');
     context('project list', () => {
-        let testProjectName = Cypress.env('APPLICATION_NAME')
         beforeEach(() => {
             cy.visit('/teams/jx/projects');
             cy.wait(6000)
@@ -21,7 +21,7 @@ describe('Smoke Tests', function() {
             })
         });
 
-        it('can search one project by name', () => {            
+        it('can search one project by name', () => {
             cy.get('[data-test=projectlist-search]').within(() => {
                 cy.get('input').type(testProjectName);
             });
@@ -33,7 +33,6 @@ describe('Smoke Tests', function() {
     })
 
     context('build list', () => {
-        let testProjectName = Cypress.env('APPLICATION_NAME')
         beforeEach( () => {
             cy.visit('/teams/jx/builds');
             cy.wait(6000)

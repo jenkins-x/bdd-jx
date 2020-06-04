@@ -139,6 +139,9 @@ func (t *AppTestOptions) UITest() bool {
 					req.SetBasicAuth("admin", helpers.JenkinsBasicAuthPassword)
 				}
 				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return err
+				}
 				defer func() {
 					_ = resp.Body.Close()
 				}()

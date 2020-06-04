@@ -19,8 +19,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var jenkinsPassword = os.Getenv("JENKINS_PASSWORD")
-
 type AppTestOptions struct {
 	helpers.TestOptions
 }
@@ -51,14 +49,13 @@ func (t *AppTestOptions) UITest() bool {
 		err              error
 		provider         gits.GitProvider
 		approverProvider gits.GitProvider
-		basicAuthEnabled = os.Getenv("JX_APP_UI_TEST_BASIC_AUTH") == "true"
 	)
 
 	BeforeEach(func() {
 		if jxUiUrl := runner.JxUiUrl(); jxUiUrl != "" {
 			uiURL = jxUiUrl
 		} else {
-			Expect(jenkinsPassword).ShouldNot(BeEmpty(), "env var JENKINS_PASSWORD not specified")
+			Expect(helpers.JenkinsBasicAuthPassword).ShouldNot(BeEmpty(), "env var JENKINS_PASSWORD not specified")
 
 			By("setting a temporary JX_HOME directory")
 			jxHome, err = ioutil.TempDir("", helpers.TempDirPrefix+"ui-jx-home-")
@@ -137,8 +134,8 @@ func (t *AppTestOptions) UITest() bool {
 					if err != nil {
 						return err
 					}
-					if basicAuthEnabled {
-						req.SetBasicAuth("admin", jenkinsPassword)
+					if helpers.UseBasicAuthWithUI == "true" {
+						req.SetBasicAuth("admin", helpers.JenkinsBasicAuthPassword)
 					}
 					resp, err := http.DefaultClient.Do(req)
 					if err != nil {
@@ -159,7 +156,7 @@ func (t *AppTestOptions) UITest() bool {
 				Expect(err).ShouldNot(HaveOccurred())
 			})
 
-			if basicAuthEnabled {
+			if helpers.UseBasicAuthWithUI == "true" {
 				By("Ensure UI is basic auth secured", func() {
 					resp, err := http.Get(uiURL)
 					Expect(err).Should(BeNil(), "error")
@@ -232,7 +229,7 @@ func (t *AppTestOptions) UITest() bool {
 			command.Env = append(command.Env, fmt.Sprintf("REPORTS_DIR=%s", os.Getenv("REPORTS_DIR")))
 			command.Env = append(command.Env, fmt.Sprintf("PATH=%s:%s", nodePath, os.Getenv("PATH")))
 			command.Env = append(command.Env, fmt.Sprintf("APPLICATION_NAME=%s", applicationName))
-			command.Env = append(command.Env, fmt.Sprintf("JENKINS_PASSWORD=%s", jenkinsPassword))
+			command.Env = append(command.Env, fmt.Sprintf("JENKINS_PASSWORD=%s", helpers.JenkinsBasicAuthPassword))
 			command.Stderr = GinkgoWriter
 			command.Stdout = GinkgoWriter
 			err = command.Run()

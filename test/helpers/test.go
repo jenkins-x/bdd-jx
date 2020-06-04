@@ -105,6 +105,12 @@ var (
 
 	// LighthouseBaseReportURL is the base URL used by Lighthouse for status reporting, if set.
 	LighthouseBaseReportURL = utils.GetEnv(BDDLighthouseBaseReportURLEnvVar, "")
+
+	// JenkinsBasicAuthPassword is the basic auth configured for Jenkins or the UI, if set.
+	JenkinsBasicAuthPassword = utils.GetEnv("JENKINS_PASSWORD", "")
+
+	// UseBasicAuthWithUI is set if the UI will be using basic auth.
+	UseBasicAuthWithUI = utils.GetEnv("JX_APP_UI_TEST_BASIC_AUTH", "false")
 )
 
 // TestOptions is the base testing object

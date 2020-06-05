@@ -125,10 +125,20 @@ func (t *AppTestOptions) UITest() bool {
 				Eventually(session).Should(gexec.Exit())
 			}()
 
+			Expect(helpers.JenkinsBasicAuthPassword).ShouldNot(BeEmpty(), "env var JENKINS_PASSWORD not specified")
+
+			uiURL = fmt.Sprintf("http://127.0.0.1:%d", port)
+
 			testUI := func() error {
-				uiURL = fmt.Sprintf("http://127.0.0.1:%d", port)
 				By(fmt.Sprintf("accessing ui on %s", uiURL))
-				resp, err := http.Get(uiURL)
+				req, err := http.NewRequest("GET", uiURL, nil)
+				if err != nil {
+					return err
+				}
+				if helpers.UseBasicAuthWithUI == "true" {
+					req.SetBasicAuth("admin", helpers.JenkinsBasicAuthPassword)
+				}
+				resp, err := http.DefaultClient.Do(req)
 				if err != nil {
 					return err
 				}

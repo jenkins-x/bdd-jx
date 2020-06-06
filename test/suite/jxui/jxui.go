@@ -134,9 +134,7 @@ func (t *AppTestOptions) UITest() bool {
 					if err != nil {
 						return err
 					}
-					if helpers.UseBasicAuthWithUI == "true" {
-						req.SetBasicAuth("admin", helpers.JenkinsBasicAuthPassword)
-					}
+					req.SetBasicAuth("admin", helpers.JenkinsBasicAuthPassword)
 					resp, err := http.DefaultClient.Do(req)
 					if err != nil {
 						return err

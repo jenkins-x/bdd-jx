@@ -1333,6 +1333,23 @@ func (t *TestOptions) ExpectThatPullRequestMatches(provider gits.GitProvider, pu
 	return RetryExponentialBackoff(TimeoutProwActionWait, f)
 }
 
+// ExpectThatPullRequestHasCommentMatching returns an error if the PR does not have a comment matching the provided function
+func (t *TestOptions) ExpectThatPullRequestHasCommentMatching(provider gits.GitProvider, pullRequestNumber int, owner, repo string, matchFunc func(comments []*scm.Comment) error) error {
+	_, lhClient, err := t.GetLighthouseSCMClient(provider)
+	if err != nil {
+		return err
+	}
+	f := func() error {
+		comments, err := lhClient.ListPullRequestComments(owner, repo, pullRequestNumber)
+		if err != nil {
+			return err
+		}
+		return matchFunc(comments)
+	}
+
+	return RetryExponentialBackoff(TimeoutProwActionWait, f)
+}
+
 func (t *TestOptions) WaitForCreatedPullRequestToMerge(provider gits.GitProvider, prCreateOutput string) {
 	createdPR, err := parsers.ParseJxCreatePullRequestFromFullLog(prCreateOutput)
 	Expect(err).ShouldNot(HaveOccurred())

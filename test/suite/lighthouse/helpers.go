@@ -5,11 +5,14 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/jenkins-x/bdd-jx/test/helpers"
+	"github.com/jenkins-x/go-scm/scm"
 
 	"github.com/jenkins-x/bdd-jx/test/utils"
 	"github.com/jenkins-x/jx/v2/pkg/gits"
@@ -139,11 +142,35 @@ func ChatOpsTests() bool {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(pr).ShouldNot(BeNil())
 
-						T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
+						By("verifying OWNERS link in APPROVALNOTIFIER comment is correct", func() {
+							err = T.ExpectThatPullRequestHasCommentMatching(provider, createdPR.PullRequestNumber, createdPR.Owner, createdPR.Repository, func(comments []*scm.Comment) error {
+								for _, c := range comments {
+									if strings.Contains(c.Body, "[APPROVALNOTIFIER]") {
+										ownerRegex := regexp.MustCompile(`(?m).*\[OWNERS]\((.*)\).*`)
+										matches := ownerRegex.FindStringSubmatch(c.Body)
+										if len(matches) == 0 {
+											return backoff.Permanent(fmt.Errorf("could not find OWNERS link in:\n%s", c.Body))
+										}
+										expected := urlForProvider(provider.Kind(), provider.ServerURL(), createdPR.Owner, createdPR.Repository)
+										if expected != matches[1] {
+											return backoff.Permanent(fmt.Errorf("expected OWNERS URL %s, but got %s", expected, matches[1]))
+										}
+										return nil
+									}
+								}
+								return fmt.Errorf("couldn't find comment containing APPROVALNOTIFIER")
+							})
+							Expect(err).NotTo(HaveOccurred())
+						})
+						By("waiting for build to fail", func() {
+							T.WaitForPullRequestCommitStatus(provider, pr, []string{defaultContext}, "failure")
+						})
 
-						// Verify that we can get the build log for a completed build.
-						jobName := createdPR.Owner + "/" + createdPR.Repository + "/PR-" + strconv.Itoa(createdPR.PullRequestNumber)
-						T.TailSpecificBuildLog(jobName, 1, helpers.TimeoutBuildCompletes)
+						By("getting build log for a completed build", func() {
+							// Verify that we can get the build log for a completed build.
+							jobName := createdPR.Owner + "/" + createdPR.Repository + "/PR-" + strconv.Itoa(createdPR.PullRequestNumber)
+							T.TailSpecificBuildLog(jobName, 1, helpers.TimeoutBuildCompletes)
+						})
 					})
 
 					By("attempting to LGTM our own PR", func() {
@@ -248,4 +275,15 @@ func ChatOpsTests() bool {
 			})
 		})
 	})
+}
+
+func urlForProvider(providerType string, serverURL string, owner string, repo string) string {
+	switch providerType {
+	case "bitbucketserver":
+		return fmt.Sprintf("%s/projects/%s/repos/%s/browse/OWNERS", serverURL, strings.ToUpper(owner), repo)
+	case "gitlab":
+		return fmt.Sprintf("%s/%s/%s/-/blob/master/OWNERS", serverURL, owner, repo)
+	default:
+		return fmt.Sprintf("%s/%s/%s/blob/master/OWNERS", serverURL, owner, repo)
+	}
 }

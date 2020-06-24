@@ -38,14 +38,9 @@ func AllQuickstartsTest() []bool {
 	}
 	tests := make([]bool, 0)
 	for _, testQuickstartName := range IncludedQuickstarts {
-		tests = append(tests, CreateQuickstartsTests(testQuickstartName))
+		tests = append(tests, createQuickstartTests(testQuickstartName))
 	}
 	return tests
-}
-
-//CreateQuickstartsTests creates a batch quickstart test for the given quickstart
-func CreateQuickstartsTests(quickstartName string) bool {
-	return createQuickstartTests(quickstartName)
 }
 
 // CreateQuickstartTest Creates quickstart tests.

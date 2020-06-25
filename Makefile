@@ -84,8 +84,24 @@ test-lighthouse:
 test-quickstart-golang-http:
 	$(GO) test $(TESTFLAGS) ./test/suite/quickstart -ginkgo.focus=golang-http
 
+test-quickstart-node-http:
+	$(GO) test $(TESTFLAGS) ./test/suite/quickstart -ginkgo.focus=node-http
+
+test-quickstart-spring-boot-http-gradle:
+	$(GO) test $(TESTFLAGS) ./test/suite/quickstart -ginkgo.focus=spring-boot-http-gradle
+
+#target individual imports
 test-import-golang-http-from-jenkins-x-yml:
 	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=golang-http-from-jenkins-x-yml
+
+test-import-node-http:
+	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=node-http
+
+test-import-spring-boot-rest-prometheus:
+	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=spring-boot-rest-prometheus
+
+test-import-spring-boot-http-gradle:
+	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=spring-boot-http-gradle
 
 test-single-import:
 	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=${BDD_TEST_SINGLE_IMPORT}

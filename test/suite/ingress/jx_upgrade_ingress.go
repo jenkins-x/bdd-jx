@@ -243,13 +243,13 @@ func (t *testCaseUpgradeIngress) createService(name string) error {
 }
 
 func (t *testCaseUpgradeIngress) expectIngress(name string) {
-	ing, err := t.kubeClient.Extensions().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
+	ing, err := t.kubeClient.ExtensionsV1beta1().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(ing.GetName()).To(Equal(name))
 }
 
 func (t *testCaseUpgradeIngress) notExpectIngress(name string) {
-	_, err := t.kubeClient.Extensions().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
+	_, err := t.kubeClient.ExtensionsV1beta1().Ingresses(t.namespace).Get(name, metav1.GetOptions{})
 	Expect(err).To(HaveOccurred())
 }
 

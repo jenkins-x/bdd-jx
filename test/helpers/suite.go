@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jenkins-x/jx/v2/pkg/client/clientset/versioned"
+	"github.com/jenkins-x/jx-api/pkg/client/clientset/versioned"
 	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/v2/pkg/kube"
 	"github.com/onsi/ginkgo/config"

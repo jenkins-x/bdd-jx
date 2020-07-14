@@ -3,17 +3,15 @@ module github.com/jenkins-x/bdd-jx
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fatih/color v1.9.0
-	github.com/google/go-github/v28 v28.1.1
 	github.com/jenkins-x/go-scm v1.5.143
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
 	github.com/jenkins-x/jx-api v0.0.13
-	github.com/jenkins-x/jx/v2 v2.1.97
+	github.com/jenkins-x/jx/v2 v2.1.101
 	github.com/jenkins-x/lighthouse v0.0.669
 	github.com/onsi/ginkgo v1.10.1
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible

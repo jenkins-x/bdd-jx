@@ -13,7 +13,7 @@ import (
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	"github.com/jenkins-x/bdd-jx/test/utils"
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
-	"github.com/jenkins-x/jx/pkg/gits"
+	"github.com/jenkins-x/jx/v2/pkg/gits"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -55,7 +55,8 @@ func (t *AppTestOptions) UITest() bool {
 		if jxUiUrl := runner.JxUiUrl(); jxUiUrl != "" {
 			uiURL = jxUiUrl
 		} else {
-			var addAppJobName string
+			Expect(helpers.JenkinsBasicAuthPassword).ShouldNot(BeEmpty(), "env var JENKINS_PASSWORD not specified")
+
 			By("setting a temporary JX_HOME directory")
 			jxHome, err = ioutil.TempDir("", helpers.TempDirPrefix+"ui-jx-home-")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -85,7 +86,7 @@ func (t *AppTestOptions) UITest() bool {
 
 			By("install UI via 'jx add app'", func() {
 				By("installing the app")
-				addAppJobName = fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
+				addAppJobName := fmt.Sprintf("%s/%s/master #%s", gitInfo.Organisation, gitInfo.Name, t.NextBuildNumber(gitInfo))
 				args := []string{"add", "app", uiAppName, "--version", uiAppVersion, "--repository=https://charts.cloudbees.com/cjxd/cloudbees"}
 				if helpers.PullRequestApproverUsername == "" {
 					args = append(args, "--auto-merge")
@@ -125,10 +126,16 @@ func (t *AppTestOptions) UITest() bool {
 					Eventually(session).Should(gexec.Exit())
 				}()
 
+				uiURL = fmt.Sprintf("http://127.0.0.1:%d", port)
+
 				testUI := func() error {
-					uiURL = fmt.Sprintf("http://127.0.0.1:%d", port)
 					By(fmt.Sprintf("accessing ui on %s", uiURL))
-					resp, err := http.Get(uiURL)
+					req, err := http.NewRequest("GET", uiURL, nil)
+					if err != nil {
+						return err
+					}
+					req.SetBasicAuth("admin", helpers.JenkinsBasicAuthPassword)
+					resp, err := http.DefaultClient.Do(req)
 					if err != nil {
 						return err
 					}
@@ -139,13 +146,25 @@ func (t *AppTestOptions) UITest() bool {
 					if err != nil {
 						return err
 					}
-					Expect(string(contents)).Should(ContainSubstring("<title>CJXD UI</title>"))
+					Expect(string(contents)).Should(ContainSubstring("UI</title>"))
 					return nil
 				}
 
-				err = helpers.RetryExponentialBackoff(helpers.TimeoutUrlReturns, testUI)
+				err = helpers.RetryExponentialBackoff(1*time.Minute, testUI)
 				Expect(err).ShouldNot(HaveOccurred())
 			})
+
+			if helpers.UseBasicAuthWithUI == "true" {
+				By("Ensure UI is basic auth secured", func() {
+					resp, err := http.Get(uiURL)
+					Expect(err).Should(BeNil(), "error")
+					Expect(resp).ShouldNot(BeNil(), "response")
+					Expect(resp.StatusCode).Should(Equal(http.StatusUnauthorized), "status code")
+					Expect(resp.Header.Get("WWW-Authenticate")).Should(ContainSubstring("Basic realm="), "WWW-Authenticate header")
+				})
+			} else {
+				fmt.Println("Skipping basic auth test. Set JX_APP_UI_TEST_BASIC_AUTH=true to enable it")
+			}
 		}
 	})
 
@@ -208,6 +227,7 @@ func (t *AppTestOptions) UITest() bool {
 			command.Env = append(command.Env, fmt.Sprintf("REPORTS_DIR=%s", os.Getenv("REPORTS_DIR")))
 			command.Env = append(command.Env, fmt.Sprintf("PATH=%s:%s", nodePath, os.Getenv("PATH")))
 			command.Env = append(command.Env, fmt.Sprintf("APPLICATION_NAME=%s", applicationName))
+			command.Env = append(command.Env, fmt.Sprintf("JENKINS_PASSWORD=%s", helpers.JenkinsBasicAuthPassword))
 			command.Stderr = GinkgoWriter
 			command.Stdout = GinkgoWriter
 			err = command.Run()

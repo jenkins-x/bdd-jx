@@ -11,7 +11,7 @@ import (
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	"github.com/jenkins-x/bdd-jx/test/utils"
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
-	"github.com/jenkins-x/jx/pkg/gits"
+	"github.com/jenkins-x/jx/v2/pkg/gits"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -125,10 +125,20 @@ func (t *AppTestOptions) UITest() bool {
 				Eventually(session).Should(gexec.Exit())
 			}()
 
+			Expect(helpers.JenkinsBasicAuthPassword).ShouldNot(BeEmpty(), "env var JENKINS_PASSWORD not specified")
+
+			uiURL = fmt.Sprintf("http://127.0.0.1:%d", port)
+
 			testUI := func() error {
-				uiURL = fmt.Sprintf("http://127.0.0.1:%d", port)
 				By(fmt.Sprintf("accessing ui on %s", uiURL))
-				resp, err := http.Get(uiURL)
+				req, err := http.NewRequest("GET", uiURL, nil)
+				if err != nil {
+					return err
+				}
+				if helpers.UseBasicAuthWithUI == "true" {
+					req.SetBasicAuth("admin", helpers.JenkinsBasicAuthPassword)
+				}
+				resp, err := http.DefaultClient.Do(req)
 				if err != nil {
 					return err
 				}
@@ -139,7 +149,7 @@ func (t *AppTestOptions) UITest() bool {
 				if err != nil {
 					return err
 				}
-				Expect(string(contents)).Should(ContainSubstring("<title>CJXD UI</title>"))
+				Expect(string(contents)).Should(ContainSubstring("UI</title>"))
 				return nil
 			}
 

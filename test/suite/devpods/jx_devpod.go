@@ -7,7 +7,7 @@ import (
 	"github.com/jenkins-x/bdd-jx/test/helpers"
 	"github.com/jenkins-x/bdd-jx/test/utils"
 	"github.com/jenkins-x/bdd-jx/test/utils/runner"
-	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
+	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -16,17 +16,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v28/github"
-	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
-	"github.com/jenkins-x/jx/pkg/auth"
-	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
-	"github.com/jenkins-x/jx/pkg/gits"
-	"golang.org/x/oauth2"
+	v1 "github.com/jenkins-x/jx-api/pkg/apis/jenkins.io/v1"
+	"github.com/jenkins-x/jx/v2/pkg/auth"
+	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
+	"github.com/jenkins-x/jx/v2/pkg/gits"
+	"github.com/jenkins-x/lighthouse/pkg/scmprovider"
 	"k8s.io/apimachinery/pkg/util/rand"
 
 	"github.com/cenkalti/backoff"
 	"github.com/jenkins-x/bdd-jx/test/utils/parsers"
-	"github.com/jenkins-x/jx/pkg/util"
+	"github.com/jenkins-x/jx/v2/pkg/util"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
 
@@ -104,6 +103,12 @@ var (
 
 	// LighthouseBaseReportURL is the base URL used by Lighthouse for status reporting, if set.
 	LighthouseBaseReportURL = utils.GetEnv(BDDLighthouseBaseReportURLEnvVar, "")
+
+	// JenkinsBasicAuthPassword is the basic auth configured for Jenkins or the UI, if set.
+	JenkinsBasicAuthPassword = utils.GetEnv("JENKINS_PASSWORD", "")
+
+	// UseBasicAuthWithUI is set if the UI will be using basic auth.
+	UseBasicAuthWithUI = utils.GetEnv("JX_APP_UI_TEST_BASIC_AUTH", "false")
 )
 
 // TestOptions is the base testing object
@@ -141,6 +146,20 @@ func (t *TestOptions) GetGitOrganisation() string {
 	return org
 }
 
+// GetLighthouseSCMClient returns a Lighthouse SCM client using the default credentials
+func (t *TestOptions) GetLighthouseSCMClient(provider gits.GitProvider) (*scm.Client, scmprovider.SCMClient, error) {
+	_, config, err := t.getAuthConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	user := config.CurrentUser(config.CurrentAuthServer(), false)
+	scmClient, err := scmFactory.NewClient(provider.Kind(), provider.ServerURL(), user.ApiToken)
+	if err != nil {
+		return nil, nil, err
+	}
+	return scmClient, scmprovider.ToClient(scmClient, user.Username), nil
+}
+
 // GetGitProvider returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
 func (t *TestOptions) GetGitProvider() (gits.GitProvider, error) {
 	return t.getGitProviderWithUserFunc(func(service auth.ConfigService, config *auth.AuthConfig, server *auth.AuthServer) (*auth.UserAuth, error) {
@@ -167,14 +186,12 @@ func (t *TestOptions) GetApproverGitProvider() (gits.GitProvider, error) {
 	})
 }
 
-// getGitProviderWithUserFunc returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
-func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigService, *auth.AuthConfig, *auth.AuthServer) (*auth.UserAuth, error)) (gits.GitProvider, error) {
+func (t *TestOptions) getAuthConfig() (auth.ConfigService, *auth.AuthConfig, error) {
 	factory := cmd.NewFactory()
 	_, ns, err := factory.CreateKubeClient()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
 	useLocalAuthString := ForceLocalAuthConfig
 	useLocalAuth := false
 	if useLocalAuthString == "true" {
@@ -187,25 +204,34 @@ func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigSe
 		utils.LogInfof("using local git auth config service\n")
 		authConfigService, err = factory.CreateLocalGitAuthConfigService()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		utils.LogInfof("using git auth config service\n")
 		authConfigService, err = factory.CreateGitAuthConfigService(ns, "")
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	config, err := authConfigService.LoadConfig()
 	if err != nil {
-		return nil, fmt.Errorf("error loading auth config: %s", err)
+		return nil, nil, fmt.Errorf("error loading auth config: %s", err)
 	}
 
 	if config == nil {
-		return nil, fmt.Errorf("auth config is nil but no error was returned by LoadConfig")
+		return nil, nil, fmt.Errorf("auth config is nil but no error was returned by LoadConfig")
 	}
 
+	return authConfigService, config, nil
+}
+
+// getGitProviderWithUserFunc returns a git provider that uses default credentials stored in the jx-auth-configmap or in ~/.jx/gitAuth.yaml
+func (t *TestOptions) getGitProviderWithUserFunc(userAuthFunc func(auth.ConfigService, *auth.AuthConfig, *auth.AuthServer) (*auth.UserAuth, error)) (gits.GitProvider, error) {
+	authConfigService, config, err := t.getAuthConfig()
+	if err != nil {
+		return nil, err
+	}
 	authServer := config.CurrentAuthServer()
 	if authServer == nil {
 		return nil, fmt.Errorf("no config for git auth server found")
@@ -253,18 +279,6 @@ func (t *TestOptions) GitProviderURL() (string, error) {
 	}
 
 	return gitServers[0].Url, nil
-}
-
-func (t *TestOptions) GitHubClient() *github.Client {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: t.GitHubToken()},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-
-	client := github.NewClient(tc)
-	Expect(client).ShouldNot(BeNil())
-	return client
 }
 
 // GitHubToken returns the GitHub token for the pipeline user.
@@ -649,11 +663,12 @@ func (t *TestOptions) ApprovePullRequestFromLogOutput(provider gits.GitProvider,
 	repoStruct := &gits.GitRepository{
 		Name:         gitInfo.Name,
 		Organisation: gitInfo.Organisation,
+		Project:      gitInfo.Organisation,
 	}
 	pr, err := provider.GetPullRequest(gitInfo.Organisation, repoStruct, createdPR.PullRequestNumber)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(pr).ShouldNot(BeNil())
-	Expect(*pr.State).Should(Equal("open"))
+	Expect(*pr.State).Should(Or(Equal("open"), Equal("opened")))
 
 	By("approving the PR")
 	err = t.ApprovePullRequest(provider, approverProvider, pr)
@@ -664,8 +679,18 @@ func (t *TestOptions) ApprovePullRequestFromLogOutput(provider gits.GitProvider,
 func (t *TestOptions) AddApproverAsCollaborator(provider gits.GitProvider, approverProvider gits.GitProvider, repoOwner string, repoName string) error {
 	err := provider.AddCollaborator(PullRequestApproverUsername, repoOwner, repoName)
 	if err != nil {
+		// Ignore the error and just return if the provider is gitlab and the error contains "Member already exists"
+		if strings.Contains(err.Error(), "Member already exists") {
+			return nil
+		}
 		return err
 	}
+	// If the provider is BBS, just return
+	if provider.IsBitbucketServer() {
+		return nil
+	}
+	// Sleep a few seconds since the invitation doesn't seem to always show up promptly.
+	time.Sleep(15 * time.Second)
 	invites, _, err := approverProvider.ListInvitations()
 	if err != nil {
 		return err
@@ -685,6 +710,7 @@ func (t *TestOptions) GetPullRequestByNumber(provider gits.GitProvider, repoOwne
 	repoStruct := &gits.GitRepository{
 		Name:         repoName,
 		Organisation: repoOwner,
+		Project:      repoOwner,
 	}
 	pr, err := provider.GetPullRequest(repoOwner, repoStruct, prNumber)
 	if err != nil {
@@ -696,7 +722,7 @@ func (t *TestOptions) GetPullRequestByNumber(provider gits.GitProvider, repoOwne
 
 // WaitForPullRequestCommitStatus checks a pull request until either it reaches a given status in all the contexts supplied
 // or a timeout is reached.
-func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, pr *gits.GitPullRequest, desiredStatus string, contexts []string) {
+func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, pr *gits.GitPullRequest, contexts []string, desiredStatuses ...string) {
 	Expect(pr.LastCommitSha).ShouldNot(Equal(""))
 
 	checkPRStatuses := func() error {
@@ -706,11 +732,21 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 			return err
 		}
 		contextStatuses := make(map[string]*gits.GitRepoStatus)
-		for _, status := range statuses {
+		// For GitHub, only set the status if it's the first one we see for the context, which is always the newest
+		// For GitLab, ordering is actually the inverse,
+
+		var orderedStatuses []*gits.GitRepoStatus
+		if provider.Kind() == "gitlab" {
+			for i := len(statuses) - 1; i >= 0; i-- {
+				orderedStatuses = append(orderedStatuses, statuses[i])
+			}
+		} else {
+			orderedStatuses = append(orderedStatuses, statuses...)
+		}
+		for _, status := range orderedStatuses {
 			if status == nil {
 				return err
 			}
-			// Only set the status if it's the first one we see for the context, which is always the newest
 			if _, exists := contextStatuses[status.Context]; !exists {
 				contextStatuses[status.Context] = status
 			}
@@ -723,7 +759,7 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 			status, ok := contextStatuses[c]
 			if !ok || status == nil {
 				wrongStatuses = append(wrongStatuses, fmt.Sprintf("%s: missing", c))
-			} else if status.State != desiredStatus {
+			} else if !isADesiredStatus(status.State, desiredStatuses) {
 				wrongStatuses = append(wrongStatuses, fmt.Sprintf("%s: %s", c, status.State))
 			} else {
 				matchedStatus = status
@@ -731,7 +767,7 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 		}
 
 		if len(wrongStatuses) > 0 {
-			errMsg := fmt.Sprintf("wrong or missing status for PR %s/%s/%d context(s): %s, expected %s", pr.Owner, pr.Repo, *pr.Number, strings.Join(wrongStatuses, ", "), desiredStatus)
+			errMsg := fmt.Sprintf("wrong or missing status for PR %s/%s/%d context(s): %s, expected %s", pr.Owner, pr.Repo, *pr.Number, strings.Join(wrongStatuses, ", "), strings.Join(desiredStatuses, ","))
 			utils.LogInfof("WARNING: %s\n", errMsg)
 			return errors.New(errMsg)
 		}
@@ -739,7 +775,7 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 		// Check if the link exists and has the appropriate prefix, if appropriate
 		if LighthouseBaseReportURL != "" && matchedStatus != nil {
 			// We don't care about the build number.
-			expectedPrefix := fmt.Sprintf("%s/teams/jx/projects/%s/%s/PR-%d/", LighthouseBaseReportURL, pr.Owner, pr.Repo, *pr.Number)
+			expectedPrefix := fmt.Sprintf("%s/teams/jx/projects/%s/%s/PR-%d/", LighthouseBaseReportURL, strings.ToLower(pr.Owner), pr.Repo, *pr.Number)
 			if !strings.HasPrefix(matchedStatus.TargetURL, expectedPrefix) {
 				errMsg := fmt.Sprintf("wrong or missing build link on status for PR %s/%s/%s. Expected %s, got %s", pr.Owner, pr.Repo, pr.NumberString(), expectedPrefix, matchedStatus.TargetURL)
 				utils.LogInfof("WARNING: %s\n", errMsg)
@@ -750,17 +786,40 @@ func (t *TestOptions) WaitForPullRequestCommitStatus(provider gits.GitProvider, 
 		return nil
 	}
 
-	err := RetryExponentialBackoff(TimeoutPipelineActivityComplete, checkPRStatuses)
+	exponentialBackOff := backoff.NewExponentialBackOff()
+	exponentialBackOff.MaxElapsedTime = TimeoutPipelineActivityComplete
+	exponentialBackOff.MaxInterval = 10 * time.Second
+	exponentialBackOff.Reset()
+	err := backoff.Retry(checkPRStatuses, exponentialBackOff)
+
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-// TailBuildLog tails the logs of the specified job
-func (t *TestOptions) TailBuildLog(jobName string, maxDuration time.Duration) {
+func isADesiredStatus(status string, desiredStatuses []string) bool {
+	for _, s := range desiredStatuses {
+		if status == s {
+			return true
+		}
+	}
+	return false
+}
+
+// TailSpecificBuildLog tails the logs of the specified job and number, not passing a specific build number to "jx get build logs"
+// if the build number is 0.
+func (t *TestOptions) TailSpecificBuildLog(jobName string, buildNumber int, maxDuration time.Duration) {
 	args := []string{"get", "build", "logs", "--wait", jobName}
+	if buildNumber != 0 {
+		args = append(args, "--build", strconv.Itoa(buildNumber))
+	}
 	argsStr := strings.Join(args, " ")
 	By(fmt.Sprintf("checking that there is a job built successfully by calling jx %s", argsStr), func() {
 		t.ExpectJxExecution(t.WorkDir, maxDuration, 0, args...)
 	})
+}
+
+// TailBuildLog tails the logs of the specified job, getting the latest build.
+func (t *TestOptions) TailBuildLog(jobName string, maxDuration time.Duration) {
+	t.TailSpecificBuildLog(jobName, 0, maxDuration)
 }
 
 // ThereShouldBeAJobThatCompletesSuccessfully asserts that the given job name completes within the given duration
@@ -821,7 +880,7 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 	return buildNumber
 }
 
-// RetryExponentialBackoff retries the given function up to the maximum duration
+// Retry retries the given function up to the maximum duration
 func Retry(maxDuration time.Duration, f func() error) error {
 	exponentialBackOff := backoff.NewExponentialBackOff()
 	exponentialBackOff.MaxElapsedTime = maxDuration
@@ -965,11 +1024,16 @@ func (t *TestOptions) CreateIssueAndAssignToUserWithChatOpsCommand(issue *gits.G
 
 	utils.LogInfof("created issue with number %d\n", *createdIssue.Number)
 
+	cmd := "assign"
+	// Deal with GitLab hijacking /assign
+	if provider.Kind() == "gitlab" {
+		cmd = "lh-" + cmd
+	}
 	err = provider.CreateIssueComment(
 		issue.Owner,
 		issue.Repo,
 		*createdIssue.Number,
-		fmt.Sprintf("/assign %s", provider.CurrentUsername()),
+		fmt.Sprintf("/%s %s", cmd, provider.CurrentUsername()),
 	)
 	if err != nil {
 		return err
@@ -1039,10 +1103,13 @@ func (t *TestOptions) ApprovePullRequest(defaultProvider gits.GitProvider, appro
 	Expect(err).ShouldNot(HaveOccurred())
 
 	By("approving the PR")
-	err = approverProvider.AddPRComment(pullRequest, "/approve")
-	if err != nil {
-		return err
+	approveCmd := "approve"
+	if approverProvider.Kind() == "gitlab" {
+		approveCmd = "lh-" + approveCmd
 	}
+
+	err = approverProvider.AddPRComment(pullRequest, fmt.Sprintf("/%s", approveCmd))
+	Expect(err).ShouldNot(HaveOccurred())
 
 	By("waiting for the approved label to appear")
 	return t.ExpectThatPullRequestHasLabel(defaultProvider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, "approved")
@@ -1058,6 +1125,7 @@ func (t *TestOptions) AttemptToLGTMOwnPullRequest(provider gits.GitProvider, pul
 	repoStruct := &gits.GitRepository{
 		Name:         pullRequest.Repo,
 		Organisation: pullRequest.Owner,
+		Project:      pullRequest.Owner,
 	}
 	updatedPullRequest, err := provider.GetPullRequest(pullRequest.Owner, repoStruct, *pullRequest.Number)
 	if err != nil {
@@ -1113,37 +1181,89 @@ func (t *TestOptions) AddHoldLabelToPullRequestWithChatOpsCommand(provider gits.
 	return t.ExpectThatPullRequestDoesNotHaveLabel(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, "do-not-merge/hold")
 }
 
+// AddReviewerToPullRequestWithChatOpsCommand returns an error of the command fails to add the reviewer to either the reviewers list or the assignees list
+func (t *TestOptions) AddReviewerToPullRequestWithChatOpsCommand(provider gits.GitProvider, approverProvider gits.GitProvider, pullRequest *gits.GitPullRequest, reviewer string) error {
+	By("adding the approver user as a collaborator")
+	err := t.AddApproverAsCollaborator(provider, approverProvider, pullRequest.Owner, pullRequest.Repo)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	By(fmt.Sprintf("Adding the '/cc %s' comment and waiting for %s to be a reviewer", reviewer, reviewer))
+	err = provider.AddPRComment(pullRequest, fmt.Sprintf("/cc %s", reviewer))
+	if err != nil {
+		return err
+	}
+
+	err = t.ExpectThatPullRequestMatches(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, func(request *scm.PullRequest) error {
+		if len(request.Assignees) == 0 && len(request.Reviewers) == 0 {
+			return fmt.Errorf("expected %s as reviewer, but no reviewers or assignees set on PR")
+		}
+		for _, r := range request.Reviewers {
+			if r.Login == reviewer {
+				return nil
+			}
+		}
+		for _, a := range request.Assignees {
+			if a.Login == reviewer {
+				return nil
+			}
+		}
+		return fmt.Errorf("expected %s as a reviewer, but the user is not present in reviewers or assignees on the PR", reviewer)
+	})
+	if err != nil {
+		return err
+	}
+
+	By(fmt.Sprintf("Adding the '/uncc %s' comment and waiting for the user to be gone from reviewers", reviewer))
+	err = provider.AddPRComment(pullRequest, fmt.Sprintf("/uncc %s", reviewer))
+	if err != nil {
+		return err
+	}
+
+	return t.ExpectThatPullRequestMatches(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, func(request *scm.PullRequest) error {
+		if len(request.Assignees) == 0 && len(request.Reviewers) == 0 {
+			return nil
+		}
+		for _, r := range request.Reviewers {
+			if r.Login == reviewer {
+				return fmt.Errorf("expected %s to be removed from reviewers but is still present", reviewer)
+			}
+		}
+		for _, a := range request.Assignees {
+			if a.Login == reviewer {
+				return fmt.Errorf("expected %s to be removed from assignees but is still present", reviewer)
+			}
+		}
+		return nil
+	})
+}
+
 // AddWIPLabelToPullRequestByUpdatingTitle adds the WIP label by adding WIP to a pull request's title
 func (t *TestOptions) AddWIPLabelToPullRequestByUpdatingTitle(provider gits.GitProvider, pullRequest *gits.GitPullRequest) error {
 	originalTitle := pullRequest.Title
 
 	By("Changing the pull request title to start with WIP and waiting for the label to be present")
-	pullRequestArgs := &gits.GitPullRequestArguments{
-		Title: fmt.Sprintf("WIP %s", originalTitle),
-		GitRepository: &gits.GitRepository{
-			Organisation: pullRequest.Owner,
-			Name:         pullRequest.Repo,
-		},
-	}
-	_, err := provider.UpdatePullRequest(pullRequestArgs, *pullRequest.Number)
+	scmClient, _, err := t.GetLighthouseSCMClient(provider)
 	if err != nil {
 		return err
 	}
 
+	input := &scm.PullRequestInput{
+		Title: fmt.Sprintf("WIP %s", originalTitle),
+	}
+	_, _, err = scmClient.PullRequests.Update(context.Background(), fmt.Sprintf("%s/%s", pullRequest.Owner, pullRequest.Repo), *pullRequest.Number, input)
+	if err != nil {
+		return err
+	}
 	err = t.ExpectThatPullRequestHasLabel(provider, *pullRequest.Number, pullRequest.Owner, pullRequest.Repo, "do-not-merge/work-in-progress")
 	if err != nil {
 		return err
 	}
 
 	By("Changing the pull request title to remove the WIP and waiting for the label to be gone")
-	pullRequestArgs = &gits.GitPullRequestArguments{
+	input = &scm.PullRequestInput{
 		Title: originalTitle,
-		GitRepository: &gits.GitRepository{
-			Organisation: pullRequest.Owner,
-			Name:         pullRequest.Repo,
-		},
 	}
-	_, err = provider.UpdatePullRequest(pullRequestArgs, *pullRequest.Number)
+	_, _, err = scmClient.PullRequests.Update(context.Background(), fmt.Sprintf("%s/%s", pullRequest.Owner, pullRequest.Repo), *pullRequest.Number, input)
 	if err != nil {
 		return err
 	}
@@ -1153,49 +1273,65 @@ func (t *TestOptions) AddWIPLabelToPullRequestByUpdatingTitle(provider gits.GitP
 
 // ExpectThatPullRequestHasLabel returns an error if the PR does not have the specified label
 func (t *TestOptions) ExpectThatPullRequestHasLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
-	f := func() error {
-		repoStruct := &gits.GitRepository{
-			Name:         repo,
-			Organisation: owner,
-		}
-		pullRequest, err := provider.GetPullRequest(owner, repoStruct, pullRequestNumber)
-		if err != nil {
-			return err
-		}
-		if len(pullRequest.Labels) < 1 {
+	return t.ExpectThatPullRequestMatches(provider, pullRequestNumber, owner, repo, func(request *scm.PullRequest) error {
+		if len(request.Labels) < 1 {
 			return fmt.Errorf("the pull request has no labels")
 		}
-		for _, l := range pullRequest.Labels {
-			if *l.Name == label {
+		for _, l := range request.Labels {
+			if l.Name == label {
 				return nil
 			}
 		}
 		return fmt.Errorf("the pull request does not have the specified label: %s", label)
+
+	})
+}
+
+// ExpectThatPullRequestDoesNotHaveLabel returns an error if the PR does have the specified label
+func (t *TestOptions) ExpectThatPullRequestDoesNotHaveLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
+	return t.ExpectThatPullRequestMatches(provider, pullRequestNumber, owner, repo, func(request *scm.PullRequest) error {
+		if len(request.Labels) < 1 {
+			return nil
+		}
+		for _, l := range request.Labels {
+			if l.Name == label {
+				return fmt.Errorf("the pull request has the specified label %s but shouldn't", label)
+			}
+		}
+		return nil
+
+	})
+}
+
+// ExpectThatPullRequestMatches returns an error if the PR does not satisfy the provided funciton
+func (t *TestOptions) ExpectThatPullRequestMatches(provider gits.GitProvider, pullRequestNumber int, owner, repo string, matchFunc func(request *scm.PullRequest) error) error {
+	_, lhClient, err := t.GetLighthouseSCMClient(provider)
+	if err != nil {
+		return err
+	}
+	f := func() error {
+		pullRequest, err := lhClient.GetPullRequest(owner, repo, pullRequestNumber)
+		if err != nil {
+			return err
+		}
+		return matchFunc(pullRequest)
 	}
 
 	return RetryExponentialBackoff(TimeoutProwActionWait, f)
 }
 
-// ExpectThatPullRequestDoesNotHaveLabel returns an error if the PR does have the specified label
-func (t *TestOptions) ExpectThatPullRequestDoesNotHaveLabel(provider gits.GitProvider, pullRequestNumber int, owner, repo, label string) error {
+// ExpectThatPullRequestHasCommentMatching returns an error if the PR does not have a comment matching the provided function
+func (t *TestOptions) ExpectThatPullRequestHasCommentMatching(provider gits.GitProvider, pullRequestNumber int, owner, repo string, matchFunc func(comments []*scm.Comment) error) error {
+	_, lhClient, err := t.GetLighthouseSCMClient(provider)
+	if err != nil {
+		return err
+	}
 	f := func() error {
-		repoStruct := &gits.GitRepository{
-			Name:         repo,
-			Organisation: owner,
-		}
-		pullRequest, err := provider.GetPullRequest(owner, repoStruct, pullRequestNumber)
+		comments, err := lhClient.ListPullRequestComments(owner, repo, pullRequestNumber)
 		if err != nil {
 			return err
 		}
-		if len(pullRequest.Labels) < 1 {
-			return nil
-		}
-		for _, l := range pullRequest.Labels {
-			if *l.Name == label {
-				return fmt.Errorf("the pull request has the specified label %s but shouldn't", label)
-			}
-		}
-		return nil
+		return matchFunc(comments)
 	}
 
 	return RetryExponentialBackoff(TimeoutProwActionWait, f)
@@ -1212,16 +1348,17 @@ func (t *TestOptions) WaitForPullRequestToMerge(provider gits.GitProvider, owner
 	repoStruct := &gits.GitRepository{
 		Name:         repo,
 		Organisation: owner,
+		Project:      owner,
 	}
 	waitForMergeFunc := func() error {
 		pr, err := provider.GetPullRequest(owner, repoStruct, prNumber)
 		if err != nil {
-			utils.LogInfof("WARNING: Error getting pull request: %s", err)
+			utils.LogInfof("WARNING: Error getting pull request: %s\n", err)
 			return err
 		}
 		if pr == nil {
 			err = fmt.Errorf("got a nil PR for %s", prURL)
-			utils.LogInfof("WARNING: %s", err)
+			utils.LogInfof("WARNING: %s\n", err)
 			return err
 		}
 		isMerged := pr.Merged
@@ -1229,7 +1366,7 @@ func (t *TestOptions) WaitForPullRequestToMerge(provider gits.GitProvider, owner
 			return nil
 		} else {
 			err = fmt.Errorf("PR %s not yet merged", prURL)
-			utils.LogInfof("WARNING: %s, sleeping and retrying", err)
+			utils.LogInfof("WARNING: %s, sleeping and retrying\n", err)
 			return err
 		}
 	}

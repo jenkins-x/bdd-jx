@@ -5,10 +5,12 @@
   "description": "A set of smoke test for JX UI",
   "scripts": {
     "cypress:open": "cypress open",
-    "test": "cypress run"
+    "test": "cypress run",
+    "proxy": "node proxy.js"
   },
   "devDependencies": {
-    "cypress": "^3.6.0",
-    "expect": "^24.9.0"
+    "cypress": "^4.7.0",
+    "expect": "^24.9.0",
+    "http-proxy": "^1.18.1"
   }
 }

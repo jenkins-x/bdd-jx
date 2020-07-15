@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/jenkins-x/bdd-jx/test/helpers"
-	cmd "github.com/jenkins-x/jx/pkg/cmd/clients"
+	cmd "github.com/jenkins-x/jx/v2/pkg/cmd/clients"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"io"

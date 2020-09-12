@@ -11,7 +11,7 @@ pipelineConfig:
             steps:
               - name: upload-binaries
                 command: make goreleaser
-                image: gcr.io/jenkinsxio/step-go-releaser
+                image: gcr.io/jenkinsxio/step-go-releaser:0.0.14
               - name: build
                 command: make bdd
                 env:

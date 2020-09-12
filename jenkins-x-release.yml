@@ -10,7 +10,8 @@ pipelineConfig:
           - name: bdd-stage
             steps:
               - name: create-tag
-                command: jx step next-version --use-git-tag-only
+                #command: jx step next-version --use-git-tag-only
+                command: git tag $VERSION
               - name: upload-binaries
                 command: make goreleaser
                 image: gcr.io/jenkinsxio/step-go-releaser:0.0.14

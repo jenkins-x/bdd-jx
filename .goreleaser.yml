@@ -9,9 +9,7 @@ builds:
   - id: jx-bdd
     # Path to main.go file or main package.
     # Default is `.`.
-    main: ""
-
-    gobinary: go test -c github.com/jenkins-x/bdd-jx/test/suite/quickstart
+    main: "test -c github.com/jenkins-x/bdd-jx/test/suite/quickstart"
 
     # Binary name.
     # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.

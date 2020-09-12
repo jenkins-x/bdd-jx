@@ -9,7 +9,7 @@ ROOT_PACKAGE := github.com/$(ORG_REPO)
 REV := $(shell git rev-parse --short HEAD 2> /dev/null || echo 'unknown')
 BRANCH     := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null  || echo 'unknown')
 BUILD_DATE := $(shell date +%Y%m%d-%H:%M:%S)
-VERSION ?= "1.0.0"
+VERSION ?= $(shell echo "$$(git for-each-ref refs/tags/ --count=1 --sort=-version:refname --format='%(refname:short)' 2>/dev/null)-dev+$(REV)" | sed 's/^v//')
 GO_VERSION := 1.13
 
 BUILDFLAGS :=

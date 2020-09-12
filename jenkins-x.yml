@@ -18,6 +18,9 @@ pipelineConfig:
                   value: jenkins-x@googlegroups.com
                 - name: XDG_CONFIG_HOME
                   value: "/builder/home"
+          - name: upload-binaries
+            command: make goreleaser
+            image: gcr.io/jenkinsxio/step-go-releaser
 
     pullRequest:
       pipeline:

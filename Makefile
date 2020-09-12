@@ -3,6 +3,14 @@ GO := GO111MODULE=on go
 
 PACKAGE_DIRS = $(shell $(GO) list ./test/...)
 
+ORG := jenkins-x
+ORG_REPO := $(ORG)/$(NAME)
+ROOT_PACKAGE := github.com/$(ORG_REPO)
+REV := $(shell git rev-parse --short HEAD 2> /dev/null || echo 'unknown')
+BRANCH     := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null  || echo 'unknown')
+BUILD_DATE := $(shell date +%Y%m%d-%H:%M:%S)
+GO_VERSION := 1.13
+
 BUILDFLAGS :=
 
 BUILD_TIME_CONFIG_FLAGS ?= ""
@@ -123,4 +131,8 @@ bdd-init:
 bdd: bdd-init $(SUITE)
 
 saas: bdd test-saas
+
+.PHONY: goreleaser
+goreleaser:
+	step-go-releaser --organisation=$(ORG) --revision=$(REV) --branch=$(BRANCH) --build-date=$(BUILD_DATE) --go-version=$(GO_VERSION) --root-package=$(ROOT_PACKAGE) --version=$(VERSION) --timeout 200m
 

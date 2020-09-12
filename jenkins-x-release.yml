@@ -11,7 +11,7 @@ pipelineConfig:
             steps:
               - name: create-tag
                 command: jx step next-version --use-git-tag-only
-              - sh: jx step tag --version \$(cat VERSION)
+              - sh: "jx step tag --version `$(cat VERSION)`"
                 image: gcr.io/jenkinsxio/builder-go
                 name: tag-version
               - name: upload-binaries

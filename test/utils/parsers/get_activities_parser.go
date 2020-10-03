@@ -1,6 +1,7 @@
 package parsers
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"regexp"
 	"strings"
@@ -53,7 +54,8 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 			line = strings.TrimSpace(line)
 			fields := activityLineRegex.FindStringSubmatch(line)
 			if len(fields) != 5 {
-				return nil, errors.Errorf("unable to parse %s as activity, entire output was: \n\n%s\n", line, s)
+				fmt.Printf("ignoring activity output line: %s\n", line)
+				continue
 			}
 			currentActivity = &Activity{
 				JobName:    fields[1],
@@ -77,6 +79,10 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 				currentStage = &Stage{
 					Name: line,
 				}
+			}
+			if currentActivity == nil {
+				currentActivity = &Activity{}
+				answer[currentActivity.JobName] = currentActivity
 			}
 			currentActivity.Stages = append(currentActivity.Stages, currentStage)
 		} else {

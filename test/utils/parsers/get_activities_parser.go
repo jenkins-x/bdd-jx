@@ -2,9 +2,10 @@ package parsers
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 var activityLineRegex = regexp.MustCompile(`(?m:(^.*?)\s*((?:\d+h)?(?:\d+m)?(?:\d+s))?\s*((?:\d+h)?(?:\d+m)?(?:\d+s))\s*(.*)$)`)
@@ -107,6 +108,9 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 				return nil, errors.Errorf("Unable to parse %s as step, entire output was %s", line, s)
 			}
 		}
+	}
+	if currentActivity.Status == "" && len(currentActivity.Stages) > 0 {
+		currentActivity.Status = currentActivity.Stages[0].Status
 	}
 	return answer, nil
 }

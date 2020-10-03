@@ -1,6 +1,7 @@
 package parsers_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/jenkins-x/bdd-jx/test/utils/parsers"
@@ -22,5 +23,9 @@ cb-kubecd/bdd-gh-1601660823/PR-1 #1
 	activity := activities[key]
 	assert.NotNil(t, activity, "no activity found for key %s", key)
 
-	t.Logf("found activity %#v", activity)
+	t.Logf("has status %s\n", activity.Status)
+	assert.True(t, strings.HasPrefix(activity.Status, "Succeeded"), "should have succeeded %s", activity.Status)
+
+	t.Logf("found activity %#v\n", activity)
+
 }

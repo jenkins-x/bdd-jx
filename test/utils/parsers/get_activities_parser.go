@@ -40,6 +40,7 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 	var currentActivity *Activity
 	var currentStage *Stage
 	headerFound := false
+	defaultJobName := ""
 	for _, line := range lines {
 		// Ignore any output before the header
 		if strings.HasPrefix(line, "STEP") {
@@ -54,6 +55,9 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 			line = strings.TrimSpace(line)
 			fields := activityLineRegex.FindStringSubmatch(line)
 			if len(fields) != 5 {
+				if defaultJobName == "" {
+					defaultJobName = line
+				}
 				fmt.Printf("ignoring activity output line: %s\n", line)
 				continue
 			}
@@ -81,7 +85,9 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 				}
 			}
 			if currentActivity == nil {
-				currentActivity = &Activity{}
+				currentActivity = &Activity{
+					JobName: defaultJobName,
+				}
 				answer[currentActivity.JobName] = currentActivity
 			}
 			currentActivity.Stages = append(currentActivity.Stages, currentStage)

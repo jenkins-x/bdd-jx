@@ -17,4 +17,10 @@ cb-kubecd/bdd-gh-1601660823/PR-1 #1
 	activities, err := parsers.ParseJxGetActivities(out)
 	assert.NoError(t, err)
 	assert.Len(t, activities, 1)
+
+	key := "cb-kubecd/bdd-gh-1601660823/PR-1 #1"
+	activity := activities[key]
+	assert.NotNil(t, activity, "no activity found for key %s", key)
+
+	t.Logf("found activity %#v", activity)
 }

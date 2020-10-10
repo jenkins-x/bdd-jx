@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 var activityLineRegex = regexp.MustCompile(`(?m:(^.*?)\s*((?:\d+h)?(?:\d+m)?(?:\d+s))?\s*((?:\d+h)?(?:\d+m)?(?:\d+s))\s*(.*)$)`)
@@ -105,7 +103,7 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 				}
 				currentStage.Steps = append(currentStage.Steps, step)
 			} else {
-				return nil, errors.Errorf("Unable to parse %s as step, entire output was %s", line, s)
+				fmt.Printf("Ignoring output line: %s", line)
 			}
 		}
 	}

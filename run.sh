@@ -52,4 +52,4 @@ export GH_USERNAME="$GIT_USERNAME"
 
 echo "Running the BDD tests for $QUICKSTART"
 
-./build/bddjx -ginkgo.focus=$QUICKSTART -test.v
+bddjx -ginkgo.focus=$QUICKSTART -test.v

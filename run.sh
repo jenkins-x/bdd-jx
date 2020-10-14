@@ -52,6 +52,20 @@ export BDD_DISABLE_PIPELINEACTIVITY_CHECK="true"
 export GIT_ORGANISATION="$GH_OWNER"
 export GH_USERNAME="$GIT_USERNAME"
 
+# lets ensure that git is setup
+export CURRENT_GIT_USER_NAME=$(git config --global --get user.name)
+export CURRENT_GIT_USER_EMAIL=$(git config --global --get user.email)
+
+if [ -z "$CURRENT_GIT_USER_NAME" ]
+then
+    git config --global --add user.name ${GIT_USERNAME:-jenkins-x-bot}
+fi
+if [ -z "$CURRENT_GIT_USER_EMAIL" ]
+then
+    git config --global --add user.email ${GIT_EMAIL:-jenkins-x@googlegroups.com}
+fi
+
+
 echo "Running the BDD tests for $QUICKSTART"
 
 bddjx -ginkgo.focus=$QUICKSTART -test.v

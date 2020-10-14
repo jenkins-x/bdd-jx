@@ -68,11 +68,6 @@ then
     git config --global --add user.email ${GIT_EMAIL:-jenkins-x@googlegroups.com}
 fi
 
-export CURRENT_GIT_USER_NAME=$(git config --global --get user.name)
-export CURRENT_GIT_USER_EMAIL=$(git config --global --get user.email)
-
-echo "git user name:  $CURRENT_GIT_USER_NAME"
-echo "git user email: $CURRENT_GIT_USER_EMAIL"
 
 echo "Running the BDD tests for $QUICKSTART"
 

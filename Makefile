@@ -116,7 +116,11 @@ test-single-import:
 	$(GO) test $(TESTFLAGS) ./test/suite/_import -ginkgo.focus=${BDD_TEST_SINGLE_IMPORT}
 
 testbin:
-	$(GO) test $(TESTFLAGS) -c github.com/jenkins-x/bdd-jx/test/suite/quickstart -o build/bddjx $(TEST_BUILDFLAGS)
+	$(GO) test $(TESTFLAGS) -c github.com/jenkins-x/bdd-jx/test/suite/main -o build/bddjx $(TEST_BUILDFLAGS)
+#	$(GO) test $(TESTFLAGS) -c github.com/jenkins-x/bdd-jx/test/suite/quickstart -o build/bddjx $(TEST_BUILDFLAGS)
+
+linux:
+	GOOS=linux GOARCH=amd64 $(GO) test $(TESTFLAGS) -c github.com/jenkins-x/bdd-jx/test/suite/main -o build/linux/bddjx $(TEST_BUILDFLAGS)
 
 bdd-init:
 	echo "About to run the BDD tests on the current cluster"

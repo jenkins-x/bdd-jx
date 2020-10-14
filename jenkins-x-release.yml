@@ -14,13 +14,17 @@ pipelineConfig:
               - sh: "jx step tag --version $(cat VERSION)"
                 image: gcr.io/jenkinsxio/builder-go
                 name: tag-version
-              - name: upload-binaries
-                command: make goreleaser
-                image: gcr.io/jenkinsxio/step-go-releaser:0.0.14
+#              - name: upload-binaries
+#                command: make goreleaser
+#                image: gcr.io/jenkinsxio/step-go-releaser:0.0.14
               - name: build
-                command: make build
+                command: make linux
                 env:
                 - name: GIT_AUTHOR_NAME
                   value: jenkins-x-bot
                 - name: GIT_AUTHOR_EMAIL
                   value: jenkins-x@googlegroups.com
+              - name: build-and-push-image
+                image: gcr.io/kaniko-project/executor:9912ccbf8d22bbafbf971124600fbb0b13b9cbd6
+                command: /kaniko/executor
+                args: ['--dockerfile=/workspace/source/Dockerfile','--destination=gcr.io/jenkinsxio/jx-bdd:$(inputs.params.version)','--destination=gcr.io/jenkinsxio/jx-bdd:latest','--context=/workspace/source','--cache-dir=/workspace']

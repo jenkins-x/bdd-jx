@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+echo "starting the Jenkins X BDD tests..."
+
 if [ -z "$GIT_USERNAME" ]
 then
     export GIT_USERNAME="jenkins-x-labs-bot"

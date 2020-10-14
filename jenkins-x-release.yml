@@ -26,5 +26,5 @@ pipelineConfig:
                   value: jenkins-x@googlegroups.com
               - name: build-and-push-image
                 image: gcr.io/kaniko-project/executor:9912ccbf8d22bbafbf971124600fbb0b13b9cbd6
-                command: /kaniko/executor
-                args: ['--dockerfile=/workspace/source/Dockerfile','--destination=gcr.io/jenkinsxio/jx-bdd:$(inputs.params.version)','--destination=gcr.io/jenkinsxio/jx-bdd:latest','--context=/workspace/source','--cache-dir=/workspace']
+                command: /busybox/sh
+                args: ['-c', 'export VERSION=`cat VERSION` && /kaniko/executor --dockerfile=/workspace/source/Dockerfile --destination=gcr.io/jenkinsxio/bdd-jx:$VERSION --destination=gcr.io/jenkinsxio/bdd-jx:latest --context=/workspace/source --cache-dir=/workspace']

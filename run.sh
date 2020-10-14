@@ -16,6 +16,11 @@ then
     export GH_OWNER="cb-kubecd"
 fi
 
+if [ -z "$QUICKSTART" ]
+then
+    export QUICKSTART="golang"
+fi
+
 export GIT_USER_EMAIL="jenkins-x@googlegroups.com"
 
 
@@ -45,8 +50,6 @@ export BDD_DISABLE_PIPELINEACTIVITY_CHECK="true"
 export GIT_ORGANISATION="$GH_OWNER"
 export GH_USERNAME="$GIT_USERNAME"
 
-echo "Running the BDD tests"
+echo "Running the BDD tests for $QUICKSTART"
 
-# -ginkgo.focus=golang
-
-./build/bddjx  -test.v
+./build/bddjx -ginkgo.focus=$QUICKSTART -test.v

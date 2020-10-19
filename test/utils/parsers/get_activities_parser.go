@@ -107,7 +107,7 @@ func ParseJxGetActivities(s string) (map[string]*Activity, error) {
 			}
 		}
 	}
-	if currentActivity.Status == "" && len(currentActivity.Stages) > 0 {
+	if currentActivity != nil && currentActivity.Status == "" && len(currentActivity.Stages) > 0 {
 		currentActivity.Status = currentActivity.Stages[0].Status
 	}
 	return answer, nil

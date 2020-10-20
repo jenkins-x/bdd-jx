@@ -39,6 +39,9 @@ fi
 
 export GITHUB_TOKEN="${GIT_TOKEN//[[:space:]]}"
 
+# lets turn off color output
+export TERM=dumb
+
 export JX_DISABLE_DELETE_APP="true"
 export JX_DISABLE_DELETE_REPO="true"
 

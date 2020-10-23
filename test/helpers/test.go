@@ -831,10 +831,10 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 	//out := r.RunWithOutput("get", "activities", "--filter", jobName, "--build", "1")
 	args := []string{"get", "activities", "--filter", jobName}
 	argsStr := strings.Join(args, " ")
+	out := ""
 	var activities map[string]*parsers.Activity
 	f := func() error {
 		var err error
-		var out string
 		By(fmt.Sprintf("calling jx %s", argsStr), func() {
 			out, err = r.RunWithOutput(args...)
 		})
@@ -847,6 +847,9 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 		//utils.ExpectNoError(err)
 		if err != nil {
 			utils.LogInfof("got error parsing activities: %s\n", err.Error())
+		}
+		if len(activities) == 0 {
+			return errors.Errorf("no activities yet")
 		}
 		return err
 	}
@@ -862,14 +865,14 @@ func (t *TestOptions) ThereShouldBeAJobThatCompletesSuccessfully(jobName string,
 	activityKey := fmt.Sprintf("%s #%d", jobName, 1)
 	By(fmt.Sprintf("finding the activity for %s in %v", activityKey, activities), func() {
 		if activities != nil {
-			Expect(activities).Should(HaveLen(1), fmt.Sprintf("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v", len(activities), jobName, activities))
+			Expect(activities).Should(HaveLen(1), fmt.Sprintf("should be one activity but found %d having run jx get activities --filter %s --build 1; activities %v for output %s", len(activities), jobName, activities, out))
 			activity, ok := activities[fmt.Sprintf("%s #%d", jobName, 1)]
 			if !ok {
 				// TODO lets see if the build is number 2 instead which it is for tekton currently
 				activity, ok = activities[fmt.Sprintf("%s #%d", jobName, 2)]
 				buildNumber = 2
 			}
-			Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #1 or #2", jobName))
+			Expect(ok).Should(BeTrue(), fmt.Sprintf("could not find job with name %s #1 or #2 for output: %s", jobName, out))
 			utils.LogInfof("build status for '%s' is '%s'\n", jobName+"-"+strconv.Itoa(buildNumber), activity.Status)
 
 			// TODO we should wait for Running to turn into Succeeded...

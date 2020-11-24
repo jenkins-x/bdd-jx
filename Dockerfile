@@ -1,4 +1,4 @@
-FROM gcr.io/jenkinsxio/jx-cli-base:0.0.36
+FROM gcr.io/jenkinsxio/jx-cli-base:0.0.37
 
 COPY ./build/linux/bddjx /usr/bin/bddjx
 COPY run.sh /usr/bin/runbddjx.sh

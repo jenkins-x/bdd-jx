@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	includeApps = "jx-app-jacoco:0.0.139"
+	includeApps = "jx-app-jacoco:0.0.123"
 
 	uiAppName    = "jx-app-ui"
 	uiAppVersion = utils.GetEnv("JX_APP_VERSION", "0.0.59")

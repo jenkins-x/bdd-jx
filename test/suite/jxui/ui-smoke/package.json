@@ -9,7 +9,7 @@
     "proxy": "node proxy.js"
   },
   "devDependencies": {
-    "cypress": "^4.7.0",
+    "cypress": "^4.12.1",
     "expect": "^24.9.0",
     "http-proxy": "^1.18.1"
   }
